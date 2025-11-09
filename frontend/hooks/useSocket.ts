@@ -8,36 +8,51 @@ export const useSocket = () => {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    // Connexion au backend sur le port 3001
+    // Initialiser Socket.IO une seule fois
     if (!socketRef.current) {
+      console.log('🔌 Tentative de connexion à Socket.IO...');
+      
       socketRef.current = io('https://localhost:3001', {
         path: '/socket.io',
         transports: ['websocket', 'polling'],
         reconnection: true,
-        reconnectionAttempts: 5,
+        reconnectionAttempts: 10,
         reconnectionDelay: 1000,
+        timeout: 20000,
         secure: true,
-        rejectUnauthorized: false, // Pour certificats auto-signés
+        rejectUnauthorized: false, // Important pour certificats auto-signés
       });
 
       socketRef.current.on('connect', () => {
-        console.log('✅ Socket connecté:', socketRef.current?.id);
+        console.log('✅ Socket connecté avec succès !');
+        console.log('📡 Socket ID:', socketRef.current?.id);
         setIsConnected(true);
       });
 
-      socketRef.current.on('disconnect', () => {
-        console.log('❌ Socket déconnecté');
+      socketRef.current.on('disconnect', (reason) => {
+        console.log('❌ Socket déconnecté:', reason);
         setIsConnected(false);
       });
 
       socketRef.current.on('connect_error', (error) => {
-        console.error('🔴 Erreur connexion:', error.message);
+        console.error('🔴 Erreur de connexion Socket.IO:', error.message);
+        console.error('Type d\'erreur:', error);
         setIsConnected(false);
+      });
+
+      socketRef.current.on('reconnect_attempt', (attempt) => {
+        console.log(`🔄 Tentative de reconnexion #${attempt}...`);
+      });
+
+      socketRef.current.on('reconnect', (attempt) => {
+        console.log(`✅ Reconnecté après ${attempt} tentatives`);
+        setIsConnected(true);
       });
     }
 
     return () => {
       if (socketRef.current) {
+        console.log('🔌 Déconnexion du socket...');
         socketRef.current.disconnect();
         socketRef.current = null;
       }

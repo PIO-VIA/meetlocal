@@ -28,16 +28,18 @@ const server = https.createServer(options, app);
 // Configuration Socket.IO avec CORS pour Next.js
 const io = new Server(server, {
     cors: {
-        origin: [
-            'http://localhost:3000',
-            'https://localhost:3000'
-        ],
+        origin: function(origin, callback) {
+            // Accepter toutes les origines en développement
+            console.log('🔍 Origine de la requête:', origin);
+            callback(null, true);
+        },
         methods: ['GET', 'POST'],
         credentials: true
     },
     pingTimeout: 60000,
     pingInterval: 25000,
-    transports: ['websocket', 'polling']
+    transports: ['websocket', 'polling'],
+    allowEIO3: true
 });
 
 // Middleware
