@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useSocket } from '@/hooks/useSocket';
-import { useWebRTC } from '@/hooks/useWebRTC';
+import { useMediasoup } from '@/hooks/useMediasoup';
 import VideoContainer from '@/components/Meeting/VideoContainer';
 import ControlButtons from '@/components/Meeting/ControlButtons';
 import ParticipantsList from '@/components/Meeting/ParticipantsList';
@@ -18,7 +18,7 @@ export default function RoomPage() {
     : null;
 
   const { socket, isConnected } = useSocket();
-  const { localStream, remoteStreams, startCamera, stopCamera } = useWebRTC(
+  const { localStream, remoteStreams, startCamera, stopCamera } = useMediasoup(
     socket,
     roomId || ''
   );
