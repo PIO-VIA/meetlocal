@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'LOCAL MEET - Visioconférence Locale',
   description: 'Solution de visioconférence sécurisée en réseau local',
-  keywords: ['visioconférence', 'local', 'webrtc', 'meeting'],
+  keywords: ['visioconférence', 'local', 'mediasoup', 'meeting'],
 };
 
 export default function RootLayout({
