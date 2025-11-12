@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
+import { Video, XCircle, Info, Rocket } from 'lucide-react';
 
 interface CreateMeetingFormProps {
   socket: Socket | null;
@@ -73,7 +74,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
     <div className="bg-white rounded-2xl shadow-xl p-8">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-          <span className="text-2xl">🎥</span>
+          <span className="text-2xl"><Video size={24} /></span>
         </div>
         <h2 className="text-2xl font-bold text-gray-800">
           Créer une nouvelle réunion
@@ -82,7 +83,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
 
       {error && (
         <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
-          <p className="font-medium">❌ {error}</p>
+          <p className="font-medium"><XCircle size={16} /> {error}</p>
         </div>
       )}
 
@@ -118,7 +119,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
             disabled={loading}
           />
           <p className="mt-2 text-sm text-gray-500">
-            ℹ️ Un identifiant unique sera généré automatiquement
+            <Info size={16} /> Un identifiant unique sera généré automatiquement
           </p>
         </div>
 
@@ -141,7 +142,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">
-              🚀 Lancer la réunion
+              <Rocket size={20} /> Lancer la réunion
             </span>
           )}
         </button>

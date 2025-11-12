@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
+import { DoorOpen, XCircle, Info, CheckCircle } from 'lucide-react';
 
 interface JoinMeetingFormProps {
   socket: Socket | null;
@@ -98,7 +99,7 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
     <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-          <span className="text-2xl">🚪</span>
+          <span className="text-2xl"><DoorOpen size={24} /></span>
         </div>
         <h2 className="text-2xl font-bold text-gray-800">
           Rejoindre une réunion
@@ -107,7 +108,7 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
 
       {error && (
         <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
-          <p className="font-medium">❌ {error}</p>
+          <p className="font-medium"><XCircle size={16} /> {error}</p>
         </div>
       )}
 
@@ -142,7 +143,7 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
             disabled={loading}
           />
           <p className="mt-2 text-sm text-gray-500">
-            ℹ️ Si vide, vous rejoindrez la première réunion disponible
+            <Info size={16} /> Si vide, vous rejoindrez la première réunion disponible
           </p>
         </div>
 
@@ -165,7 +166,7 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">
-              ✅ Rejoindre maintenant
+              <CheckCircle size={20} /> Rejoindre maintenant
             </span>
           )}
         </button>

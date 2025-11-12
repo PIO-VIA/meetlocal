@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
+import { MicOff, Mic, ScreenShare, Video, VideoOff, PhoneOff, XSquare} from 'lucide-react';
 
 interface ControlButtonsProps {
   localStream: MediaStream | null;
@@ -72,7 +73,7 @@ export default function ControlButtons({
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({
           video: {
-            cursor: 'always',
+            // cursor: 'always', // Removed as it is not part of MediaTrackConstraints
             displaySurface: 'monitor' as any,
             frameRate: { ideal: 30, max: 60 }
           },
@@ -156,7 +157,7 @@ export default function ControlButtons({
         } ${!localStream && 'opacity-50 cursor-not-allowed'}`}
         title={isMicMuted ? 'Activer le micro' : 'Couper le micro'}
       >
-        <span className="text-2xl">{isMicMuted ? '🔇' : '🎤'}</span>
+        <span className="text-2xl">{isMicMuted ? <MicOff size={24} /> : <Mic size={24} />}</span>
       </button>
 
       {/* Camera */}
@@ -169,7 +170,7 @@ export default function ControlButtons({
         }`}
         title={isCameraOn ? 'Arrêter la caméra' : 'Démarrer la caméra'}
       >
-        <span className="text-2xl">{isCameraOn ? '📹' : '📷'}</span>
+        <span className="text-2xl">{isCameraOn ? <Video size={24} /> : <VideoOff size={24} />}</span>
       </button>
 
       {/* Screen Share */}
@@ -182,7 +183,7 @@ export default function ControlButtons({
         }`}
         title={isScreenSharing ? 'Arrêter le partage' : 'Partager l\'écran'}
       >
-        <span className="text-2xl">🖥️</span>
+        <span className="text-2xl"><ScreenShare size={24} /></span>
       </button>
 
       {/* Separator */}
@@ -194,7 +195,7 @@ export default function ControlButtons({
         className="p-4 rounded-full bg-red-600 hover:bg-red-700 transition-all"
         title="Quitter la réunion"
       >
-        <span className="text-2xl">📞</span>
+        <span className="text-2xl"><PhoneOff size={24} /></span>
       </button>
 
       {/* End Meeting (Admin only) */}
@@ -205,7 +206,7 @@ export default function ControlButtons({
           title="Terminer la réunion (Admin)"
         >
           <span className="flex items-center gap-2">
-            <span>🛑</span>
+            <span><XSquare size={24} /></span>
             <span>Terminer la réunion</span>
           </span>
         </button>

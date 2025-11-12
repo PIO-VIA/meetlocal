@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, FormEvent } from 'react';
 import {  Socket } from 'socket.io-client';
+import { MessageCircle, Send } from 'lucide-react';
 
 interface Message {
   userName: string;
@@ -101,7 +102,7 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
       {/* Header */}
       <div className="p-4 border-b border-gray-700">
         <h3 className="text-lg font-semibold flex items-center gap-2">
-          <span>💬</span>
+          <span><MessageCircle size={24} /></span>
           Chat
         </h3>
       </div>
@@ -171,7 +172,7 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
                 : 'bg-gray-700 text-gray-400 cursor-not-allowed'
             }`}
           >
-            📤
+            <Send size={24} />
           </button>
         </form>
       </div>

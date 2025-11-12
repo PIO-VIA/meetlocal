@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Socket } from 'socket.io-client';
+import { Users, Crown } from 'lucide-react';
 
 interface Participant {
   id?: string;
@@ -51,7 +52,7 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
     <div className="h-full flex flex-col bg-gray-800 text-white">
       <div className="p-4 border-b border-gray-700">
         <h3 className="text-lg font-semibold flex items-center gap-2">
-          <span>👥</span>
+          <span><Users size={24} /></span>
           Participants
           <span className="ml-auto bg-gray-700 px-2 py-1 rounded-full text-sm">
             {participants.length}
@@ -83,7 +84,7 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
                   </p>
                   {participant.isCreator && (
                     <span className="text-yellow-400" title="Administrateur">
-                      👑
+                      <Crown size={16} />
                     </span>
                   )}
                 </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
+import { Mailbox, ClipboardList, Users, Video, ScreenShare, Crown } from 'lucide-react';
 
 interface Room {
   id: string;
@@ -90,7 +91,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
       <div className="bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center py-8">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-4xl">📭</span>
+            <span className="text-4xl"><Mailbox size={48} /></span>
           </div>
           <h3 className="text-xl font-semibold text-gray-700 mb-2">
             Aucune réunion active
@@ -107,7 +108,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
     <div className="bg-white rounded-2xl shadow-xl p-8">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-          <span className="text-2xl">📋</span>
+          <span className="text-2xl"><ClipboardList size={32} /></span>
         </div>
         <h2 className="text-2xl font-bold text-gray-800">
           Réunions actives ({rooms.length})
@@ -146,7 +147,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
 
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1 text-gray-600">
-                <span>👥</span>
+                <span><Users size={16} /></span>
                 <span>
                   {room.users.length} participant{room.users.length > 1 ? 's' : ''}
                   {room.disconnectedUsers > 0 && (
@@ -159,14 +160,14 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
 
               {room.users.some(u => u.isStreaming) && (
                 <div className="flex items-center gap-1 text-green-600">
-                  <span>🎥</span>
+                  <span><Video size={16} /></span>
                   <span>{room.users.filter(u => u.isStreaming).length} caméra(s)</span>
                 </div>
               )}
 
               {room.users.some(u => u.isScreenSharing) && (
                 <div className="flex items-center gap-1 text-purple-600">
-                  <span>🖥️</span>
+                  <span><ScreenShare size={16} /></span>
                   <span>Partage d'écran actif</span>
                 </div>
               )}
@@ -181,7 +182,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
                       key={idx}
                       className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
                     >
-                      {user.isCreator && '👑 '}
+                      {user.isCreator && <Crown size={12} />}
                       {user.name}
                     </span>
                   ))}

@@ -5,6 +5,7 @@ import { useSocket } from '@/hooks/useSocket';
 import CreateMeetingForm from '@/components/Home/CreateMeetingForm';
 import JoinMeetingForm from '@/components/Home/JoinMeetingForm';
 import ActiveRoomsList from '@/components/Home/ActiveRoomsList';
+import { CircleDot, CircleOff } from 'lucide-react';
 
 export default function Home() {
   const { socket, isConnected } = useSocket();
@@ -24,7 +25,7 @@ export default function Home() {
             <span className={`px-3 py-1 rounded-full text-sm ${
               isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
             }`}>
-              {isConnected ? '🟢 Connecté' : '🔴 Déconnecté'}
+              {isConnected ? <><CircleDot size={16} /> Connecté</> : <><CircleOff size={16} /> Déconnecté</>}
             </span>
           </div>
         </div>
