@@ -27,11 +27,28 @@ const options = {
 // Créer le serveur HTTPS
 const server = https.createServer(options, app);
 
-// Configuration Socket.IO avec CORS
+// Obtenir l'IP locale du serveur
+function getLocalIP() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return 'localhost';
+}
+
+const SERVER_IP = getLocalIP();
+console.log(`📡 Adresse IP du serveur: ${SERVER_IP}`);
+
+// Configuration Socket.IO avec CORS pour réseau local
 const io = new Server(server, {
     cors: {
         origin: function(origin, callback) {
             console.log('🔍 Origine de la requête:', origin);
+            // Accepter toutes les origines du réseau local
             callback(null, true);
         },
         methods: ['GET', 'POST'],
@@ -93,7 +110,7 @@ const mediasoupConfig = {
         listenIps: [
             {
                 ip: '0.0.0.0',
-                announcedIp: null // Remplacez par votre IP publique si nécessaire
+                announcedIp: getLocalIP() // Utiliser l'IP locale du serveur
             }
         ],
         enableUdp: true,
@@ -782,11 +799,16 @@ function cleanupRoomResources(roomId) {
 (async () => {
     await initMediasoup();
     
-    server.listen(PORT, () => {
-        console.log(`🚀 Serveur Socket.IO + Mediasoup démarré sur https://localhost:${PORT}`);
-        console.log(`✅ Accepte les connexions de Next.js sur http://localhost:3000`);
+    server.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 Serveur Socket.IO + Mediasoup démarré sur https://0.0.0.0:${PORT}`);
+        console.log(`📡 Accessible via: https://${SERVER_IP}:${PORT}`);
+        console.log(`✅ Accepte les connexions depuis tout le réseau local`);
         console.log(`📊 Architecture: SFU (Selective Forwarding Unit)`);
         console.log(`🎯 Capacité: Jusqu'à 50+ participants simultanés`);
+        console.log(`\n💡 Pour se connecter depuis d'autres appareils:`);
+        console.log(`   1. Sur le frontend, utilisez: https://${SERVER_IP}:3001`);
+        console.log(`   2. Acceptez le certificat SSL sur chaque appareil`);
+        console.log(`   3. L'application frontend doit être sur: http://${SERVER_IP}:3000\n`);
     });
 
     server.on('error', (e) => {

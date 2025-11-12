@@ -10,9 +10,13 @@ export const useSocket = () => {
   useEffect(() => {
     // Initialiser Socket.IO une seule fois
     if (!socketRef.current) {
-      console.log('🔌 Tentative de connexion à Socket.IO...');
+      // Utiliser la variable d'environnement ou localhost par défaut
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:3001';
       
-      socketRef.current = io('https://localhost:3001', {
+      console.log('🔌 Tentative de connexion à Socket.IO...');
+      console.log('📡 URL du backend:', backendUrl);
+      
+      socketRef.current = io('backendUrl', {
         path: '/socket.io',
         transports: ['websocket', 'polling'],
         reconnection: true,
@@ -26,6 +30,7 @@ export const useSocket = () => {
       socketRef.current.on('connect', () => {
         console.log('✅ Socket connecté avec succès !');
         console.log('📡 Socket ID:', socketRef.current?.id);
+        console.log('🌐 Connecté à:', backendUrl);
         setIsConnected(true);
       });
 
@@ -37,6 +42,10 @@ export const useSocket = () => {
       socketRef.current.on('connect_error', (error) => {
         console.error('🔴 Erreur de connexion Socket.IO:', error.message);
         console.error('Type d\'erreur:', error);
+        console.error('💡 Vérifications:');
+        console.error('   1. Le backend est-il démarré ?');
+        console.error('   2. Avez-vous accepté le certificat SSL ?');
+        console.error('   3. URL correcte dans .env.local ?');
         setIsConnected(false);
       });
 
