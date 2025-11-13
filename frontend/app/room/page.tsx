@@ -18,7 +18,15 @@ export default function RoomPage() {
     : null;
 
   const { socket, isConnected } = useSocket();
-  const { localStream, remoteStreams, startCamera, stopCamera } = useMediasoup(
+  const { 
+    localStream, 
+    remoteStreams, 
+    screenStream, 
+    startCamera, 
+    stopCamera,
+    startScreenShare,
+    stopScreenShare
+  } = useMediasoup(
     socket,
     roomId || ''
   );
@@ -88,6 +96,7 @@ export default function RoomPage() {
           <VideoContainer
             localStream={localStream}
             remoteStreams={remoteStreams}
+            screenStream={screenStream}
           />
         </div>
 
@@ -108,8 +117,11 @@ export default function RoomPage() {
       <footer className="bg-gray-800 p-4">
         <ControlButtons
           localStream={localStream}
+          screenStream={screenStream}
           onStartCamera={startCamera}
           onStopCamera={stopCamera}
+          onStartScreenShare={startScreenShare}
+          onStopScreenShare={stopScreenShare}
           isAdmin={isAdmin}
           socket={socket}
           roomId={roomId}

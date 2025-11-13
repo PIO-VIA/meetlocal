@@ -4,12 +4,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
 import * as mediasoupClient from 'mediasoup-client';
 
-interface RemoteStream {
-  userId: string;
-  stream: MediaStream;
-  userName?: string;
-}
-
 export const useMediasoup = (socket: Socket | null, roomId: string) => {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
@@ -25,7 +19,7 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
 
   // Initialiser Mediasoup Device
   const initDevice = useCallback(async () => {
-    if (!socket || deviceRef.current) return;
+    if (!socket || deviceRef.current) return deviceRef.current;
 
     try {
       console.log('🔧 Initialisation de Mediasoup Device...');
@@ -60,7 +54,15 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
 
   // Créer un transport d'envoi
   const createSendTransport = useCallback(async () => {
-    if (!socket || !deviceRef.current || sendTransportRef.current) return sendTransportRef.current;
+    if (!socket || !deviceRef.current) {
+      console.error('❌ Socket ou Device non disponible');
+      return null;
+    }
+    
+    if (sendTransportRef.current) {
+      console.log('✅ Send Transport déjà existant');
+      return sendTransportRef.current;
+    }
 
     try {
       console.log('📤 Création du Send Transport...');
@@ -143,7 +145,8 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
 
   // Créer un transport de réception
   const createRecvTransport = useCallback(async () => {
-    if (!socket || !deviceRef.current || recvTransportRef.current) return recvTransportRef.current;
+    if (!socket || !deviceRef.current) return null;
+    if (recvTransportRef.current) return recvTransportRef.current;
 
     try {
       console.log('📥 Création du Recv Transport...');
@@ -203,15 +206,16 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
 
   // Produire (envoyer) de la vidéo/audio
   const produce = useCallback(async (track: MediaStreamTrack) => {
-    if (!sendTransportRef.current) {
-      await createSendTransport();
-    }
-
-    if (!sendTransportRef.current) {
-      throw new Error('Send Transport non disponible');
-    }
-
     try {
+      if (!sendTransportRef.current) {
+        console.log('⏳ Création du Send Transport...');
+        await createSendTransport();
+      }
+
+      if (!sendTransportRef.current) {
+        throw new Error('Send Transport non disponible');
+      }
+
       const producer = await sendTransportRef.current.produce({ track });
       producersRef.current.set(producer.id, producer);
       
@@ -313,13 +317,18 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
 
       // Initialiser le device si nécessaire
       if (!deviceRef.current) {
+        console.log('⏳ Initialisation du Device...');
         await initDevice();
       }
 
       // Créer le send transport si nécessaire
       if (!sendTransportRef.current) {
+        console.log('⏳ Création du Send Transport...');
         await createSendTransport();
       }
+
+      // Attendre que le transport soit prêt
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Produire chaque track
       for (const track of stream.getTracks()) {
@@ -349,6 +358,136 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
 
     console.log('🛑 Caméra arrêtée');
   }, [localStream]);
+
+  // Démarrer le partage d'écran
+  const startScreenShare = useCallback(async () => {
+    try {
+      console.log('🖥️ Démarrage du partage d\'écran...');
+
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          frameRate: { ideal: 30, max: 60 }
+        },
+        audio: true
+      });
+
+      setScreenStream(stream);
+
+      // Initialiser le device si nécessaire
+      if (!deviceRef.current) {
+        await initDevice();
+      }
+
+      // Créer un transport pour le partage d'écran
+      if (!screenTransportRef.current) {
+        try {
+          console.log('📤 Création du Screen Transport...');
+          
+          const transportData = await new Promise<any>((resolve, reject) => {
+            socket?.emit('createWebRtcTransport', { roomId, sender: true }, (response: any) => {
+              if (response.error) {
+                reject(new Error(response.error));
+              } else {
+                resolve(response);
+              }
+            });
+          });
+
+          const transport = deviceRef.current!.createSendTransport({
+            id: transportData.id,
+            iceParameters: transportData.iceParameters,
+            iceCandidates: transportData.iceCandidates,
+            dtlsParameters: transportData.dtlsParameters
+          });
+
+          transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+            try {
+              await new Promise<void>((resolve, reject) => {
+                socket?.emit('connectTransport', {
+                  transportId: transport.id,
+                  dtlsParameters
+                }, (response: any) => {
+                  if (response.error) {
+                    reject(new Error(response.error));
+                  } else {
+                    resolve();
+                  }
+                });
+              });
+              callback();
+            } catch (error) {
+              errback(error as Error);
+            }
+          });
+
+          transport.on('produce', async ({ kind, rtpParameters }, callback, errback) => {
+            try {
+              const { id } = await new Promise<{ id: string }>((resolve, reject) => {
+                socket?.emit('produce', {
+                  transportId: transport.id,
+                  kind,
+                  rtpParameters
+                }, (response: any) => {
+                  if (response.error) {
+                    reject(new Error(response.error));
+                  } else {
+                    resolve(response);
+                  }
+                });
+              });
+              callback({ id });
+            } catch (error) {
+              errback(error as Error);
+            }
+          });
+
+          screenTransportRef.current = transport;
+          console.log('✅ Screen Transport créé');
+        } catch (error) {
+          console.error('❌ Erreur création Screen Transport:', error);
+          throw error;
+        }
+      }
+
+      // Attendre que le transport soit prêt
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Produire les tracks du partage d'écran
+      for (const track of stream.getTracks()) {
+        const producer = await screenTransportRef.current!.produce({ track });
+        screenProducersRef.current.set(producer.id, producer);
+        console.log(`✅ Producer partage d'écran créé: ${producer.id} (${producer.kind})`);
+      }
+
+      // Détecter l'arrêt manuel
+      stream.getVideoTracks()[0].onended = () => {
+        console.log('🛑 Partage d\'écran arrêté par l\'utilisateur');
+        stopScreenShare();
+      };
+
+      console.log('✅ Partage d\'écran démarré');
+      return stream;
+    } catch (error) {
+      console.error('❌ Erreur lors du partage d\'écran:', error);
+      throw error;
+    }
+  }, [socket, roomId, initDevice]);
+
+  // Arrêter le partage d'écran
+  const stopScreenShare = useCallback(() => {
+    if (screenStream) {
+      screenStream.getTracks().forEach(track => track.stop());
+      setScreenStream(null);
+    }
+
+    // Fermer tous les producers du partage d'écran
+    screenProducersRef.current.forEach(producer => {
+      producer.close();
+    });
+    screenProducersRef.current.clear();
+
+    console.log('🛑 Partage d\'écran arrêté');
+  }, [screenStream]);
 
   // Écouter les nouveaux producers
   useEffect(() => {
@@ -412,134 +551,16 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
     getExistingProducers();
   }, [socket, roomId, initDevice, consume]);
 
-  // Démarrer le partage d'écran
-  const startScreenShare = useCallback(async () => {
-    try {
-      console.log('🖥️ Démarrage du partage d\'écran...');
-
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          frameRate: { ideal: 30, max: 60 }
-        },
-        audio: true
-      });
-
-      setScreenStream(stream);
-
-      // Initialiser le device si nécessaire
-      if (!deviceRef.current) {
-        await initDevice();
-      }
-
-      // Créer un transport dédié pour le partage d'écran si nécessaire
-      if (!screenTransportRef.current) {
-        try {
-          const transportData = await new Promise<any>((resolve, reject) => {
-            socket?.emit('createWebRtcTransport', { roomId, sender: true }, (response: any) => {
-              if (response.error) {
-                reject(new Error(response.error));
-              } else {
-                resolve(response);
-              }
-            });
-          });
-
-          const transport = deviceRef.current!.createSendTransport({
-            id: transportData.id,
-            iceParameters: transportData.iceParameters,
-            iceCandidates: transportData.iceCandidates,
-            dtlsParameters: transportData.dtlsParameters
-          });
-
-          transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
-            try {
-              await new Promise<void>((resolve, reject) => {
-                socket?.emit('connectTransport', {
-                  transportId: transport.id,
-                  dtlsParameters
-                }, (response: any) => {
-                  if (response.error) {
-                    reject(new Error(response.error));
-                  } else {
-                    resolve();
-                  }
-                });
-              });
-              callback();
-            } catch (error) {
-              errback(error as Error);
-            }
-          });
-
-          transport.on('produce', async ({ kind, rtpParameters }, callback, errback) => {
-            try {
-              const { id } = await new Promise<{ id: string }>((resolve, reject) => {
-                socket?.emit('produce', {
-                  transportId: transport.id,
-                  kind,
-                  rtpParameters
-                }, (response: any) => {
-                  if (response.error) {
-                    reject(new Error(response.error));
-                  } else {
-                    resolve(response);
-                  }
-                });
-              });
-              callback({ id });
-            } catch (error) {
-              errback(error as Error);
-            }
-          });
-
-          screenTransportRef.current = transport;
-        } catch (error) {
-          console.error('Erreur création transport partage d\'écran:', error);
-        }
-      }
-
-      // Produire les tracks du partage d'écran
-      for (const track of stream.getTracks()) {
-        const producer = await screenTransportRef.current!.produce({ track });
-        screenProducersRef.current.set(producer.id, producer);
-        console.log(`✅ Producer partage d'écran créé: ${producer.id} (${producer.kind})`);
-      }
-
-      // Détecter l'arrêt manuel
-      stream.getVideoTracks()[0].onended = () => {
-        stopScreenShare();
-      };
-
-      console.log('✅ Partage d\'écran démarré');
-      return stream;
-    } catch (error) {
-      console.error('❌ Erreur lors du partage d\'écran:', error);
-      throw error;
-    }
-  }, [socket, roomId, initDevice]);
-
-  // Arrêter le partage d'écran
-  const stopScreenShare = useCallback(() => {
-    if (screenStream) {
-      screenStream.getTracks().forEach(track => track.stop());
-      setScreenStream(null);
-    }
-
-    // Fermer tous les producers du partage d'écran
-    screenProducersRef.current.forEach(producer => {
-      producer.close();
-    });
-    screenProducersRef.current.clear();
-
-    console.log('🛑 Partage d\'écran arrêté');
-  }, [screenStream]);
-
   // Nettoyage lors du démontage
   useEffect(() => {
     return () => {
       // Fermer tous les producers
       producersRef.current.forEach(producer => producer.close());
       producersRef.current.clear();
+
+      // Fermer les producers d'écran
+      screenProducersRef.current.forEach(producer => producer.close());
+      screenProducersRef.current.clear();
 
       // Fermer tous les consumers
       consumersRef.current.forEach(consumer => consumer.close());
@@ -548,10 +569,14 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
       // Fermer les transports
       sendTransportRef.current?.close();
       recvTransportRef.current?.close();
+      screenTransportRef.current?.close();
 
-      // Arrêter le stream local
+      // Arrêter les streams
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
+      }
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
       }
     };
   }, []);

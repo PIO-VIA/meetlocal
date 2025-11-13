@@ -3,12 +3,15 @@
 import { useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
-import { MicOff, Mic, ScreenShare, Video, VideoOff, PhoneOff, XSquare} from 'lucide-react';
+import { MicOff, Mic, ScreenShare, ScreenShareOff, Video, VideoOff, PhoneOff, XSquare} from 'lucide-react';
 
 interface ControlButtonsProps {
   localStream: MediaStream | null;
+  screenStream?: MediaStream | null;
   onStartCamera: () => Promise<MediaStream>;
   onStopCamera: () => void;
+  onStartScreenShare?: () => Promise<MediaStream>;
+  onStopScreenShare?: () => void;
   isAdmin: boolean;
   socket: Socket | null;
   roomId: string;
@@ -17,8 +20,11 @@ interface ControlButtonsProps {
 
 export default function ControlButtons({
   localStream,
+  screenStream,
   onStartCamera,
   onStopCamera,
+  onStartScreenShare,
+  onStopScreenShare,
   isAdmin,
   socket,
   roomId,
@@ -27,8 +33,7 @@ export default function ControlButtons({
   const router = useRouter();
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+  const isScreenSharing = !!screenStream;
 
   // Toggle Camera
   const handleToggleCamera = async () => {
@@ -62,36 +67,20 @@ export default function ControlButtons({
   const handleToggleScreenShare = async () => {
     if (isScreenSharing) {
       // Arrêter le partage
-      if (screenStream) {
-        screenStream.getTracks().forEach(track => track.stop());
-        setScreenStream(null);
+      if (onStopScreenShare) {
+        onStopScreenShare();
       }
-      setIsScreenSharing(false);
       socket?.emit('stopScreen', { roomId });
     } else {
       // Démarrer le partage
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: {
-            // cursor: 'always', // Removed as it is not part of MediaTrackConstraints
-            displaySurface: 'monitor' as any,
-            frameRate: { ideal: 30, max: 60 }
-          },
-          audio: true
-        });
-
-        setScreenStream(stream);
-        setIsScreenSharing(true);
-        socket?.emit('startScreen', { roomId });
-
-        // Détecter l'arrêt manuel
-        stream.getVideoTracks()[0].onended = () => {
-          setIsScreenSharing(false);
-          setScreenStream(null);
-          socket?.emit('stopScreen', { roomId });
-        };
-      } catch (error) {
-        console.error('Erreur partage d\'écran:', error);
+      if (onStartScreenShare) {
+        try {
+          await onStartScreenShare();
+          socket?.emit('startScreen', { roomId });
+        } catch (error) {
+          console.error('Erreur partage d\'écran:', error);
+          alert('Impossible de partager l\'écran. Veuillez réessayer.');
+        }
       }
     }
   };
@@ -157,7 +146,7 @@ export default function ControlButtons({
         } ${!localStream && 'opacity-50 cursor-not-allowed'}`}
         title={isMicMuted ? 'Activer le micro' : 'Couper le micro'}
       >
-        <span className="text-2xl">{isMicMuted ? <MicOff size={24} /> : <Mic size={24} />}</span>
+        {isMicMuted ? <MicOff size={24} /> : <Mic size={24} />}
       </button>
 
       {/* Camera */}
@@ -170,7 +159,7 @@ export default function ControlButtons({
         }`}
         title={isCameraOn ? 'Arrêter la caméra' : 'Démarrer la caméra'}
       >
-        <span className="text-2xl">{isCameraOn ? <Video size={24} /> : <VideoOff size={24} />}</span>
+        {isCameraOn ? <Video size={24} /> : <VideoOff size={24} />}
       </button>
 
       {/* Screen Share */}
@@ -178,12 +167,12 @@ export default function ControlButtons({
         onClick={handleToggleScreenShare}
         className={`p-4 rounded-full transition-all ${
           isScreenSharing
-            ? 'bg-green-600 hover:bg-green-700'
+            ? 'bg-green-600 hover:bg-green-700 animate-pulse'
             : 'bg-gray-700 hover:bg-gray-600'
         }`}
         title={isScreenSharing ? 'Arrêter le partage' : 'Partager l\'écran'}
       >
-        <span className="text-2xl"><ScreenShare size={24} /></span>
+        {isScreenSharing ? <ScreenShareOff size={24} /> : <ScreenShare size={24} />}
       </button>
 
       {/* Separator */}
@@ -195,7 +184,7 @@ export default function ControlButtons({
         className="p-4 rounded-full bg-red-600 hover:bg-red-700 transition-all"
         title="Quitter la réunion"
       >
-        <span className="text-2xl"><PhoneOff size={24} /></span>
+        <PhoneOff size={24} />
       </button>
 
       {/* End Meeting (Admin only) */}
@@ -206,7 +195,7 @@ export default function ControlButtons({
           title="Terminer la réunion (Admin)"
         >
           <span className="flex items-center gap-2">
-            <span><XSquare size={24} /></span>
+            <XSquare size={24} />
             <span>Terminer la réunion</span>
           </span>
         </button>
