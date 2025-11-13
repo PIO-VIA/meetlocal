@@ -16,7 +16,7 @@ export const useSocket = () => {
       console.log('🔌 Tentative de connexion à Socket.IO...');
       console.log('📡 URL du backend:', backendUrl);
       
-      socketRef.current = io('backendUrl', {
+      socketRef.current = io( backendUrl, {
         path: '/socket.io',
         transports: ['websocket', 'polling'],
         reconnection: true,
