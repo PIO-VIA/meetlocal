@@ -73,6 +73,10 @@ cd meetlocal
 
 ### 2️⃣ Installer les dépendances
 
+Le script de démarrage `start-local-meet.sh` gère automatiquement l'installation des dépendances pour le backend et le frontend si elles ne sont pas déjà présentes.
+
+Si vous préférez installer manuellement :
+
 **Backend :**
 ```bash
 cd backend
@@ -89,7 +93,23 @@ npm install
 
 ## ▶️ **Démarrage**
 
-### 🔧 Mode Développement
+### 🚀 Démarrage Rapide (Recommandé)
+
+Le script `start-local-meet.sh` automatise l'installation des dépendances, la configuration de l'adresse IP locale pour le frontend et le démarrage simultané du backend et du frontend.
+
+```bash
+./start-local-meet.sh
+```
+
+Le script affichera les adresses pour accéder à l'application sur votre machine et sur d'autres appareils du réseau.
+
+**⚠️ IMPORTANT :**
+1.  Lors du premier accès, votre navigateur affichera un avertissement de sécurité pour le certificat SSL auto-signé. Vous devez l'accepter pour que l'application fonctionne correctement.
+2.  Il est recommandé d'accéder d'abord à l'URL du backend (ex: `https://<VOTRE_IP_LOCALE>:3001/health`) et d'accepter l'exception de sécurité avant d'ouvrir l'application frontend.
+
+### 🔧 Mode Développement (Manuel)
+
+Si vous préférez démarrer les services manuellement :
 
 **Terminal 1 - Backend** :
 ```bash
@@ -105,10 +125,10 @@ npm run dev
 ```
 ✅ Next.js démarre sur `http://localhost:3000`
 
-### 📱 Accès à l'application
+### 📱 Accès à l'application (Manuel)
 
 1. Ouvrez `http://localhost:3000` dans votre navigateur
-2. **Acceptez l'avertissement de sécurité** (certificat auto-signé)
+2. **Acceptez l'avertissement de sécurité** (certificat auto-signé) en allant sur `https://localhost:3001/health` d'abord.
 3. Vous devriez voir **🟢 Connecté** dans l'interface
 
 ---

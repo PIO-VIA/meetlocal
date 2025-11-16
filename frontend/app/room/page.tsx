@@ -4,10 +4,20 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useSocket } from '@/hooks/useSocket';
 import { useMediasoup } from '@/hooks/useMediasoup';
-import VideoContainer from '@/components/Meeting/VideoContainer';
+import ParticipantGrid from '@/components/Meeting/ParticipantGrid';
 import ControlButtons from '@/components/Meeting/ControlButtons';
 import ParticipantsList from '@/components/Meeting/ParticipantsList';
 import ChatBox from '@/components/Meeting/ChatBox';
+import ConnectionStatus from '@/components/Meeting/ConnectionStatus';
+
+interface Participant {
+  id: string;
+  name: string;
+  isCreator?: boolean;
+  isStreaming?: boolean;
+  isScreenSharing?: boolean;
+  disconnected?: boolean;
+}
 
 export default function RoomPage() {
   const searchParams = useSearchParams();
@@ -17,7 +27,16 @@ export default function RoomPage() {
     ? localStorage.getItem('display_name') 
     : null;
 
-  const { socket, isConnected } = useSocket();
+  const { 
+    socket, 
+    isConnected, 
+    status, 
+    error, 
+    reconnectAttempts, 
+    latency, 
+    reconnect 
+  } = useSocket();
+
   const { 
     localStream, 
     remoteStreams, 
@@ -26,14 +45,13 @@ export default function RoomPage() {
     stopCamera,
     startScreenShare,
     stopScreenShare
-  } = useMediasoup(
-    socket,
-    roomId || ''
-  );
+  } = useMediasoup(socket, roomId || '');
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
 
   useEffect(() => {
     if (!roomId || !userName) {
@@ -49,40 +67,84 @@ export default function RoomPage() {
           return;
         }
         setIsAdmin(response?.isCreator || false);
+        setCurrentUserId(socket.id || '');
       });
+
+      // Écouter les mises à jour des participants
+      socket.on('getUsers', (users: Participant[]) => {
+        setParticipants(users.filter(u => !u.disconnected));
+      });
+
+      socket.on('userJoined', () => {
+        socket.emit('getUsers', { roomId });
+      });
+
+      socket.on('userLeft', () => {
+        socket.emit('getUsers', { roomId });
+      });
+
+      // Demander la liste initiale
+      socket.emit('getUsers', { roomId });
     }
 
     return () => {
       if (socket) {
+        socket.off('getUsers');
+        socket.off('userJoined');
+        socket.off('userLeft');
         socket.emit('leaveRoom', { roomId, userName });
       }
     };
   }, [socket, isConnected, roomId, userName, router]);
 
   if (!roomId) {
-    return <div>Chargement...</div>;
+    return <div className="h-screen flex items-center justify-center">Chargement...</div>;
   }
 
   return (
     <div className="h-screen flex flex-col bg-gray-900">
+      {/* Indicateur de connexion */}
+      <ConnectionStatus
+        status={status}
+        error={error}
+        reconnectAttempts={reconnectAttempts}
+        latency={latency}
+        onReconnect={reconnect}
+      />
+
       {/* Header */}
-      <header className="bg-gray-800 text-white p-4 flex justify-between items-center">
+      <header className="bg-gray-800 text-white p-4 flex justify-between items-center border-b border-gray-700">
         <div>
           <h2 className="text-xl font-bold">Réunion: {roomId}</h2>
-          {isAdmin && (
-            <span className="text-sm text-yellow-400">👑 Administrateur</span>
-          )}
+          <div className="flex items-center gap-3 mt-1">
+            {isAdmin && (
+              <span className="text-sm text-yellow-400 flex items-center gap-1">
+                👑 Administrateur
+              </span>
+            )}
+            <span className="text-sm text-gray-400">
+              {participants.length} participant{participants.length > 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowParticipants(!showParticipants)}
-            className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
+            className={`px-4 py-2 rounded transition-colors ${
+              showParticipants 
+                ? 'bg-blue-600 hover:bg-blue-700' 
+                : 'bg-gray-700 hover:bg-gray-600'
+            }`}
           >
             👥 Participants
           </button>
           <button
             onClick={() => setShowChat(!showChat)}
-            className="px-4 py-2 bg-green-600 rounded hover:bg-green-700"
+            className={`px-4 py-2 rounded transition-colors ${
+              showChat 
+                ? 'bg-green-600 hover:bg-green-700' 
+                : 'bg-gray-700 hover:bg-gray-600'
+            }`}
           >
             💬 Chat
           </button>
@@ -91,30 +153,35 @@ export default function RoomPage() {
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Video grid */}
-        <div className="flex-1 p-4">
-          <VideoContainer
+        {/* Grille vidéo avec participants */}
+        <div className="flex-1">
+          <ParticipantGrid
+            participants={participants}
             localStream={localStream}
             remoteStreams={remoteStreams}
-            screenStream={screenStream}
+            currentUserId={currentUserId}
           />
         </div>
 
         {/* Sidebar */}
         {(showParticipants || showChat) && (
-          <aside className="w-80 bg-gray-800 border-l border-gray-700">
+          <aside className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
             {showParticipants && (
-              <ParticipantsList socket={socket} roomId={roomId} />
+              <div className={showChat ? 'flex-1 border-b border-gray-700' : 'h-full'}>
+                <ParticipantsList socket={socket} roomId={roomId} />
+              </div>
             )}
             {showChat && (
-              <ChatBox socket={socket} roomId={roomId} userName={userName || ''} />
+              <div className={showParticipants ? 'flex-1' : 'h-full'}>
+                <ChatBox socket={socket} roomId={roomId} userName={userName || ''} />
+              </div>
             )}
           </aside>
         )}
       </div>
 
       {/* Controls */}
-      <footer className="bg-gray-800 p-4">
+      <footer className="bg-gray-800 p-4 border-t border-gray-700">
         <ControlButtons
           localStream={localStream}
           screenStream={screenStream}
