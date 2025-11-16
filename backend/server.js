@@ -234,6 +234,9 @@ io.on('connection', (socket) => {
     console.log('📡 Transport:', socket.conn.transport.name);
     console.log('🌐 Adresse IP:', socket.handshake.address);
     
+    // Stocker le temps de connexion
+    socket.data.connectedAt = Date.now();
+    
     // Envoyer la liste des salons
     socket.emit('roomsList', Array.from(rooms.entries()).map(([id, room]) => {
         const activeUsers = room.users.filter(user => !user.disconnected);
@@ -254,7 +257,6 @@ io.on('connection', (socket) => {
         };
     }));
 
-
     socket.on('ping', (callback) => {
         if (typeof callback === 'function') {
             callback();
@@ -275,27 +277,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('ping', (callback) => {
-        if (typeof callback === 'function') {
-            callback();
-        }
-    });
-
-    // Obtenir des infos sur la connexion
-    socket.on('getConnectionInfo', (callback) => {
-        if (typeof callback === 'function') {
-            callback({
-                socketId: socket.id,
-                transport: socket.conn.transport.name,
-                address: socket.handshake.address,
-                connected: socket.connected,
-                rooms: Array.from(socket.rooms),
-                serverTime: new Date().toISOString()
-            });
-        }
-    });
-
-     socket.on('error', (error) => {
+    socket.on('error', (error) => {
         console.error('❌ Erreur socket pour', socket.id, ':', error);
         socket.emit('error', {
             message: 'Une erreur est survenue',
@@ -318,16 +300,6 @@ io.on('connection', (socket) => {
     });
 
     // Créer un WebRTC Transport (send ou recv)
-     socket.on('getRouterRtpCapabilities', async ({ roomId }, callback) => {
-        try {
-            const router = await getOrCreateRouter(roomId);
-            callback({ rtpCapabilities: router.rtpCapabilities });
-        } catch (error) {
-            console.error('Erreur getRouterRtpCapabilities:', error);
-            callback({ error: error.message });
-        }
-    });
-
     socket.on('createWebRtcTransport', async ({ roomId, sender }, callback) => {
         try {
             const router = await getOrCreateRouter(roomId);
@@ -495,7 +467,7 @@ io.on('connection', (socket) => {
         callback({ producers: roomProducers });
     });
 
-    // ==================== ROOM EVENTS (comme avant) ====================
+    // ==================== ROOM EVENTS ====================
 
     socket.on('checkRoom', ({ roomId }, callback) => {
         const exists = rooms.has(roomId);
@@ -744,10 +716,13 @@ io.on('connection', (socket) => {
     socket.on('disconnect', (reason) => {
         console.log('❌ Client déconnecté:', socket.id);
         console.log('📊 Raison:', reason);
-        console.log('⏱️ Durée de connexion:', Math.round((Date.now() - socket.handshake.time) / 1000), 's');
         
-        // Nettoyer le monitoring
-        clearInterval(connectionMonitor);
+        // Calculer la durée de connexion de manière sûre
+        const connectedAt = socket.data.connectedAt;
+        if (connectedAt && !isNaN(connectedAt)) {
+            const duration = Math.round((Date.now() - connectedAt) / 1000);
+            console.log('⏱️ Durée de connexion:', duration, 's');
+        }
         
         // Nettoyer les ressources Mediasoup
         cleanupUserResources(socket.id);
