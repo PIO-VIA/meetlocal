@@ -3,13 +3,16 @@
 import { useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
-import { MicOff, Mic, ScreenShare, ScreenShareOff, Video, VideoOff, PhoneOff, XSquare} from 'lucide-react';
+import { MicOff, Mic, ScreenShare, ScreenShareOff, Video, VideoOff, PhoneOff, XSquare } from 'lucide-react';
 
 interface ControlButtonsProps {
   localStream: MediaStream | null;
+  audioStream?: MediaStream | null;
   screenStream?: MediaStream | null;
   onStartCamera: () => Promise<MediaStream>;
   onStopCamera: () => void;
+  onStartAudioOnly?: () => Promise<MediaStream>;
+  onStopAudioOnly?: () => void;
   onStartScreenShare?: () => Promise<MediaStream>;
   onStopScreenShare?: () => void;
   isAdmin: boolean;
@@ -20,9 +23,12 @@ interface ControlButtonsProps {
 
 export default function ControlButtons({
   localStream,
+  audioStream,
   screenStream,
   onStartCamera,
   onStopCamera,
+  onStartAudioOnly,
+  onStopAudioOnly,
   onStartScreenShare,
   onStopScreenShare,
   isAdmin,
@@ -32,8 +38,32 @@ export default function ControlButtons({
 }: ControlButtonsProps) {
   const router = useRouter();
   const [isCameraOn, setIsCameraOn] = useState(false);
+  const [isAudioOnly, setIsAudioOnly] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const isScreenSharing = !!screenStream;
+
+  // Toggle Audio uniquement
+  const handleToggleAudioOnly = async () => {
+    if (isAudioOnly) {
+      // Arrêter l'audio
+      if (onStopAudioOnly) {
+        onStopAudioOnly();
+      }
+      setIsAudioOnly(false);
+      socket?.emit('stopStream', { roomId });
+    } else {
+      // Démarrer l'audio seul
+      if (onStartAudioOnly) {
+        try {
+          await onStartAudioOnly();
+          setIsAudioOnly(true);
+          socket?.emit('startStream', { roomId });
+        } catch (error) {
+          alert('Impossible d\'accéder au microphone');
+        }
+      }
+    }
+  };
 
   // Toggle Camera
   const handleToggleCamera = async () => {
@@ -52,11 +82,12 @@ export default function ControlButtons({
     }
   };
 
-  // Toggle Microphone
+  // Toggle Microphone (mute/unmute)
   const handleToggleMic = () => {
-    if (!localStream) return;
+    const currentStream = localStream || audioStream;
+    if (!currentStream) return;
 
-    const audioTracks = localStream.getAudioTracks();
+    const audioTracks = currentStream.getAudioTracks();
     audioTracks.forEach(track => {
       track.enabled = isMicMuted;
     });
@@ -66,13 +97,11 @@ export default function ControlButtons({
   // Toggle Screen Share
   const handleToggleScreenShare = async () => {
     if (isScreenSharing) {
-      // Arrêter le partage
       if (onStopScreenShare) {
         onStopScreenShare();
       }
       socket?.emit('stopScreen', { roomId });
     } else {
-      // Démarrer le partage
       if (onStartScreenShare) {
         try {
           await onStartScreenShare();
@@ -90,9 +119,11 @@ export default function ControlButtons({
     const confirmLeave = confirm('Êtes-vous sûr de vouloir quitter cette réunion ?');
     if (!confirmLeave) return;
 
-    // Arrêter tous les flux
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
+    }
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => track.stop());
     }
     if (screenStream) {
       screenStream.getTracks().forEach(track => track.stop());
@@ -114,9 +145,11 @@ export default function ControlButtons({
     );
     if (!confirmEnd) return;
 
-    // Arrêter tous les flux
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
+    }
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => track.stop());
     }
     if (screenStream) {
       screenStream.getTracks().forEach(track => track.stop());
@@ -124,7 +157,6 @@ export default function ControlButtons({
 
     socket?.emit('endMeeting', { roomId, userName });
 
-    // Nettoyer le localStorage
     localStorage.removeItem('room_id');
     localStorage.removeItem('room_creator');
     localStorage.removeItem('active_room_name');
@@ -133,30 +165,47 @@ export default function ControlButtons({
     router.push('/');
   };
 
+  const hasAnyAudio = localStream || audioStream;
+
   return (
     <div className="flex justify-center items-center gap-3">
-      {/* Microphone */}
+      {/* Microphone Mute/Unmute */}
       <button
         onClick={handleToggleMic}
-        disabled={!localStream}
+        disabled={!hasAnyAudio}
         className={`p-4 rounded-full transition-all ${
           isMicMuted
             ? 'bg-red-600 hover:bg-red-700'
             : 'bg-gray-700 hover:bg-gray-600'
-        } ${!localStream && 'opacity-50 cursor-not-allowed'}`}
+        } ${!hasAnyAudio && 'opacity-50 cursor-not-allowed'}`}
         title={isMicMuted ? 'Activer le micro' : 'Couper le micro'}
       >
         {isMicMuted ? <MicOff size={24} /> : <Mic size={24} />}
       </button>
 
+      {/* Audio Only (nouveau) */}
+      <button
+        onClick={handleToggleAudioOnly}
+        disabled={isCameraOn}
+        className={`p-4 rounded-full transition-all ${
+          isAudioOnly
+            ? 'bg-green-600 hover:bg-green-700 animate-pulse'
+            : 'bg-gray-700 hover:bg-gray-600'
+        } ${isCameraOn && 'opacity-50 cursor-not-allowed'}`}
+        title={isAudioOnly ? 'Arrêter le micro' : 'Activer uniquement le micro'}
+      >
+        <Mic size={24} className={isAudioOnly ? 'text-white' : ''} />
+      </button>
+
       {/* Camera */}
       <button
         onClick={handleToggleCamera}
+        disabled={isAudioOnly}
         className={`p-4 rounded-full transition-all ${
           isCameraOn
             ? 'bg-blue-600 hover:bg-blue-700'
             : 'bg-gray-700 hover:bg-gray-600'
-        }`}
+        } ${isAudioOnly && 'opacity-50 cursor-not-allowed'}`}
         title={isCameraOn ? 'Arrêter la caméra' : 'Démarrer la caméra'}
       >
         {isCameraOn ? <Video size={24} /> : <VideoOff size={24} />}
@@ -167,7 +216,7 @@ export default function ControlButtons({
         onClick={handleToggleScreenShare}
         className={`p-4 rounded-full transition-all ${
           isScreenSharing
-            ? 'bg-green-600 hover:bg-green-700 animate-pulse'
+            ? 'bg-purple-600 hover:bg-purple-700 animate-pulse'
             : 'bg-gray-700 hover:bg-gray-600'
         }`}
         title={isScreenSharing ? 'Arrêter le partage' : 'Partager l\'écran'}

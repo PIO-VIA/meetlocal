@@ -38,11 +38,14 @@ export default function RoomPage() {
   } = useSocket();
 
   const { 
-    localStream, 
+    localStream,
+    audioStream,
     remoteStreams, 
     screenStream, 
     startCamera, 
     stopCamera,
+    startAudioOnly,
+    stopAudioOnly,
     startScreenShare,
     stopScreenShare
   } = useMediasoup(socket, roomId || '');
@@ -70,7 +73,6 @@ export default function RoomPage() {
         setCurrentUserId(socket.id || '');
       });
 
-      // Écouter les mises à jour des participants
       socket.on('getUsers', (users: Participant[]) => {
         setParticipants(users.filter(u => !u.disconnected));
       });
@@ -83,7 +85,6 @@ export default function RoomPage() {
         socket.emit('getUsers', { roomId });
       });
 
-      // Demander la liste initiale
       socket.emit('getUsers', { roomId });
     }
 
@@ -184,9 +185,12 @@ export default function RoomPage() {
       <footer className="bg-gray-800 p-4 border-t border-gray-700">
         <ControlButtons
           localStream={localStream}
+          audioStream={audioStream}
           screenStream={screenStream}
           onStartCamera={startCamera}
           onStopCamera={stopCamera}
+          onStartAudioOnly={startAudioOnly}
+          onStopAudioOnly={stopAudioOnly}
           onStartScreenShare={startScreenShare}
           onStopScreenShare={stopScreenShare}
           isAdmin={isAdmin}

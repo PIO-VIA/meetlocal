@@ -6,15 +6,18 @@ import * as mediasoupClient from 'mediasoup-client';
 
 export const useMediasoup = (socket: Socket | null, roomId: string) => {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   
   const deviceRef = useRef<mediasoupClient.types.Device | null>(null);
   const sendTransportRef = useRef<mediasoupClient.types.Transport | null>(null);
   const recvTransportRef = useRef<mediasoupClient.types.Transport | null>(null);
+  const audioTransportRef = useRef<mediasoupClient.types.Transport | null>(null);
   const screenTransportRef = useRef<mediasoupClient.types.Transport | null>(null);
   const producersRef = useRef<Map<string, mediasoupClient.types.Producer>>(new Map());
   const consumersRef = useRef<Map<string, mediasoupClient.types.Consumer>>(new Map());
+  const audioProducersRef = useRef<Map<string, mediasoupClient.types.Producer>>(new Map());
   const screenProducersRef = useRef<Map<string, mediasoupClient.types.Producer>>(new Map());
 
   // Initialiser Mediasoup Device
@@ -26,7 +29,6 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
       
       const device = new mediasoupClient.Device();
       
-      // Obtenir les RTP Capabilities du serveur
       const { rtpCapabilities } = await new Promise<{ rtpCapabilities: mediasoupClient.types.RtpCapabilities }>((resolve, reject) => {
         socket.emit('getRouterRtpCapabilities', { roomId }, (response: any) => {
           if (response.error) {
@@ -40,11 +42,7 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
       await device.load({ routerRtpCapabilities: rtpCapabilities });
       deviceRef.current = device;
       
-      console.log('✅ Device initialisé:', {
-        canProduce: device.canProduce('video') && device.canProduce('audio'),
-        rtpCapabilities: device.rtpCapabilities
-      });
-
+      console.log('✅ Device initialisé');
       return device;
     } catch (error) {
       console.error('❌ Erreur lors de l\'initialisation du device:', error);
@@ -52,23 +50,18 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
     }
   }, [socket, roomId]);
 
-  // Créer un transport d'envoi
-  const createSendTransport = useCallback(async () => {
+  // Créer un transport générique
+  const createTransport = useCallback(async (sender: boolean) => {
     if (!socket || !deviceRef.current) {
       console.error('❌ Socket ou Device non disponible');
       return null;
     }
-    
-    if (sendTransportRef.current) {
-      console.log('✅ Send Transport déjà existant');
-      return sendTransportRef.current;
-    }
 
     try {
-      console.log('📤 Création du Send Transport...');
+      console.log(`📤 Création du ${sender ? 'Send' : 'Recv'} Transport...`);
 
       const transportData = await new Promise<any>((resolve, reject) => {
-        socket.emit('createWebRtcTransport', { roomId, sender: true }, (response: any) => {
+        socket.emit('createWebRtcTransport', { roomId, sender }, (response: any) => {
           if (response.error) {
             reject(new Error(response.error));
           } else {
@@ -77,14 +70,20 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
         });
       });
 
-      const transport = deviceRef.current.createSendTransport({
-        id: transportData.id,
-        iceParameters: transportData.iceParameters,
-        iceCandidates: transportData.iceCandidates,
-        dtlsParameters: transportData.dtlsParameters
-      });
+      const transport = sender
+        ? deviceRef.current.createSendTransport({
+            id: transportData.id,
+            iceParameters: transportData.iceParameters,
+            iceCandidates: transportData.iceCandidates,
+            dtlsParameters: transportData.dtlsParameters
+          })
+        : deviceRef.current.createRecvTransport({
+            id: transportData.id,
+            iceParameters: transportData.iceParameters,
+            iceCandidates: transportData.iceCandidates,
+            dtlsParameters: transportData.dtlsParameters
+          });
 
-      // Événement de connexion
       transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
         try {
           await new Promise<void>((resolve, reject) => {
@@ -105,127 +104,74 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
         }
       });
 
-      // Événement de production
-      transport.on('produce', async ({ kind, rtpParameters }, callback, errback) => {
-        try {
-          const { id } = await new Promise<{ id: string }>((resolve, reject) => {
-            socket.emit('produce', {
-              transportId: transport.id,
-              kind,
-              rtpParameters
-            }, (response: any) => {
-              if (response.error) {
-                reject(new Error(response.error));
-              } else {
-                resolve(response);
-              }
+      if (sender) {
+        transport.on('produce', async ({ kind, rtpParameters }, callback, errback) => {
+          try {
+            const { id } = await new Promise<{ id: string }>((resolve, reject) => {
+              socket.emit('produce', {
+                transportId: transport.id,
+                kind,
+                rtpParameters
+              }, (response: any) => {
+                if (response.error) {
+                  reject(new Error(response.error));
+                } else {
+                  resolve(response);
+                }
+              });
             });
-          });
-          callback({ id });
-        } catch (error) {
-          errback(error as Error);
-        }
-      });
+            callback({ id });
+          } catch (error) {
+            errback(error as Error);
+          }
+        });
+      }
 
       transport.on('connectionstatechange', (state) => {
-        console.log('📤 Send Transport state:', state);
-        if (state === 'failed' || state === 'closed') {
-          console.error('Send Transport failed/closed');
-        }
+        console.log(`${sender ? '📤' : '📥'} Transport state:`, state);
       });
 
-      sendTransportRef.current = transport;
-      console.log('✅ Send Transport créé');
+      console.log(`✅ ${sender ? 'Send' : 'Recv'} Transport créé`);
       return transport;
     } catch (error) {
-      console.error('❌ Erreur création Send Transport:', error);
+      console.error(`❌ Erreur création ${sender ? 'Send' : 'Recv'} Transport:`, error);
       throw error;
     }
   }, [socket, roomId]);
+
+  // Créer un transport d'envoi
+  const createSendTransport = useCallback(async () => {
+    if (sendTransportRef.current) return sendTransportRef.current;
+    const transport = await createTransport(true);
+    if (transport) sendTransportRef.current = transport;
+    return transport;
+  }, [createTransport]);
 
   // Créer un transport de réception
   const createRecvTransport = useCallback(async () => {
-    if (!socket || !deviceRef.current) return null;
     if (recvTransportRef.current) return recvTransportRef.current;
+    const transport = await createTransport(false);
+    if (transport) recvTransportRef.current = transport;
+    return transport;
+  }, [createTransport]);
 
+  // Produire un track
+  const produce = useCallback(async (track: MediaStreamTrack, transportRef: React.MutableRefObject<mediasoupClient.types.Transport | null>) => {
     try {
-      console.log('📥 Création du Recv Transport...');
-
-      const transportData = await new Promise<any>((resolve, reject) => {
-        socket.emit('createWebRtcTransport', { roomId, sender: false }, (response: any) => {
-          if (response.error) {
-            reject(new Error(response.error));
-          } else {
-            resolve(response);
-          }
-        });
-      });
-
-      const transport = deviceRef.current.createRecvTransport({
-        id: transportData.id,
-        iceParameters: transportData.iceParameters,
-        iceCandidates: transportData.iceCandidates,
-        dtlsParameters: transportData.dtlsParameters
-      });
-
-      transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
-        try {
-          await new Promise<void>((resolve, reject) => {
-            socket.emit('connectTransport', {
-              transportId: transport.id,
-              dtlsParameters
-            }, (response: any) => {
-              if (response.error) {
-                reject(new Error(response.error));
-              } else {
-                resolve();
-              }
-            });
-          });
-          callback();
-        } catch (error) {
-          errback(error as Error);
-        }
-      });
-
-      transport.on('connectionstatechange', (state) => {
-        console.log('📥 Recv Transport state:', state);
-        if (state === 'failed' || state === 'closed') {
-          console.error('Recv Transport failed/closed');
-        }
-      });
-
-      recvTransportRef.current = transport;
-      console.log('✅ Recv Transport créé');
-      return transport;
-    } catch (error) {
-      console.error('❌ Erreur création Recv Transport:', error);
-      throw error;
-    }
-  }, [socket, roomId]);
-
-  // Produire (envoyer) de la vidéo/audio
-  const produce = useCallback(async (track: MediaStreamTrack) => {
-    try {
-      if (!sendTransportRef.current) {
-        console.log('⏳ Création du Send Transport...');
-        await createSendTransport();
+      if (!transportRef.current) {
+        const transport = await createTransport(true);
+        if (!transport) throw new Error('Transport non disponible');
+        transportRef.current = transport;
       }
 
-      if (!sendTransportRef.current) {
-        throw new Error('Send Transport non disponible');
-      }
-
-      const producer = await sendTransportRef.current.produce({ track });
-      producersRef.current.set(producer.id, producer);
-      
+      const producer = await transportRef.current.produce({ track });
       console.log(`✅ Producer créé: ${producer.id} (${producer.kind})`);
       return producer;
     } catch (error) {
       console.error('❌ Erreur lors de la production:', error);
       throw error;
     }
-  }, [createSendTransport]);
+  }, [createTransport]);
 
   // Consommer (recevoir) de la vidéo/audio
   const consume = useCallback(async (producerId: string, userId: string) => {
@@ -261,7 +207,6 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
 
       consumersRef.current.set(consumer.id, consumer);
 
-      // Reprendre la consommation
       await new Promise<void>((resolve, reject) => {
         socket?.emit('resumeConsumer', { consumerId: consumer.id }, (response: any) => {
           if (response.error) {
@@ -274,7 +219,6 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
 
       console.log(`✅ Consumer créé: ${consumer.id} (${consumer.kind})`);
 
-      // Ajouter le track au stream distant
       setRemoteStreams(prev => {
         const newMap = new Map(prev);
         let stream = newMap.get(userId);
@@ -295,7 +239,62 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
     }
   }, [socket, createRecvTransport]);
 
-  // Démarrer la caméra
+  // Démarrer SEULEMENT l'audio (nouveau)
+  const startAudioOnly = useCallback(async () => {
+    try {
+      console.log('🎤 Démarrage du microphone seul...');
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+
+      setAudioStream(stream);
+
+      if (!deviceRef.current) {
+        await initDevice();
+      }
+
+      if (!audioTransportRef.current) {
+        const transport = await createTransport(true);
+        if (transport) audioTransportRef.current = transport;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const audioTrack = stream.getAudioTracks()[0];
+      const producer = await produce(audioTrack, audioTransportRef);
+      if (producer) {
+        audioProducersRef.current.set(producer.id, producer);
+      }
+
+      console.log('✅ Microphone démarré');
+      return stream;
+    } catch (error) {
+      console.error('❌ Erreur lors du démarrage du microphone:', error);
+      throw error;
+    }
+  }, [initDevice, createTransport, produce]);
+
+  // Arrêter l'audio
+  const stopAudioOnly = useCallback(() => {
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => track.stop());
+      setAudioStream(null);
+    }
+
+    audioProducersRef.current.forEach(producer => {
+      producer.close();
+    });
+    audioProducersRef.current.clear();
+
+    console.log('🛑 Microphone arrêté');
+  }, [audioStream]);
+
+  // Démarrer la caméra (avec audio)
   const startCamera = useCallback(async () => {
     try {
       console.log('📹 Démarrage de la caméra...');
@@ -315,27 +314,24 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
 
       setLocalStream(stream);
 
-      // Initialiser le device si nécessaire
       if (!deviceRef.current) {
-        console.log('⏳ Initialisation du Device...');
         await initDevice();
       }
 
-      // Créer le send transport si nécessaire
       if (!sendTransportRef.current) {
-        console.log('⏳ Création du Send Transport...');
         await createSendTransport();
       }
 
-      // Attendre que le transport soit prêt
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Produire chaque track
       for (const track of stream.getTracks()) {
-        await produce(track);
+        const producer = await produce(track, sendTransportRef);
+        if (producer) {
+          producersRef.current.set(producer.id, producer);
+        }
       }
 
-      console.log('✅ Caméra démarrée et flux envoyé');
+      console.log('✅ Caméra démarrée');
       return stream;
     } catch (error) {
       console.error('❌ Erreur lors du démarrage de la caméra:', error);
@@ -350,7 +346,6 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
       setLocalStream(null);
     }
 
-    // Fermer tous les producers
     producersRef.current.forEach(producer => {
       producer.close();
     });
@@ -359,104 +354,42 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
     console.log('🛑 Caméra arrêtée');
   }, [localStream]);
 
-  // Démarrer le partage d'écran
+  // Démarrer le partage d'écran (corrigé)
   const startScreenShare = useCallback(async () => {
     try {
       console.log('🖥️ Démarrage du partage d\'écran...');
 
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
-          frameRate: { ideal: 30, max: 60 }
+          frameRate: { ideal: 30, max: 60 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
         },
         audio: true
       });
 
       setScreenStream(stream);
 
-      // Initialiser le device si nécessaire
       if (!deviceRef.current) {
         await initDevice();
       }
 
-      // Créer un transport pour le partage d'écran
-      if (!screenTransportRef.current) {
-        try {
-          console.log('📤 Création du Screen Transport...');
-          
-          const transportData = await new Promise<any>((resolve, reject) => {
-            socket?.emit('createWebRtcTransport', { roomId, sender: true }, (response: any) => {
-              if (response.error) {
-                reject(new Error(response.error));
-              } else {
-                resolve(response);
-              }
-            });
-          });
+      // Créer un nouveau transport dédié au partage d'écran
+      console.log('📤 Création du transport de partage d\'écran...');
+      const transport = await createTransport(true);
+      if (!transport) throw new Error('Impossible de créer le transport');
+      
+      screenTransportRef.current = transport;
 
-          const transport = deviceRef.current!.createSendTransport({
-            id: transportData.id,
-            iceParameters: transportData.iceParameters,
-            iceCandidates: transportData.iceCandidates,
-            dtlsParameters: transportData.dtlsParameters
-          });
-
-          transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
-            try {
-              await new Promise<void>((resolve, reject) => {
-                socket?.emit('connectTransport', {
-                  transportId: transport.id,
-                  dtlsParameters
-                }, (response: any) => {
-                  if (response.error) {
-                    reject(new Error(response.error));
-                  } else {
-                    resolve();
-                  }
-                });
-              });
-              callback();
-            } catch (error) {
-              errback(error as Error);
-            }
-          });
-
-          transport.on('produce', async ({ kind, rtpParameters }, callback, errback) => {
-            try {
-              const { id } = await new Promise<{ id: string }>((resolve, reject) => {
-                socket?.emit('produce', {
-                  transportId: transport.id,
-                  kind,
-                  rtpParameters
-                }, (response: any) => {
-                  if (response.error) {
-                    reject(new Error(response.error));
-                  } else {
-                    resolve(response);
-                  }
-                });
-              });
-              callback({ id });
-            } catch (error) {
-              errback(error as Error);
-            }
-          });
-
-          screenTransportRef.current = transport;
-          console.log('✅ Screen Transport créé');
-        } catch (error) {
-          console.error('❌ Erreur création Screen Transport:', error);
-          throw error;
-        }
-      }
-
-      // Attendre que le transport soit prêt
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Produire les tracks du partage d'écran
+      // Produire tous les tracks du partage d'écran
       for (const track of stream.getTracks()) {
-        const producer = await screenTransportRef.current!.produce({ track });
-        screenProducersRef.current.set(producer.id, producer);
-        console.log(`✅ Producer partage d'écran créé: ${producer.id} (${producer.kind})`);
+        const producer = await produce(track, screenTransportRef);
+        if (producer) {
+          screenProducersRef.current.set(producer.id, producer);
+          console.log(`✅ Producer partage d'écran créé: ${producer.kind}`);
+        }
       }
 
       // Détecter l'arrêt manuel
@@ -465,13 +398,18 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
         stopScreenShare();
       };
 
-      console.log('✅ Partage d\'écran démarré');
+      console.log('✅ Partage d\'écran démarré avec succès');
       return stream;
     } catch (error) {
       console.error('❌ Erreur lors du partage d\'écran:', error);
+      // Nettoyer en cas d'erreur
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        setScreenStream(null);
+      }
       throw error;
     }
-  }, [socket, roomId, initDevice]);
+  }, [initDevice, createTransport, produce, screenStream]);
 
   // Arrêter le partage d'écran
   const stopScreenShare = useCallback(() => {
@@ -480,11 +418,15 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
       setScreenStream(null);
     }
 
-    // Fermer tous les producers du partage d'écran
     screenProducersRef.current.forEach(producer => {
       producer.close();
     });
     screenProducersRef.current.clear();
+
+    if (screenTransportRef.current) {
+      screenTransportRef.current.close();
+      screenTransportRef.current = null;
+    }
 
     console.log('🛑 Partage d\'écran arrêté');
   }, [screenStream]);
@@ -510,13 +452,12 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
     };
   }, [socket, consume]);
 
-  // Obtenir les producers existants lors de la connexion
+  // Obtenir les producers existants
   useEffect(() => {
     if (!socket || !roomId) return;
 
     const getExistingProducers = async () => {
       try {
-        // Attendre un peu pour que l'utilisateur rejoigne complètement la room
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         const { producers } = await new Promise<{ producers: any[] }>((resolve, reject) => {
@@ -529,9 +470,8 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
           });
         });
 
-        console.log(`📋 ${producers.length} producer(s) existant(s) dans la room`);
+        console.log(`📋 ${producers.length} producer(s) existant(s)`);
 
-        // Initialiser le device avant de consommer
         if (!deviceRef.current) {
           await initDevice();
         }
@@ -540,40 +480,42 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
           try {
             await consume(producerId, userId);
           } catch (error) {
-            console.error(`Erreur lors de la consommation du producer ${producerId}:`, error);
+            console.error(`Erreur consommation producer ${producerId}:`, error);
           }
         }
       } catch (error) {
-        console.error('Erreur lors de la récupération des producers:', error);
+        console.error('Erreur récupération producers:', error);
       }
     };
 
     getExistingProducers();
   }, [socket, roomId, initDevice, consume]);
 
-  // Nettoyage lors du démontage
+  // Nettoyage
   useEffect(() => {
     return () => {
-      // Fermer tous les producers
       producersRef.current.forEach(producer => producer.close());
       producersRef.current.clear();
-
-      // Fermer les producers d'écran
+      
+      audioProducersRef.current.forEach(producer => producer.close());
+      audioProducersRef.current.clear();
+      
       screenProducersRef.current.forEach(producer => producer.close());
       screenProducersRef.current.clear();
 
-      // Fermer tous les consumers
       consumersRef.current.forEach(consumer => consumer.close());
       consumersRef.current.clear();
 
-      // Fermer les transports
       sendTransportRef.current?.close();
       recvTransportRef.current?.close();
+      audioTransportRef.current?.close();
       screenTransportRef.current?.close();
 
-      // Arrêter les streams
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
+      }
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
       }
       if (screenStream) {
         screenStream.getTracks().forEach(track => track.stop());
@@ -583,10 +525,13 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
 
   return {
     localStream,
+    audioStream,
     remoteStreams,
     screenStream,
     startCamera,
     stopCamera,
+    startAudioOnly,
+    stopAudioOnly,
     startScreenShare,
     stopScreenShare,
     device: deviceRef.current
