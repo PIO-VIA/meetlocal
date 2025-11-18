@@ -288,6 +288,10 @@ io.on('connection', (socket) => {
 
     // ==================== MEDIASOUP EVENTS ====================
 
+   // ... (garder tout le code existant jusqu'à la section MEDIASOUP EVENTS)
+
+    // ==================== MEDIASOUP EVENTS ====================
+
     // Obtenir les RTP Capabilities du router
     socket.on('getRouterRtpCapabilities', async ({ roomId }, callback) => {
         try {
@@ -348,8 +352,8 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Produire un média (audio/video)
-    socket.on('produce', async ({ transportId, kind, rtpParameters }, callback) => {
+    // Produire un média (audio/video) - CORRIGÉ AVEC APPDATA
+    socket.on('produce', async ({ transportId, kind, rtpParameters, appData }, callback) => {
         try {
             const transportData = transports.get(transportId);
             if (!transportData) {
@@ -358,7 +362,8 @@ io.on('connection', (socket) => {
 
             const producer = await transportData.transport.produce({
                 kind,
-                rtpParameters
+                rtpParameters,
+                appData // Préserver les métadonnées
             });
 
             const producerId = producer.id;
@@ -366,16 +371,18 @@ io.on('connection', (socket) => {
                 producer,
                 socketId: socket.id,
                 roomId: transportData.roomId,
-                kind
+                kind,
+                appData // Stocker les métadonnées
             });
 
-            console.log(`✅ Producer créé: ${producerId} (${kind})`);
+            console.log(`✅ Producer créé: ${producerId} (${kind})`, appData);
 
-            // Notifier les autres participants
+            // Notifier les autres participants avec les métadonnées
             socket.to(transportData.roomId).emit('newProducer', {
                 producerId,
                 userId: socket.id,
-                kind
+                kind,
+                appData // Transmettre les métadonnées aux autres clients
             });
 
             callback({ id: producerId });
@@ -386,7 +393,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Consommer un média d'un autre participant
+    // Consommer un média d'un autre participant - CORRIGÉ AVEC APPDATA
     socket.on('consume', async ({ transportId, producerId, rtpCapabilities }, callback) => {
         try {
             const transportData = transports.get(transportId);
@@ -408,7 +415,8 @@ io.on('connection', (socket) => {
             const consumer = await transportData.transport.consume({
                 producerId,
                 rtpCapabilities,
-                paused: false
+                paused: false,
+                appData: producerData.appData // Transmettre les métadonnées
             });
 
             const consumerId = consumer.id;
@@ -418,13 +426,14 @@ io.on('connection', (socket) => {
                 roomId: transportData.roomId
             });
 
-            console.log(`✅ Consumer créé: ${consumerId}`);
+            console.log(`✅ Consumer créé: ${consumerId}`, producerData.appData);
 
             callback({
                 id: consumerId,
                 producerId,
                 kind: consumer.kind,
-                rtpParameters: consumer.rtpParameters
+                rtpParameters: consumer.rtpParameters,
+                appData: producerData.appData // Renvoyer les métadonnées au client
             });
 
         } catch (error) {
@@ -449,6 +458,25 @@ io.on('connection', (socket) => {
             callback({ error: error.message });
         }
     });
+
+    // Obtenir tous les producers d'une room - CORRIGÉ AVEC APPDATA
+    socket.on('getProducers', ({ roomId }, callback) => {
+        const roomProducers = [];
+        
+        for (const [producerId, data] of producers.entries()) {
+            if (data.roomId === roomId && data.socketId !== socket.id) {
+                roomProducers.push({
+                    producerId,
+                    userId: data.socketId,
+                    kind: data.kind,
+                    appData: data.appData // Inclure les métadonnées
+                });
+            }
+        }
+
+        callback({ producers: roomProducers });
+    });
+
 
     // Obtenir tous les producers d'une room
     socket.on('getProducers', ({ roomId }, callback) => {

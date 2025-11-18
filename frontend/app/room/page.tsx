@@ -41,7 +41,8 @@ export default function RoomPage() {
     localStream,
     audioStream,
     remoteStreams, 
-    screenStream, 
+    screenStream,
+    remoteScreenStreams, // NOUVEAU
     startCamera, 
     stopCamera,
     startAudioOnly,
@@ -126,6 +127,11 @@ export default function RoomPage() {
             <span className="text-sm text-gray-400">
               {participants.length} participant{participants.length > 1 ? 's' : ''}
             </span>
+            {(screenStream || remoteScreenStreams.size > 0) && (
+              <span className="text-sm text-purple-400 flex items-center gap-1 animate-pulse">
+                🖥️ Partage d'écran actif
+              </span>
+            )}
           </div>
         </div>
         <div className="flex gap-2">
@@ -160,6 +166,8 @@ export default function RoomPage() {
             participants={participants}
             localStream={localStream}
             remoteStreams={remoteStreams}
+            screenStream={screenStream}
+            remoteScreenStreams={remoteScreenStreams}
             currentUserId={currentUserId}
           />
         </div>

@@ -9,6 +9,7 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+  const [remoteScreenStreams, setRemoteScreenStreams] = useState<Map<string, MediaStream>>(new Map());
   
   const deviceRef = useRef<mediasoupClient.types.Device | null>(null);
   const sendTransportRef = useRef<mediasoupClient.types.Transport | null>(null);
@@ -105,13 +106,14 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
       });
 
       if (sender) {
-        transport.on('produce', async ({ kind, rtpParameters }, callback, errback) => {
+        transport.on('produce', async ({ kind, rtpParameters, appData }, callback, errback) => {
           try {
             const { id } = await new Promise<{ id: string }>((resolve, reject) => {
               socket.emit('produce', {
                 transportId: transport.id,
                 kind,
-                rtpParameters
+                rtpParameters,
+                appData // Transmettre les métadonnées (ex: type de stream)
               }, (response: any) => {
                 if (response.error) {
                   reject(new Error(response.error));
@@ -139,14 +141,6 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
     }
   }, [socket, roomId]);
 
-  // Créer un transport d'envoi
-  const createSendTransport = useCallback(async () => {
-    if (sendTransportRef.current) return sendTransportRef.current;
-    const transport = await createTransport(true);
-    if (transport) sendTransportRef.current = transport;
-    return transport;
-  }, [createTransport]);
-
   // Créer un transport de réception
   const createRecvTransport = useCallback(async () => {
     if (recvTransportRef.current) return recvTransportRef.current;
@@ -155,8 +149,12 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
     return transport;
   }, [createTransport]);
 
-  // Produire un track
-  const produce = useCallback(async (track: MediaStreamTrack, transportRef: React.MutableRefObject<mediasoupClient.types.Transport | null>) => {
+  // Produire un track avec métadonnées
+  const produce = useCallback(async (
+    track: MediaStreamTrack, 
+    transportRef: React.MutableRefObject<mediasoupClient.types.Transport | null>,
+    appData?: any
+  ) => {
     try {
       if (!transportRef.current) {
         const transport = await createTransport(true);
@@ -164,8 +162,11 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
         transportRef.current = transport;
       }
 
-      const producer = await transportRef.current.produce({ track });
-      console.log(`✅ Producer créé: ${producer.id} (${producer.kind})`);
+      const producer = await transportRef.current.produce({ 
+        track,
+        appData // Métadonnées pour identifier le type de stream
+      });
+      console.log(`✅ Producer créé: ${producer.id} (${producer.kind})`, appData);
       return producer;
     } catch (error) {
       console.error('❌ Erreur lors de la production:', error);
@@ -174,7 +175,7 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
   }, [createTransport]);
 
   // Consommer (recevoir) de la vidéo/audio
-  const consume = useCallback(async (producerId: string, userId: string) => {
+  const consume = useCallback(async (producerId: string, userId: string, appData?: any) => {
     if (!recvTransportRef.current) {
       await createRecvTransport();
     }
@@ -202,7 +203,8 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
         id: consumerData.id,
         producerId: consumerData.producerId,
         kind: consumerData.kind,
-        rtpParameters: consumerData.rtpParameters
+        rtpParameters: consumerData.rtpParameters,
+        appData: consumerData.appData
       });
 
       consumersRef.current.set(consumer.id, consumer);
@@ -217,20 +219,41 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
         });
       });
 
-      console.log(`✅ Consumer créé: ${consumer.id} (${consumer.kind})`);
+      console.log(`✅ Consumer créé: ${consumer.id} (${consumer.kind})`, consumer.appData);
 
-      setRemoteStreams(prev => {
-        const newMap = new Map(prev);
-        let stream = newMap.get(userId);
-        
-        if (!stream) {
-          stream = new MediaStream();
-          newMap.set(userId, stream);
-        }
-        
-        stream.addTrack(consumer.track);
-        return newMap;
-      });
+      // Déterminer si c'est un partage d'écran
+      const isScreenShare = appData?.type === 'screen' || consumer.appData?.type === 'screen';
+
+      if (isScreenShare) {
+        // Ajouter au stream de partage d'écran
+        setRemoteScreenStreams(prev => {
+          const newMap = new Map(prev);
+          let stream = newMap.get(userId);
+          
+          if (!stream) {
+            stream = new MediaStream();
+            newMap.set(userId, stream);
+          }
+          
+          stream.addTrack(consumer.track);
+          console.log(`🖥️ Partage d'écran ajouté pour ${userId}`);
+          return newMap;
+        });
+      } else {
+        // Ajouter au stream normal (caméra/audio)
+        setRemoteStreams(prev => {
+          const newMap = new Map(prev);
+          let stream = newMap.get(userId);
+          
+          if (!stream) {
+            stream = new MediaStream();
+            newMap.set(userId, stream);
+          }
+          
+          stream.addTrack(consumer.track);
+          return newMap;
+        });
+      }
 
       return consumer;
     } catch (error) {
@@ -239,7 +262,7 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
     }
   }, [socket, createRecvTransport]);
 
-  // Démarrer SEULEMENT l'audio (nouveau)
+  // Démarrer SEULEMENT l'audio
   const startAudioOnly = useCallback(async () => {
     try {
       console.log('🎤 Démarrage du microphone seul...');
@@ -266,7 +289,7 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const audioTrack = stream.getAudioTracks()[0];
-      const producer = await produce(audioTrack, audioTransportRef);
+      const producer = await produce(audioTrack, audioTransportRef, { type: 'audio' });
       if (producer) {
         audioProducersRef.current.set(producer.id, producer);
       }
@@ -319,13 +342,16 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
       }
 
       if (!sendTransportRef.current) {
-        await createSendTransport();
+        const transport = await createTransport(true);
+        if (transport) sendTransportRef.current = transport;
       }
 
       await new Promise(resolve => setTimeout(resolve, 500));
 
       for (const track of stream.getTracks()) {
-        const producer = await produce(track, sendTransportRef);
+        const producer = await produce(track, sendTransportRef, { 
+          type: track.kind === 'video' ? 'camera' : 'audio' 
+        });
         if (producer) {
           producersRef.current.set(producer.id, producer);
         }
@@ -337,7 +363,7 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
       console.error('❌ Erreur lors du démarrage de la caméra:', error);
       throw error;
     }
-  }, [initDevice, createSendTransport, produce]);
+  }, [initDevice, createTransport, produce]);
 
   // Arrêter la caméra
   const stopCamera = useCallback(() => {
@@ -354,7 +380,7 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
     console.log('🛑 Caméra arrêtée');
   }, [localStream]);
 
-  // Démarrer le partage d'écran (corrigé)
+  // Démarrer le partage d'écran (CORRIGÉ)
   const startScreenShare = useCallback(async () => {
     try {
       console.log('🖥️ Démarrage du partage d\'écran...');
@@ -383,9 +409,12 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
 
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Produire tous les tracks du partage d'écran
+      // Produire tous les tracks du partage d'écran avec métadonnées
       for (const track of stream.getTracks()) {
-        const producer = await produce(track, screenTransportRef);
+        const producer = await produce(track, screenTransportRef, { 
+          type: 'screen', // IMPORTANT: Marquer comme partage d'écran
+          kind: track.kind
+        });
         if (producer) {
           screenProducersRef.current.set(producer.id, producer);
           console.log(`✅ Producer partage d'écran créé: ${producer.kind}`);
@@ -402,7 +431,6 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
       return stream;
     } catch (error) {
       console.error('❌ Erreur lors du partage d\'écran:', error);
-      // Nettoyer en cas d'erreur
       if (screenStream) {
         screenStream.getTracks().forEach(track => track.stop());
         setScreenStream(null);
@@ -431,15 +459,15 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
     console.log('🛑 Partage d\'écran arrêté');
   }, [screenStream]);
 
-  // Écouter les nouveaux producers
+  // Écouter les nouveaux producers (CORRIGÉ)
   useEffect(() => {
     if (!socket) return;
 
-    const handleNewProducer = async ({ producerId, userId, kind }: any) => {
-      console.log(`🆕 Nouveau producer détecté: ${producerId} (${kind}) de ${userId}`);
+    const handleNewProducer = async ({ producerId, userId, kind, appData }: any) => {
+      console.log(`🆕 Nouveau producer détecté: ${producerId} (${kind})`, appData);
       
       try {
-        await consume(producerId, userId);
+        await consume(producerId, userId, appData);
       } catch (error) {
         console.error('Erreur lors de la consommation du nouveau producer:', error);
       }
@@ -476,9 +504,9 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
           await initDevice();
         }
 
-        for (const { producerId, userId } of producers) {
+        for (const { producerId, userId, kind, appData } of producers) {
           try {
-            await consume(producerId, userId);
+            await consume(producerId, userId, appData);
           } catch (error) {
             console.error(`Erreur consommation producer ${producerId}:`, error);
           }
@@ -528,6 +556,7 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
     audioStream,
     remoteStreams,
     screenStream,
+    remoteScreenStreams, // NOUVEAU: Streams de partage d'écran des autres
     startCamera,
     stopCamera,
     startAudioOnly,

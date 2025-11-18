@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, Crown, User } from 'lucide-react';
+import { Mic, MicOff, Crown, User, Monitor } from 'lucide-react';
 
 interface Participant {
   id: string;
@@ -16,6 +16,8 @@ interface ParticipantGridProps {
   participants: Participant[];
   localStream?: MediaStream | null;
   remoteStreams: Map<string, MediaStream>;
+  screenStream?: MediaStream | null;
+  remoteScreenStreams: Map<string, MediaStream>;
   currentUserId?: string;
 }
 
@@ -23,8 +25,62 @@ export default function ParticipantGrid({
   participants,
   localStream,
   remoteStreams,
+  screenStream,
+  remoteScreenStreams,
   currentUserId
 }: ParticipantGridProps) {
+  // Vérifier s'il y a un partage d'écran actif
+  const hasScreenShare = screenStream || remoteScreenStreams.size > 0;
+  const activeScreenStream = screenStream || (remoteScreenStreams.size > 0 ? Array.from(remoteScreenStreams.values())[0] : null);
+  const screenShareUserId = screenStream ? currentUserId : (remoteScreenStreams.size > 0 ? Array.from(remoteScreenStreams.keys())[0] : null);
+
+  if (hasScreenShare && activeScreenStream) {
+    // Mode partage d'écran : écran principal + miniatures
+    return (
+      <div className="h-full w-full flex flex-col gap-4 p-4">
+        {/* Partage d'écran en grand */}
+        <div className="flex-1 relative bg-gray-900 rounded-xl overflow-hidden shadow-2xl">
+          <ScreenShareDisplay 
+            stream={activeScreenStream} 
+            isLocal={screenStream !== null}
+            userName={participants.find(p => p.id === screenShareUserId)?.name || 'Utilisateur'}
+          />
+        </div>
+
+        {/* Miniatures des participants en bas */}
+        <div className="flex gap-3 h-40 overflow-x-auto pb-2">
+          {/* Vidéo locale */}
+          {localStream && (
+            <div className="flex-shrink-0 w-56">
+              <ParticipantCard
+                participant={participants.find(p => p.id === currentUserId) || { id: currentUserId || '', name: 'Vous' }}
+                stream={localStream}
+                isLocal={true}
+                isMiniature={true}
+              />
+            </div>
+          )}
+
+          {/* Vidéos distantes */}
+          {participants.filter(p => p.id !== currentUserId).map((participant) => {
+            const stream = remoteStreams.get(participant.id);
+            return (
+              <div key={participant.id} className="flex-shrink-0 w-56">
+                <ParticipantCard
+                  participant={participant}
+                  stream={stream}
+                  isLocal={false}
+                  isMiniature={true}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Mode normal : grille de participants
   return (
     <div className="h-full w-full p-4">
       <div className={`grid gap-4 h-full ${
@@ -45,6 +101,7 @@ export default function ParticipantGrid({
               participant={participant}
               stream={stream || undefined}
               isLocal={participant.id === currentUserId}
+              isMiniature={false}
             />
           );
         })}
@@ -53,13 +110,56 @@ export default function ParticipantGrid({
   );
 }
 
+// Composant pour afficher le partage d'écran
+interface ScreenShareDisplayProps {
+  stream: MediaStream;
+  isLocal: boolean;
+  userName: string;
+}
+
+function ScreenShareDisplay({ stream, isLocal, userName }: ScreenShareDisplayProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  return (
+    <>
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted={isLocal}
+        className="w-full h-full object-contain bg-black"
+      />
+      <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-sm px-4 py-3 rounded-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center animate-pulse">
+            <Monitor size={20} className="text-white" />
+          </div>
+          <div>
+            <p className="text-white font-semibold text-sm">
+              {isLocal ? 'Votre partage d\'écran' : `Partage d'écran de ${userName}`}
+            </p>
+            <p className="text-gray-300 text-xs">En direct</p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 interface ParticipantCardProps {
   participant: Participant;
   stream?: MediaStream;
   isLocal: boolean;
+  isMiniature?: boolean;
 }
 
-function ParticipantCard({ participant, stream, isLocal }: ParticipantCardProps) {
+function ParticipantCard({ participant, stream, isLocal, isMiniature = false }: ParticipantCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -84,46 +184,28 @@ function ParticipantCard({ participant, stream, isLocal }: ParticipantCardProps)
     if (audioTracks.length === 0) return;
 
     try {
-      // Créer l'AudioContext
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       const audioContext = audioContextRef.current;
-
-      // Créer la source audio
       const source = audioContext.createMediaStreamSource(stream);
-      
-      // Créer l'analyseur
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
       analyser.smoothingTimeConstant = 0.8;
       analyserRef.current = analyser;
-
-      // Connecter source -> analyser
       source.connect(analyser);
-
-      // Buffer pour les données audio
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-      // Fonction d'analyse continue
       const detectAudio = () => {
         if (!analyserRef.current) return;
-
         analyserRef.current.getByteFrequencyData(dataArray);
-
-        // Calculer le niveau moyen
         const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
         const normalizedLevel = Math.min(average / 128, 1);
-
         setAudioLevel(normalizedLevel);
-        
-        // Seuil de détection de parole (ajustable)
         const SPEECH_THRESHOLD = 0.15;
         setIsSpeaking(normalizedLevel > SPEECH_THRESHOLD);
-
         animationFrameRef.current = requestAnimationFrame(detectAudio);
       };
 
       detectAudio();
-
     } catch (error) {
       console.error('Erreur lors de l\'initialisation de l\'analyse audio:', error);
     }
@@ -150,9 +232,9 @@ function ParticipantCard({ participant, stream, isLocal }: ParticipantCardProps)
   const hasVideo = stream?.getVideoTracks().some(track => track.enabled) ?? false;
 
   return (
-    <div className="relative bg-gray-900 rounded-xl overflow-hidden shadow-2xl">
-      {/* Effet d'onde audio - plusieurs cercles concentriques */}
-      {isSpeaking && (
+    <div className={`relative bg-gray-900 rounded-xl overflow-hidden shadow-2xl ${isMiniature ? 'h-full' : ''}`}>
+      {/* Effet d'onde audio */}
+      {isSpeaking && !isMiniature && (
         <>
           {[...Array(3)].map((_, i) => (
             <div
@@ -169,7 +251,7 @@ function ParticipantCard({ participant, stream, isLocal }: ParticipantCardProps)
         </>
       )}
 
-      {/* Indicateur de niveau audio (bordure pulsante) */}
+      {/* Indicateur de niveau audio */}
       <div
         className="absolute inset-0 rounded-xl pointer-events-none z-20 transition-all duration-100"
         style={{
@@ -191,29 +273,26 @@ function ParticipantCard({ participant, stream, isLocal }: ParticipantCardProps)
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600 to-purple-600">
-            <div className="text-6xl font-bold text-white">
+            <div className={`${isMiniature ? 'text-4xl' : 'text-6xl'} font-bold text-white`}>
               {getInitials(participant.name)}
             </div>
           </div>
         )}
       </div>
 
-      {/* Overlay infos participant */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+      {/* Overlay infos */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {/* Icône utilisateur */}
-            <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
-              <User size={16} className="text-white" />
+            <div className={`${isMiniature ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gray-700 flex items-center justify-center`}>
+              <User size={isMiniature ? 12 : 16} className="text-white" />
             </div>
-            
-            {/* Nom */}
             <div>
-              <p className="text-white font-semibold text-sm flex items-center gap-2">
+              <p className={`text-white font-semibold ${isMiniature ? 'text-xs' : 'text-sm'} flex items-center gap-2`}>
                 {participant.name}
                 {isLocal && <span className="text-xs text-gray-300">(Vous)</span>}
                 {participant.isCreator && (
-                  <Crown size={14} className="text-yellow-400" title="Administrateur" />
+                  <Crown size={isMiniature ? 12 : 14} className="text-yellow-400" title="Administrateur" />
                 )}
               </p>
             </div>
@@ -229,9 +308,8 @@ function ParticipantCard({ participant, stream, isLocal }: ParticipantCardProps)
           }`}>
             {hasAudio ? (
               <>
-                <Mic size={14} className="text-white" />
-                {/* Barres de niveau audio */}
-                {isSpeaking && (
+                <Mic size={isMiniature ? 12 : 14} className="text-white" />
+                {isSpeaking && !isMiniature && (
                   <div className="flex items-end gap-0.5 h-4">
                     {[...Array(3)].map((_, i) => (
                       <div
@@ -246,13 +324,13 @@ function ParticipantCard({ participant, stream, isLocal }: ParticipantCardProps)
                 )}
               </>
             ) : (
-              <MicOff size={14} className="text-white" />
+              <MicOff size={isMiniature ? 12 : 14} className="text-white" />
             )}
           </div>
         </div>
 
-        {/* Barre de niveau audio en bas */}
-        {hasAudio && isSpeaking && (
+        {/* Barre de niveau audio */}
+        {hasAudio && isSpeaking && !isMiniature && (
           <div className="mt-2 h-1 bg-gray-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-100"
@@ -262,15 +340,8 @@ function ParticipantCard({ participant, stream, isLocal }: ParticipantCardProps)
         )}
       </div>
 
-      {/* Canvas pour visualisation audio avancée (optionnel) */}
-      <canvas
-        ref={canvasRef}
-        className="hidden"
-        width="100"
-        height="100"
-      />
+      <canvas ref={canvasRef} className="hidden" width="100" height="100" />
 
-      {/* Styles CSS pour l'animation d'onde */}
       <style jsx>{`
         @keyframes audioWave {
           0% {
