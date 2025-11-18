@@ -1,331 +1,150 @@
-# 🎥 LOCAL MEET - Application de Visioconférence Locale
+#   (MeetLocal)
 
-Solution de visioconférence **peer-to-peer sécurisée** fonctionnant en réseau local avec Next.js et Socket.IO.
+MeetLocal est une application de visioconférence en temps réel conçue pour fonctionner sur un réseau local. Elle utilise WebRTC et Mediasoup pour des communications audio/vidéo efficaces et de haute qualité, le tout géré par un backend Node.js et un frontend moderne Next.js.
 
----
+Ce projet est idéal pour des communications sécurisées et privées sans dépendre de services tiers.
 
-## 📋 **Fonctionnalités**
+## ✨ Fonctionnalités
 
-- ✅ Vidéoconférence en temps réel (WebRTC)
-- ✅ Chat textuel intégré
-- ✅ Partage d'écran
-- ✅ Gestion des participants
-- ✅ Salles persistantes
-- ✅ Connexion HTTPS sécurisée
-- ✅ Interface moderne avec Tailwind CSS
+-   **Visioconférence en temps réel** : Communications audio et vidéo à faible latence.
+-   **Salles multiples** : Créez ou rejoignez des salles de réunion distinctes.
+-   **Partage d'écran** : Partagez votre écran avec les autres participants.
+-   **Chat textuel** : Échangez des messages textuels pendant la conférence.
+-   **Gestion des participants** : Voyez qui est connecté dans la salle.
+-   **Contrôles média** : Activez/désactivez votre caméra et votre microphone.
 
----
+## 🛠️ Stack Technique
 
-## 🛠️ **Technologies Utilisées**
+| Domaine              | Technologies                                                                                             |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Frontend**         | [Next.js](https://nextjs.org/), [React](https://react.dev/), [TypeScript](https://www.typescriptlang.org/) |
+| **Styling**          | [Tailwind CSS](https://tailwindcss.com/)                                                                 |
+| **Backend**          | [Node.js](https://nodejs.org/), [Express](https://expressjs.com/)                                        |
+| **Communication TR** | [Socket.IO](https://socket.io/), [WebRTC](https://webrtc.org/)                                            |
+| **SFU Média**        | [Mediasoup](https://mediasoup.org/)                                                                      |
 
-### Backend
-- **Node.js** - Runtime JavaScript
-- **Express** - Framework web
-- **Socket.IO** - Communication temps réel
-- **HTTPS** - Sécurisation SSL/TLS
+## ⚙️ Principe de Fonctionnement
 
-### Frontend
-- **Next.js 16** - Framework React
-- **React 19** - Bibliothèque UI
-- **TypeScript** - Typage statique
-- **Tailwind CSS 4** - Framework CSS
-- **Socket.IO Client** - Client WebSocket
-- **WebRTC** - Communication vidéo P2P
+L'application s'appuie sur une architecture SFU (Selective Forwarding Unit) grâce à Mediasoup. Contrairement à une connexion pair-à-pair (mesh) où chaque participant envoie son flux à tous les autres, le client n'envoie son flux qu'une seule fois au serveur. Le serveur se charge ensuite de le distribuer aux autres participants.
 
----
+Ce modèle réduit considérablement la charge de la bande passante montante pour chaque client et la charge CPU, permettant à un plus grand nombre de participants de se joindre à une session sans dégradation des performances.
 
-## 📁 **Structure du Projet**
+Voici le flux de communication :
+
+1.  **Signalisation (Signaling)** :
+    -   Lorsqu'un utilisateur se connecte, le client Next.js établit une connexion WebSocket persistante avec le serveur Node.js via **Socket.IO**.
+    -   Toutes les communications initiales pour négocier les connexions WebRTC (échange de métadonnées, capacités, etc.) passent par ce canal de signalisation.
+
+2.  **Création de la salle et des transports** :
+    -   L'utilisateur rejoint une salle. Le serveur crée un `Router` Mediasoup pour cette salle s'il n'existe pas.
+    -   Le serveur crée un `Transport` WebRTC pour ce client. Un transport est un canal de communication qui reliera le client au SFU. Il en existe un pour l'envoi de média (producer) et un pour la réception (consumer).
+    -   Les paramètres de ce transport sont envoyés au client via Socket.IO.
+
+3.  **Production de Média** :
+    -   Le client, en utilisant la librairie `mediasoup-client`, utilise les paramètres reçus pour établir la connexion WebRTC avec le serveur.
+    -   Une fois la connexion établie, le client capture le flux de sa caméra/microphone et crée un **Producer**. Il envoie ce flux média au serveur Mediasoup.
+
+4.  **Consommation de Média** :
+    -   Lorsqu'un nouveau participant (Client A) rejoint la salle, le serveur informe les autres participants (Client B, C, etc.) de sa présence.
+    -   Pour que le Client B puisse voir le Client A, le serveur crée un **Consumer** pour le Client B, lié au Producer du Client A.
+    -   Les paramètres de ce Consumer sont envoyés au Client B (via Socket.IO), qui peut alors recevoir le flux média du Client A via sa connexion WebRTC existante.
+
+Ce processus garantit que les flux médias sont gérés de manière centralisée et efficace, tandis que la signalisation reste légère et rapide.
+
+## 📂 Structure du Projet
+
+Le projet est organisé en deux parties principales :
+
 ```
-meetlocal/
-├── backend/
-│   ├── server.js          # Serveur Socket.IO
-│   ├── ssl/               # Certificats SSL
-│   │   ├── cert.pem
-│   │   └── key.pem
+/
+├── backend/         # Serveur Node.js (Express, Socket.IO, Mediasoup)
+│   ├── ssl/         # Certificats SSL auto-signés pour HTTPS
+│   ├── server.js    # Point d'entrée du serveur
 │   └── package.json
 │
-└── frontend/
-    ├── app/
-    │   ├── page.tsx       # Page d'accueil
-    │   └── room/
-    │       └── page.tsx   # Page de salle
-    ├── components/
-    │   ├── Home/          # Composants page d'accueil
-    │   └── Meeting/       # Composants salle de réunion
-    ├── hooks/             # Hooks React personnalisés
-    ├── types/             # Définitions TypeScript
-    └── package.json
+├── frontend/        # Application client Next.js
+│   ├── app/         # Routage et pages de l'application
+│   ├── components/  # Composants React réutilisables
+│   ├── hooks/       # Hooks personnalisés (useSocket, useMediasoup, etc.)
+│   ├── lib/         # Logique client (Socket, WebRTC)
+│   └── package.json
+│
+└── start-local-meet.sh # Script de démarrage automatisé
 ```
 
----
+## 🚀 Démarrage Rapide
 
-## 🚀 **Installation**
+Le moyen le plus simple de lancer l'application est d'utiliser le script fourni. Il configure et lance automatiquement le backend et le frontend.
 
 ### Prérequis
-- **Node.js** >= 18.x
-- **npm** >= 9.x
 
-### 1️⃣ Cloner le projet
-```bash
-git clone <votre-repo>
-cd meetlocal
-```
+-   [Node.js](https://nodejs.org/en/download/) (v18 ou supérieur recommandé)
+-   `npm` (généralement inclus avec Node.js)
+-   `git`
 
-### 2️⃣ Installer les dépendances
+### Instructions
 
-Le script de démarrage `start-local-meet.sh` gère automatiquement l'installation des dépendances pour le backend et le frontend si elles ne sont pas déjà présentes.
+1.  **Clonez le dépôt :**
+    ```bash
+    git clone https://github.com/PIO-VIA/meetlocal.git
+    cd meetlocal
+    ```
 
-Si vous préférez installer manuellement :
+2.  **Rendez le script de démarrage exécutable :**
+    ```bash
+    chmod +x start-local-meet.sh
+    ```
 
-**Backend :**
+3.  **Lancez le script :**
+    ```bash
+    ./start-local-meet.sh
+    ```
+
+Le script va :
+-   Détecter votre adresse IP locale.
+-   Créer un fichier `.env.local` pour le frontend.
+-   Installer les dépendances `npm` pour le backend et le frontend (si nécessaire).
+-   Démarrer le serveur backend sur `https://<VOTRE_IP>:3001`.
+-   Démarrer le serveur de développement frontend sur `http://<VOTRE_IP>:3000`.
+
+### ⚠️ **Important : Accepter le certificat SSL**
+
+Le serveur backend utilise un certificat SSL auto-signé pour permettre le fonctionnement de WebRTC. Votre navigateur affichera un avertissement de sécurité.
+
+1.  Après avoir lancé le script, ouvrez votre navigateur et allez d'abord à l'adresse du backend :
+    **`https://<VOTRE_IP_LOCALE>:3001/health`**
+
+2.  Votre navigateur affichera une erreur de type "Votre connexion n'est pas privée".
+    -   Cliquez sur "Avancé" ou "Paramètres avancés".
+    -   Cliquez sur "Continuer vers (dangereux)" ou "Accepter le risque et continuer".
+
+3.  Une fois que vous voyez `{"status":"ok"}`, le certificat est accepté par votre navigateur. Vous pouvez maintenant accéder à l'application frontend :
+    **`http://<VOTRE_IP_LOCALE>:3000`**
+
+Cette étape est **cruciale** et doit être effectuée sur chaque appareil qui se connecte à l'application.
+
+## 🔧 Démarrage Manuel
+
+Si vous préférez ne pas utiliser le script, vous pouvez lancer les services manuellement dans deux terminaux différents.
+
+**Terminal 1 : Démarrer le Backend**
 ```bash
 cd backend
 npm install
-```
-
-**Frontend :**
-```bash
-cd ../frontend
-npm install
-```
-
----
-
-## ▶️ **Démarrage**
-
-### 🚀 Démarrage Rapide (Recommandé)
-
-Le script `start-local-meet.sh` automatise l'installation des dépendances, la configuration de l'adresse IP locale pour le frontend et le démarrage simultané du backend et du frontend.
-
-```bash
-./start-local-meet.sh
-```
-
-Le script affichera les adresses pour accéder à l'application sur votre machine et sur d'autres appareils du réseau.
-
-**⚠️ IMPORTANT :**
-1.  Lors du premier accès, votre navigateur affichera un avertissement de sécurité pour le certificat SSL auto-signé. Vous devez l'accepter pour que l'application fonctionne correctement.
-2.  Il est recommandé d'accéder d'abord à l'URL du backend (ex: `https://<VOTRE_IP_LOCALE>:3001/health`) et d'accepter l'exception de sécurité avant d'ouvrir l'application frontend.
-
-### 🔧 Mode Développement (Manuel)
-
-Si vous préférez démarrer les services manuellement :
-
-**Terminal 1 - Backend** :
-```bash
-cd backend
-npm start
-```
-✅ Le serveur Socket.IO démarre sur `https://localhost:3001`
-
-**Terminal 2 - Frontend** :
-```bash
-cd frontend
-npm run dev
-```
-✅ Next.js démarre sur `http://localhost:3000`
-
-### 📱 Accès à l'application (Manuel)
-
-1. Ouvrez `http://localhost:3000` dans votre navigateur
-2. **Acceptez l'avertissement de sécurité** (certificat auto-signé) en allant sur `https://localhost:3001/health` d'abord.
-3. Vous devriez voir **🟢 Connecté** dans l'interface
-
----
-
-## 🔐 **Certificats SSL**
-
-Les certificats SSL auto-signés sont inclus dans `backend/ssl/`.
-
-### Régénérer les certificats (optionnel)
-```bash
-cd backend/ssl
-openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
-```
-
-Lors de la génération, utilisez `localhost` comme **Common Name (CN)**.
-
----
-
-## 🎮 **Utilisation**
-
-### Créer une Réunion
-
-1. Cliquez sur **"Créer une réunion"**
-2. Entrez votre nom
-3. Donnez un nom à la réunion
-4. Cliquez sur **"Lancer la réunion"**
-5. Partagez l'ID de la réunion
-
-### Rejoindre une Réunion
-
-**Option 1 - Via l'ID** :
-1. Cliquez sur **"Rejoindre"**
-2. Entrez votre nom
-3. Entrez l'ID de la réunion
-4. Cliquez sur **"Rejoindre maintenant"**
-
-**Option 2 - Via la liste** :
-1. Cliquez sur **"Rejoindre"**
-2. Sélectionnez une réunion dans la liste
-3. Cliquez sur **"Rejoindre"**
-
-### Contrôles de la Réunion
-
-- **🎤** Activer/Couper le microphone
-- **📹** Démarrer/Arrêter la caméra
-- **🖥️** Partager l'écran
-- **👥** Afficher les participants
-- **💬** Ouvrir le chat
-- **📞** Quitter la réunion
-- **🛑** Terminer la réunion (Admin uniquement)
-
----
-
-## 🐛 **Résolution de Problèmes**
-
-### Le frontend ne se connecte pas au backend
-
-**Vérifications** :
-```bash
-# 1. Le backend est-il démarré ?
-curl https://localhost:3001/health --insecure
-
-# 2. Les certificats SSL sont-ils présents ?
-ls backend/ssl/
-
-# 3. Next.js utilise-t-il le bon port ?
-# Devrait afficher: ready on http://localhost:3000
-```
-
-### Erreur "EADDRINUSE"
-
-Le port est déjà utilisé :
-```bash
-# Trouver le processus
-lsof -i :3001
-
-# Tuer le processus
-kill -9 <PID>
-```
-
-### Les styles Tailwind ne s'appliquent pas
-```bash
-cd frontend
-# Vérifier tailwind.config.ts existe
-ls tailwind.config.ts
-
-# Supprimer .next et reconstruire
-rm -rf .next
-npm run dev
-```
-
-### Problème de certificat SSL
-
-Allez d'abord sur `https://localhost:3001/health` et acceptez l'exception de sécurité avant d'utiliser l'application.
-
----
-
-## 📦 **Build Production**
-
-### Backend
-```bash
-cd backend
 npm start
 ```
 
-### Frontend
-```bash
-cd frontend
-npm run build
-npm start
-```
+**Terminal 2 : Démarrer le Frontend**
+1.  Créez un fichier `.env.local` à la racine de `frontend/`.
+2.  Ajoutez la ligne suivante en remplaçant `<VOTRE_IP_LOCALE>` par votre adresse IP sur le réseau local :
+    ```
+    NEXT_PUBLIC_BACKEND_URL=https://<VOTRE_IP_LOCALE>:3001
+    ```
+3.  Lancez le serveur de développement :
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
 
----
-
-## 🔧 **Configuration Avancée**
-
-### Changer les ports
-
-**Backend** (`backend/server.js`) :
-```javascript
-const PORT = 3002; // Modifier ici
-```
-
-**Frontend** (`frontend/hooks/useSocket.ts`) :
-```typescript
-io('https://localhost:3002', { // Modifier ici
-  // ...
-});
-```
-
-### Ajouter des serveurs TURN/STUN
-
-**`frontend/hooks/useWebRTC.ts`** :
-```typescript
-const iceServers = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { 
-      urls: 'turn:your-turn-server.com:3478',
-      username: 'user',
-      credential: 'pass'
-    }
-  ],
-};
-```
-
----
-
-## 📊 **Performance**
-
-### Optimisations Appliquées
-
-- **WebRTC** : Connexion P2P directe
-- **Socket.IO** : Transport WebSocket prioritaire
-- **Compression vidéo** : 720p@30fps par défaut
-- **Echo cancellation** : Réduction du bruit audio
-- **Bundling** : Optimisation Next.js
-
-### Limites Connues
-
-- **Max 4 participants** recommandé (limitations P2P)
-- **Réseau local** uniquement (pas de TURN server)
-- **Certificat auto-signé** (avertissement navigateur)
-
----
-
-## 🤝 **Contribution**
-
-Les contributions sont les bienvenues !
-
-1. Fork le projet
-2. Créez une branche (`git checkout -b feature/ma-feature`)
-3. Committez (`git commit -m 'Ajout feature'`)
-4. Push (`git push origin feature/ma-feature`)
-5. Ouvrez une Pull Request
-
----
-
-## 📄 **Licence**
-
-Ce projet est sous licence ISC.
-
----
-
-## 👨‍💻 **Auteur**
-
-Développé par **Pio**
-
----
-
-## 📞 **Support**
-
-En cas de problème :
-1. Vérifiez les logs du backend et frontend
-2. Consultez la section "Résolution de Problèmes"
-3. Ouvrez une issue sur GitHub
-
----
-
-**Bon développement ! 🚀**
+N'oubliez pas d'accepter le certificat SSL comme expliqué ci-dessus.
