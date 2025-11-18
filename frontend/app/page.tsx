@@ -25,7 +25,7 @@ export default function Home() {
             <span className={`px-3 py-1 rounded-full text-sm ${
               isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
             }`}>
-              {isConnected ? <><CircleDot size={16} /> Connecté</> : <><CircleOff size={16} /> Déconnecté</>}
+              {isConnected ? <> <span> <CircleDot size={16} /></span> Connecté</>:<> <span> <CircleOff size={16}/></span>Déconnecté</>}
             </span>
           </div>
         </div>

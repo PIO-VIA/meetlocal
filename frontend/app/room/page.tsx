@@ -8,7 +8,8 @@ import ParticipantGrid from '@/components/Meeting/ParticipantGrid';
 import ControlButtons from '@/components/Meeting/ControlButtons';
 import ParticipantsList from '@/components/Meeting/ParticipantsList';
 import ChatBox from '@/components/Meeting/ChatBox';
-import ConnectionStatus from '@/components/Meeting/ConnectionStatus';
+import { MessageCircle, Send } from 'lucide-react';
+
 
 interface Participant {
   id: string;
@@ -105,14 +106,7 @@ export default function RoomPage() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-900">
-      {/* Indicateur de connexion */}
-      <ConnectionStatus
-        status={status}
-        error={error}
-        reconnectAttempts={reconnectAttempts}
-        latency={latency}
-        onReconnect={reconnect}
-      />
+      
 
       {/* Header */}
       <header className="bg-gray-800 text-white p-4 flex justify-between items-center border-b border-gray-700">
@@ -153,7 +147,9 @@ export default function RoomPage() {
                 : 'bg-gray-700 hover:bg-gray-600'
             }`}
           >
-            💬 Chat
+             <h3 className="text-lg font-semibold flex items-center gap-2">
+            <span><MessageCircle size={24} /></span>Chat
+            </h3>
           </button>
         </div>
       </header>
