@@ -556,7 +556,7 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
     audioStream,
     remoteStreams,
     screenStream,
-    remoteScreenStreams, // NOUVEAU: Streams de partage d'écran des autres
+    remoteScreenStreams, 
     startCamera,
     stopCamera,
     startAudioOnly,

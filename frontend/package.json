@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "node server-https.js",
+    "dev:http": "next dev --webpack",
     "build": "next build --webpack",
-    "start": "next start",
+    "start": "NODE_ENV=production node server-https.js",
+    "start:http": "next start",
     "lint": "eslint"
   },
   "dependencies": {
