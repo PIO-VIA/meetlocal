@@ -581,16 +581,24 @@ io.on('connection', (socket) => {
 
     socket.on('leaveRoom', (data) => {
         const { roomId, userName } = data;
-        cleanupUserResources(socket.id, roomId);
-        
+
         const room = rooms.get(roomId);
         if (room) {
             const userIndex = room.users.findIndex(user => user.id === socket.id);
             if (userIndex !== -1) {
+                // Nettoyer les ressources AVANT de retirer l'utilisateur
+                cleanupUserResources(socket.id, roomId);
+
+                // Notifier les autres que cet utilisateur a arrêté son partage d'écran s'il était actif
+                const user = room.users[userIndex];
+                if (user.isScreenSharing) {
+                    io.to(roomId).emit('screenStopped', { userName: user.name, userId: socket.id });
+                }
+
                 room.users.splice(userIndex, 1);
                 socket.leave(roomId);
-                io.to(roomId).emit('userLeft', { userName });
-                
+                io.to(roomId).emit('userLeft', { userName, userId: socket.id });
+
                 if (room.users.length === 0) {
                     rooms.delete(roomId);
                     const router = routers.get(roomId);
@@ -599,7 +607,7 @@ io.on('connection', (socket) => {
                         routers.delete(roomId);
                     }
                 }
-                
+
                 io.to(roomId).emit('getUsers', room.users.filter(u => !u.disconnected));
                 broadcastRoomsList();
             }
@@ -680,13 +688,15 @@ io.on('connection', (socket) => {
     socket.on('getUsers', (data, callback) => {
         const { roomId } = data;
         const room = rooms.get(roomId);
+        const activeUsers = room ? room.users.filter(u => !u.disconnected) : [];
+
+        // Envoyer via callback si fourni
         if (typeof callback === 'function') {
-            if (room) {
-                callback(room.users.filter(u => !u.disconnected));
-            } else {
-                callback([]);
-            }
+            callback(activeUsers);
         }
+
+        // Émettre aussi l'événement pour les composants qui écoutent
+        socket.emit('getUsers', activeUsers);
     });
 
     socket.on('startStream', (data) => {
@@ -744,30 +754,37 @@ io.on('connection', (socket) => {
     socket.on('disconnect', (reason) => {
         console.log('❌ Client déconnecté:', socket.id);
         console.log('📊 Raison:', reason);
-        
+
         const connectedAt = socket.data.connectedAt;
         if (connectedAt && !isNaN(connectedAt)) {
             const duration = Math.round((Date.now() - connectedAt) / 1000);
             console.log('⏱️ Durée de connexion:', duration, 's');
         }
-        
-        cleanupUserResources(socket.id);
-        
+
         rooms.forEach((room, roomId) => {
             const userIndex = room.users.findIndex(user => user.id === socket.id);
             if (userIndex !== -1) {
                 const userName = room.users[userIndex].name;
                 const isCreator = room.users[userIndex].isCreator === true;
-                
+                const wasScreenSharing = room.users[userIndex].isScreenSharing === true;
+
+                // Nettoyer les ressources média de cet utilisateur
+                cleanupUserResources(socket.id);
+
+                // Notifier que le partage d'écran s'arrête si actif
+                if (wasScreenSharing) {
+                    io.to(roomId).emit('screenStopped', { userName, userId: socket.id });
+                }
+
                 if (isCreator) {
                     room.users[userIndex].disconnected = true;
-                    io.to(roomId).emit('adminDisconnected', { 
-                        message: `L'administrateur ${userName} s'est déconnecté.` 
+                    io.to(roomId).emit('adminDisconnected', {
+                        message: `L'administrateur ${userName} s'est déconnecté.`
                     });
                 } else {
                     room.users.splice(userIndex, 1);
-                    io.to(roomId).emit('userLeft', { userName });
-                    
+                    io.to(roomId).emit('userLeft', { userName, userId: socket.id });
+
                     if (room.users.length === 0) {
                         rooms.delete(roomId);
                         const router = routers.get(roomId);
@@ -777,7 +794,7 @@ io.on('connection', (socket) => {
                         }
                     }
                 }
-                
+
                 broadcastRoomsList();
             }
         });

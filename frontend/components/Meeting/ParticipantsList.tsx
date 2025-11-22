@@ -30,13 +30,21 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
       setParticipants(activeUsers);
     };
 
-    socket.on('getUsers', handleGetUsers);
+    const refreshUsersList = () => {
+      socket.emit('getUsers', { roomId });
+    };
 
-    // Demander la liste des participants
+    socket.on('getUsers', handleGetUsers);
+    socket.on('userJoined', refreshUsersList);
+    socket.on('userLeft', refreshUsersList);
+
+    // Demander la liste des participants au chargement
     socket.emit('getUsers', { roomId });
 
     return () => {
       socket.off('getUsers', handleGetUsers);
+      socket.off('userJoined', refreshUsersList);
+      socket.off('userLeft', refreshUsersList);
     };
   }, [socket, roomId]);
 
@@ -66,9 +74,9 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
             <p>Aucun participant pour le moment</p>
           </div>
         ) : (
-          participants.map((participant, index) => (
+          participants.map((participant) => (
             <div
-              key={index}
+              key={participant.id || participant.name}
               className="flex items-center gap-3 p-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition"
             >
               {/* Avatar avec initiales */}

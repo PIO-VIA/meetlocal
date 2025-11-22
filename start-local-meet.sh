@@ -160,4 +160,4 @@ trap cleanup SIGINT SIGTERM
 
 # Attendre
 echo -e "${BLUE}Appuyez sur Ctrl+C pour arrêter${NC}"
-wait
+wait1
