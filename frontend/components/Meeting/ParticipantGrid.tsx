@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, Crown, User, Monitor } from 'lucide-react';
+import { Mic, MicOff, Crown, User, Monitor, Maximize2, Minimize2, X } from 'lucide-react';
 
 interface Participant {
   id: string;
@@ -29,34 +29,71 @@ export default function ParticipantGrid({
   remoteScreenStreams,
   currentUserId
 }: ParticipantGridProps) {
-  // Vérifier s'il y a un partage d'écran actif
-  const hasScreenShare = screenStream || remoteScreenStreams.size > 0;
-  const activeScreenStream = screenStream || (remoteScreenStreams.size > 0 ? Array.from(remoteScreenStreams.values())[0] : null);
-  const screenShareUserId = screenStream ? currentUserId : (remoteScreenStreams.size > 0 ? Array.from(remoteScreenStreams.keys())[0] : null);
+  const [fullscreenVideo, setFullscreenVideo] = useState<{ stream: MediaStream; participant: Participant } | null>(null);
 
-  if (hasScreenShare && activeScreenStream) {
-    // Mode partage d'écran : écran principal + miniatures
+  // Vérifier s'il y a des partages d'écran actifs (support multiple)
+  const allScreenStreams: Array<{ stream: MediaStream; userId: string | undefined; isLocal: boolean }> = [];
+
+  if (screenStream) {
+    allScreenStreams.push({ stream: screenStream, userId: currentUserId, isLocal: true });
+  }
+
+  remoteScreenStreams.forEach((stream, userId) => {
+    allScreenStreams.push({ stream, userId, isLocal: false });
+  });
+
+  const hasScreenShare = allScreenStreams.length > 0;
+
+  // Mode Fullscreen
+  if (fullscreenVideo) {
     return (
-      <div className="h-full w-full flex flex-col gap-4 p-4">
-        {/* Partage d'écran en grand */}
-        <div className="flex-1 relative bg-gray-900 rounded-xl overflow-hidden shadow-2xl">
-          <ScreenShareDisplay 
-            stream={activeScreenStream} 
-            isLocal={screenStream !== null}
-            userName={participants.find(p => p.id === screenShareUserId)?.name || 'Utilisateur'}
-          />
+      <div className="fixed inset-0 z-50 bg-black">
+        <FullscreenVideoDisplay
+          stream={fullscreenVideo.stream}
+          participant={fullscreenVideo.participant}
+          onClose={() => setFullscreenVideo(null)}
+        />
+      </div>
+    );
+  }
+
+  if (hasScreenShare) {
+    // Mode partage d'écran : affichage principal + participants visibles sur le côté
+    return (
+      <div className="h-full w-full flex gap-3 p-3">
+        {/* Partage(s) d'écran principal */}
+        <div className={`flex-1 grid gap-3 ${
+          allScreenStreams.length === 1 ? 'grid-cols-1' :
+          allScreenStreams.length === 2 ? 'grid-cols-2' :
+          allScreenStreams.length <= 4 ? 'grid-cols-2 grid-rows-2' :
+          'grid-cols-3'
+        }`}>
+          {allScreenStreams.map((screenData, index) => {
+            const participant = participants.find(p => p.id === screenData.userId);
+            return (
+              <div key={index} className="relative bg-gray-900 rounded-lg overflow-hidden">
+                <ScreenShareDisplay
+                  stream={screenData.stream}
+                  isLocal={screenData.isLocal}
+                  userName={participant?.name || 'Utilisateur'}
+                  onFullscreen={() => participant && setFullscreenVideo({ stream: screenData.stream, participant })}
+                />
+              </div>
+            );
+          })}
         </div>
 
-        {/* Miniatures des participants en bas */}
-        <div className="flex gap-3 h-40 overflow-x-auto pb-2">
+        {/* Participants visibles sur le côté droit */}
+        <div className="w-64 flex flex-col gap-2 overflow-y-auto">
           {/* Vidéo locale */}
           {localStream && (
-            <div className="flex-shrink-0 w-56">
+            <div className="flex-shrink-0 h-36">
               <ParticipantCard
                 participant={participants.find(p => p.id === currentUserId) || { id: currentUserId || '', name: 'Vous' }}
                 stream={localStream}
                 isLocal={true}
                 isMiniature={true}
+                onFullscreen={(stream, participant) => setFullscreenVideo({ stream, participant })}
               />
             </div>
           )}
@@ -65,12 +102,13 @@ export default function ParticipantGrid({
           {participants.filter(p => p.id !== currentUserId).map((participant) => {
             const stream = remoteStreams.get(participant.id);
             return (
-              <div key={participant.id} className="flex-shrink-0 w-56">
+              <div key={participant.id} className="flex-shrink-0 h-36">
                 <ParticipantCard
                   participant={participant}
                   stream={stream}
                   isLocal={false}
                   isMiniature={true}
+                  onFullscreen={(stream, participant) => setFullscreenVideo({ stream, participant })}
                 />
               </div>
             );
@@ -91,10 +129,10 @@ export default function ParticipantGrid({
         'grid-cols-4'
       }`}>
         {participants.map((participant) => {
-          const stream = participant.id === currentUserId 
-            ? localStream 
+          const stream = participant.id === currentUserId
+            ? localStream
             : remoteStreams.get(participant.id);
-          
+
           return (
             <ParticipantCard
               key={participant.id}
@@ -102,9 +140,64 @@ export default function ParticipantGrid({
               stream={stream || undefined}
               isLocal={participant.id === currentUserId}
               isMiniature={false}
+              onFullscreen={(stream, participant) => setFullscreenVideo({ stream, participant })}
             />
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// Composant Fullscreen
+interface FullscreenVideoDisplayProps {
+  stream: MediaStream;
+  participant: Participant;
+  onClose: () => void;
+}
+
+function FullscreenVideoDisplay({ stream, participant, onClose }: FullscreenVideoDisplayProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+
+    // Gérer la touche Échap
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [stream, onClose]);
+
+  return (
+    <div className="relative w-full h-full bg-black">
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        className="w-full h-full object-contain"
+      />
+
+      {/* Bouton fermer en haut à droite */}
+      <div className="absolute top-4 right-4 z-50">
+        <button
+          onClick={onClose}
+          className="w-10 h-10 bg-gray-800/80 hover:bg-gray-700 rounded-full flex items-center justify-center transition backdrop-blur-sm"
+          title="Quitter le plein écran (Échap)"
+        >
+          <X size={20} className="text-white" />
+        </button>
+      </div>
+
+      {/* Info participant en bas */}
+      <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-lg">
+        <p className="text-white text-sm font-medium">{participant.name}</p>
       </div>
     </div>
   );
@@ -115,9 +208,10 @@ interface ScreenShareDisplayProps {
   stream: MediaStream;
   isLocal: boolean;
   userName: string;
+  onFullscreen?: () => void;
 }
 
-function ScreenShareDisplay({ stream, isLocal, userName }: ScreenShareDisplayProps) {
+function ScreenShareDisplay({ stream, isLocal, userName, onFullscreen }: ScreenShareDisplayProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -148,6 +242,19 @@ function ScreenShareDisplay({ stream, isLocal, userName }: ScreenShareDisplayPro
           </div>
         </div>
       </div>
+
+      {/* Bouton fullscreen */}
+      {onFullscreen && (
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={onFullscreen}
+            className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-lg flex items-center justify-center transition"
+            title="Plein écran"
+          >
+            <Maximize2 size={20} className="text-white" />
+          </button>
+        </div>
+      )}
     </>
   );
 }
@@ -157,9 +264,10 @@ interface ParticipantCardProps {
   stream?: MediaStream;
   isLocal: boolean;
   isMiniature?: boolean;
+  onFullscreen?: (stream: MediaStream, participant: Participant) => void;
 }
 
-function ParticipantCard({ participant, stream, isLocal, isMiniature = false }: ParticipantCardProps) {
+function ParticipantCard({ participant, stream, isLocal, isMiniature = false, onFullscreen }: ParticipantCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -232,7 +340,20 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false }: 
   const hasVideo = stream?.getVideoTracks().some(track => track.enabled) ?? false;
 
   return (
-    <div className={`relative bg-gray-900 rounded-xl overflow-hidden shadow-2xl ${isMiniature ? 'h-full' : ''}`}>
+    <div className={`relative bg-gray-900 rounded-xl overflow-hidden shadow-2xl group ${isMiniature ? 'h-full' : ''}`}>
+      {/* Bouton fullscreen - apparaît au hover */}
+      {!isMiniature && stream && onFullscreen && (
+        <div className="absolute top-3 right-3 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => onFullscreen(stream, participant)}
+            className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-lg flex items-center justify-center transition"
+            title="Plein écran"
+          >
+            <Maximize2 size={18} className="text-white" />
+          </button>
+        </div>
+      )}
+
       {/* Effet d'onde audio */}
       {isSpeaking && !isMiniature && (
         <>
@@ -280,6 +401,40 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false }: 
         )}
       </div>
 
+      {/* Indicateur micro en haut à gauche - toujours visible */}
+      {!isMiniature && (
+        <div className="absolute top-3 left-3 z-30">
+          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-lg transition-all ${
+            hasAudio
+              ? isSpeaking
+                ? 'bg-green-600 scale-110'
+                : 'bg-gray-700/90 backdrop-blur-sm'
+              : 'bg-red-600'
+          }`}>
+            {hasAudio ? (
+              <>
+                <Mic size={16} className="text-white" />
+                {isSpeaking && (
+                  <div className="flex items-end gap-0.5 h-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-1 bg-white rounded-full transition-all duration-100"
+                        style={{
+                          height: `${Math.max(30, audioLevel * 100 * (1 - i * 0.2))}%`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <MicOff size={16} className="text-white" />
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Overlay infos */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
         <div className="flex items-center justify-between">
@@ -298,35 +453,22 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false }: 
             </div>
           </div>
 
-          {/* Indicateur micro */}
-          <div className={`flex items-center gap-1 px-2 py-1 rounded ${
-            hasAudio 
-              ? isSpeaking 
-                ? 'bg-green-500/80' 
-                : 'bg-gray-700/80'
-              : 'bg-red-500/80'
-          }`}>
-            {hasAudio ? (
-              <>
-                <Mic size={isMiniature ? 12 : 14} className="text-white" />
-                {isSpeaking && !isMiniature && (
-                  <div className="flex items-end gap-0.5 h-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-1 bg-white rounded-full transition-all duration-100"
-                        style={{
-                          height: `${Math.max(20, audioLevel * 100 * (1 - i * 0.2))}%`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <MicOff size={isMiniature ? 12 : 14} className="text-white" />
-            )}
-          </div>
+          {/* Indicateur micro pour miniature */}
+          {isMiniature && (
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${
+              hasAudio
+                ? isSpeaking
+                  ? 'bg-green-500/80'
+                  : 'bg-gray-700/80'
+                : 'bg-red-500/80'
+            }`}>
+              {hasAudio ? (
+                <Mic size={12} className="text-white" />
+              ) : (
+                <MicOff size={12} className="text-white" />
+              )}
+            </div>
+          )}
         </div>
 
         {/* Barre de niveau audio */}

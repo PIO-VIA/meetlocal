@@ -106,50 +106,51 @@ export default function RoomPage() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-900">
-      
-
-      {/* Header */}
-      <header className="bg-gray-800 text-white p-4 flex justify-between items-center border-b border-gray-700">
-        <div>
-          <h2 className="text-xl font-bold">Réunion: {roomId}</h2>
-          <div className="flex items-center gap-3 mt-1">
-            {isAdmin && (
-              <span className="text-sm text-yellow-400 flex items-center gap-1">
-                👑 Administrateur
+      {/* Header style Google Meet */}
+      <header className="bg-gray-800 text-white px-4 py-3 flex justify-between items-center border-b border-gray-700">
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-base font-medium text-gray-100">
+              {roomId}
+            </h2>
+            <div className="flex items-center gap-2 mt-0.5">
+              {isAdmin && (
+                <span className="text-xs px-2 py-0.5 bg-yellow-600/20 text-yellow-400 rounded flex items-center gap-1">
+                  👑 Admin
+                </span>
+              )}
+              <span className="text-xs text-gray-400">
+                {participants.length} participant{participants.length > 1 ? 's' : ''}
               </span>
-            )}
-            <span className="text-sm text-gray-400">
-              {participants.length} participant{participants.length > 1 ? 's' : ''}
-            </span>
-            {(screenStream || remoteScreenStreams.size > 0) && (
-              <span className="text-sm text-purple-400 flex items-center gap-1 animate-pulse">
-                🖥️ Partage d'écran actif
-              </span>
-            )}
+              {(screenStream || remoteScreenStreams.size > 0) && (
+                <span className="text-xs px-2 py-0.5 bg-blue-600/20 text-blue-400 rounded flex items-center gap-1">
+                  🖥️ {screenStream && remoteScreenStreams.size > 0 ? `${remoteScreenStreams.size + 1} partages` : 'Partage actif'}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowParticipants(!showParticipants)}
-            className={`px-4 py-2 rounded transition-colors ${
-              showParticipants 
-                ? 'bg-blue-600 hover:bg-blue-700' 
-                : 'bg-gray-700 hover:bg-gray-600'
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              showParticipants
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
             }`}
           >
             👥 Participants
           </button>
           <button
             onClick={() => setShowChat(!showChat)}
-            className={`px-4 py-2 rounded transition-colors ${
-              showChat 
-                ? 'bg-green-600 hover:bg-green-700' 
-                : 'bg-gray-700 hover:bg-gray-600'
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              showChat
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
             }`}
           >
-             <h3 className="text-lg font-semibold flex items-center gap-2">
-            <span><MessageCircle size={24} /></span>Chat
-            </h3>
+            <MessageCircle size={18} />
+            Chat
           </button>
         </div>
       </header>

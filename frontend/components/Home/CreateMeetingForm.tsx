@@ -3,7 +3,7 @@
 import { useState, FormEvent } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
-import { Video, XCircle, Info, Rocket } from 'lucide-react';
+import { Video, XCircle, Info, Rocket, Key, Shuffle, Copy, Check } from 'lucide-react';
 
 interface CreateMeetingFormProps {
   socket: Socket | null;
@@ -15,6 +15,33 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
   const [roomName, setRoomName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [useCustomCode, setUseCustomCode] = useState(false);
+  const [customCode, setCustomCode] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const generateRandomCode = () => {
+    // Générer un code de 6 caractères alphanumériques
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Sans O, 0, I, 1 pour éviter confusion
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
+  const handleGenerateCode = () => {
+    const newCode = generateRandomCode();
+    setCustomCode(newCode);
+    setUseCustomCode(true);
+  };
+
+  const handleCopyCode = () => {
+    if (customCode) {
+      navigator.clipboard.writeText(customCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -27,6 +54,11 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
 
     if (!roomName.trim()) {
       setError('Veuillez donner un nom à votre réunion');
+      return;
+    }
+
+    if (useCustomCode && !customCode.trim()) {
+      setError('Veuillez entrer un code ou générez-en un automatiquement');
       return;
     }
 
@@ -46,7 +78,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
       localStorage.setItem('room_creator', 'true');
       localStorage.setItem('active_room_name', createdRoomName);
       localStorage.setItem('room_created_time', new Date().toISOString());
-      
+
       // Rediriger vers la salle
       router.push(`/room?room=${roomId}`);
     });
@@ -66,7 +98,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
     socket.emit('createRoom', {
       userName: userName.trim(),
       roomName: roomName.trim(),
-      customRoomId: '' // Laisser vide pour génération automatique
+      customRoomId: useCustomCode ? customCode.trim() : ''
     });
   };
 
@@ -118,9 +150,79 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
             required
             disabled={loading}
           />
-          <p className="mt-2 text-sm text-gray-500">
-            <Info size={16} /> Un identifiant unique sera généré automatiquement
-          </p>
+        </div>
+
+        {/* Option pour code personnalisé */}
+        <div className="border-t pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Key size={18} className="text-blue-600" />
+              Code de réunion personnalisé
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                setUseCustomCode(!useCustomCode);
+                if (useCustomCode) setCustomCode('');
+              }}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                useCustomCode
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {useCustomCode ? 'Activé' : 'Désactivé'}
+            </button>
+          </div>
+
+          {useCustomCode && (
+            <div className="space-y-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customCode}
+                  onChange={(e) => setCustomCode(e.target.value.toUpperCase())}
+                  className="flex-1 px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition font-mono text-lg"
+                  placeholder="Entrez un code (ex: ABC123)"
+                  disabled={loading}
+                  maxLength={20}
+                />
+                <button
+                  type="button"
+                  onClick={handleGenerateCode}
+                  className="px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
+                  disabled={loading}
+                  title="Générer un code aléatoire"
+                >
+                  <Shuffle size={20} />
+                </button>
+                {customCode && (
+                  <button
+                    type="button"
+                    onClick={handleCopyCode}
+                    className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+                    disabled={loading}
+                    title="Copier le code"
+                  >
+                    {copied ? <Check size={20} /> : <Copy size={20} />}
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-blue-700 flex items-center gap-1">
+                <Info size={14} />
+                {customCode
+                  ? 'Les participants pourront rejoindre avec ce code'
+                  : 'Créez un code personnalisé ou générez-en un automatiquement'}
+              </p>
+            </div>
+          )}
+
+          {!useCustomCode && (
+            <p className="mt-2 text-sm text-gray-500 flex items-center gap-1">
+              <Info size={16} />
+              Un identifiant unique sera généré automatiquement
+            </p>
+          )}
         </div>
 
         <button

@@ -204,6 +204,7 @@ app.get('/get-connection-info', (req, res) => {
 // ==================== ROOMS MANAGEMENT ====================
 
 const rooms = new Map();
+const chatHistory = new Map(); // Stocker l'historique des messages par room
 
 function broadcastRoomsList() {
     const roomsList = Array.from(rooms.entries()).map(([id, room]) => {
@@ -632,18 +633,48 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('message', (data) => {
-        const { roomId, message } = data;
+    socket.on('message', (data, callback) => {
+        const { roomId, message, timestamp } = data;
         const room = rooms.get(roomId);
         if (room) {
             const user = room.users.find(u => u.id === socket.id);
             if (user) {
-                io.to(roomId).emit('message', {
+                const messageData = {
+                    id: `${socket.id}-${Date.now()}`,
                     userName: user.name,
-                    message
-                });
+                    message,
+                    timestamp: timestamp || new Date().toISOString()
+                };
+
+                // Sauvegarder dans l'historique
+                if (!chatHistory.has(roomId)) {
+                    chatHistory.set(roomId, []);
+                }
+                chatHistory.get(roomId).push(messageData);
+
+                // Limiter l'historique à 200 messages
+                if (chatHistory.get(roomId).length > 200) {
+                    chatHistory.get(roomId).shift();
+                }
+
+                // Diffuser le message à tous les participants
+                io.to(roomId).emit('message', messageData);
+
+                // Confirmer la réception
+                if (typeof callback === 'function') {
+                    callback({ success: true });
+                }
+            }
+        } else {
+            if (typeof callback === 'function') {
+                callback({ success: false, error: 'Room not found' });
             }
         }
+    });
+
+    socket.on('getChatHistory', ({ roomId }) => {
+        const history = chatHistory.get(roomId) || [];
+        socket.emit('chatHistory', history);
     });
 
     socket.on('getUsers', (data, callback) => {
