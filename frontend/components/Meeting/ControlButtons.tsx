@@ -167,47 +167,63 @@ export default function ControlButtons({
     router.push('/');
   };
 
-  const hasAnyAudio = localStream || audioStream;
+  const hasAnyStream = localStream || audioStream;
+  const isMicActive = hasAnyStream && !isMicMuted;
+
+  // Nouveau handler pour le micro qui gère audio seul + vidéo
+  const handleToggleMicrophone = async () => {
+    if (hasAnyStream) {
+      // Si on a déjà un stream, on toggle juste le mute
+      handleToggleMic();
+    } else {
+      // Si pas de stream, on démarre l'audio seul
+      if (onStartAudioOnly) {
+        try {
+          await onStartAudioOnly();
+          setIsAudioOnly(true);
+          socket?.emit('startStream', { roomId });
+        } catch (error) {
+          toast.error('Impossible d\'accéder au microphone');
+        }
+      }
+    }
+  };
+
+  // Handler pour arrêter complètement le micro
+  const handleStopMicrophone = () => {
+    if (isAudioOnly && onStopAudioOnly) {
+      onStopAudioOnly();
+      setIsAudioOnly(false);
+      socket?.emit('stopStream', { roomId });
+    } else if (isCameraOn) {
+      // Si caméra active, on mute juste
+      handleToggleMic();
+    }
+  };
 
   return (
     <div className="flex justify-center items-center gap-3">
-      {/* Microphone Mute/Unmute */}
+      {/* Microphone unifié */}
       <button
-        onClick={handleToggleMic}
-        disabled={!hasAnyAudio}
+        onClick={isMicActive ? handleStopMicrophone : handleToggleMicrophone}
         className={`p-3.5 rounded-full transition-all text-white ${
-          isMicMuted
-            ? 'bg-red-500 hover:bg-red-600'
-            : 'bg-gray-600 hover:bg-gray-700'
-        } ${!hasAnyAudio && 'opacity-50 cursor-not-allowed'}`}
-        title={isMicMuted ? 'Activer le micro' : 'Couper le micro'}
+          isMicActive
+            ? 'bg-gray-600 hover:bg-gray-700'
+            : 'bg-red-500 hover:bg-red-600'
+        }`}
+        title={isMicActive ? 'Désactiver le micro' : 'Activer le micro'}
       >
-        {isMicMuted ? <MicOff size={22} /> : <Mic size={22} />}
-      </button>
-
-      {/* Audio Only */}
-      <button
-        onClick={handleToggleAudioOnly}
-        disabled={isCameraOn}
-        className={`p-3.5 rounded-full transition-all text-white ${
-          isAudioOnly
-            ? 'bg-green-500 hover:bg-green-600'
-            : 'bg-gray-600 hover:bg-gray-700'
-        } ${isCameraOn && 'opacity-50 cursor-not-allowed'}`}
-        title={isAudioOnly ? 'Arrêter le micro' : 'Activer uniquement le micro'}
-      >
-        <Mic size={22} />
+        {isMicActive ? <Mic size={22} /> : <MicOff size={22} />}
       </button>
 
       {/* Camera */}
       <button
         onClick={handleToggleCamera}
-        disabled={isAudioOnly}
         className={`p-3.5 rounded-full transition-all text-white ${
           isCameraOn
             ? 'bg-blue-500 hover:bg-blue-600'
             : 'bg-gray-600 hover:bg-gray-700'
-        } ${isAudioOnly && 'opacity-50 cursor-not-allowed'}`}
+        }`}
         title={isCameraOn ? 'Arrêter la caméra' : 'Démarrer la caméra'}
       >
         {isCameraOn ? <Video size={22} /> : <VideoOff size={22} />}

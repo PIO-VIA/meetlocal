@@ -57,6 +57,22 @@
   animation: scale-in 0.2s ease-out;
 }
 
+/* Animation pour la bordure quand quelqu'un parle */
+@keyframes pulse-border {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+}
+
+.animate-pulse-border {
+  animation: pulse-border 1.5s ease-in-out infinite;
+}
+
 /* Scrollbar personnalisé style Google Meet */
 ::-webkit-scrollbar {
   width: 8px;
