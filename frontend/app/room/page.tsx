@@ -8,7 +8,8 @@ import ParticipantGrid from '@/components/Meeting/ParticipantGrid';
 import ControlButtons from '@/components/Meeting/ControlButtons';
 import ParticipantsList from '@/components/Meeting/ParticipantsList';
 import ChatBox from '@/components/Meeting/ChatBox';
-import { MessageCircle, Send } from 'lucide-react';
+import { MessageCircle, Users, Crown, Monitor } from 'lucide-react';
+import { useToast } from '@/contexts/ToastContext';
 
 
 interface Participant {
@@ -23,9 +24,10 @@ interface Participant {
 export default function RoomPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const toast = useToast();
   const roomId = searchParams.get('room');
-  const userName = typeof window !== 'undefined' 
-    ? localStorage.getItem('display_name') 
+  const userName = typeof window !== 'undefined'
+    ? localStorage.getItem('display_name')
     : null;
 
   const { 
@@ -67,7 +69,7 @@ export default function RoomPage() {
     if (socket && isConnected) {
       socket.emit('joinRoom', { roomId, userName }, (success: boolean, response: any) => {
         if (!success) {
-          alert(response?.message || 'Impossible de rejoindre la réunion');
+          toast.error(response?.message || 'Impossible de rejoindre la réunion');
           router.push('/');
           return;
         }
@@ -105,60 +107,67 @@ export default function RoomPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-900">
-      {/* Header style Google Meet */}
-      <header className="bg-gray-800 text-white px-4 py-3 flex justify-between items-center border-b border-gray-700">
-        <div className="flex items-center gap-3">
-          <div>
-            <h2 className="text-base font-medium text-gray-100">
-              {roomId}
-            </h2>
-            <div className="flex items-center gap-2 mt-0.5">
-              {isAdmin && (
-                <span className="text-xs px-2 py-0.5 bg-yellow-600/20 text-yellow-400 rounded flex items-center gap-1">
-                  👑 Admin
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Header plus doux avec couleurs subtiles */}
+      <header className="bg-white text-gray-900 px-6 py-3 flex justify-between items-center border-b border-gray-200 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+              <span className="text-white text-sm font-bold">LM</span>
+            </div>
+            <div>
+              <h2 className="text-sm font-medium text-gray-900">
+                {roomId}
+              </h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                {isAdmin && (
+                  <span className="text-xs px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full flex items-center gap-1 border border-amber-200">
+                    <Crown size={12} /> Admin
+                  </span>
+                )}
+                <span className="text-xs text-gray-500 flex items-center gap-1">
+                  <Users size={12} />
+                  {participants.length} participant{participants.length > 1 ? 's' : ''}
                 </span>
-              )}
-              <span className="text-xs text-gray-400">
-                {participants.length} participant{participants.length > 1 ? 's' : ''}
-              </span>
-              {(screenStream || remoteScreenStreams.size > 0) && (
-                <span className="text-xs px-2 py-0.5 bg-blue-600/20 text-blue-400 rounded flex items-center gap-1">
-                  🖥️ {screenStream && remoteScreenStreams.size > 0 ? `${remoteScreenStreams.size + 1} partages` : 'Partage actif'}
-                </span>
-              )}
+                {(screenStream || remoteScreenStreams.size > 0) && (
+                  <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full flex items-center gap-1 border border-blue-200">
+                    <Monitor size={12} /> {screenStream && remoteScreenStreams.size > 0 ? `${remoteScreenStreams.size + 1} partages` : 'Partage actif'}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowParticipants(!showParticipants)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
               showParticipants
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
             }`}
           >
-            👥 Participants
+            <Users size={16} />
+            Participants
           </button>
           <button
             onClick={() => setShowChat(!showChat)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
               showChat
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
             }`}
           >
-            <MessageCircle size={18} />
+            <MessageCircle size={16} />
             Chat
           </button>
         </div>
       </header>
 
-      {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Main content avec couleurs douces */}
+      <div className="flex-1 flex overflow-hidden bg-gray-100">
         {/* Grille vidéo avec participants */}
-        <div className="flex-1">
+        <div className="flex-1 p-4">
           <ParticipantGrid
             participants={participants}
             localStream={localStream}
@@ -169,11 +178,11 @@ export default function RoomPage() {
           />
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar avec couleurs douces */}
         {(showParticipants || showChat) && (
-          <aside className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
+          <aside className="w-80 bg-white border-l border-gray-200 flex flex-col shadow-lg animate-slide-in-right">
             {showParticipants && (
-              <div className={showChat ? 'flex-1 border-b border-gray-700' : 'h-full'}>
+              <div className={showChat ? 'flex-1 border-b border-gray-200' : 'h-full'}>
                 <ParticipantsList socket={socket} roomId={roomId} />
               </div>
             )}
@@ -186,8 +195,8 @@ export default function RoomPage() {
         )}
       </div>
 
-      {/* Controls */}
-      <footer className="bg-gray-800 p-4 border-t border-gray-700">
+      {/* Controls avec design plus doux */}
+      <footer className="bg-white p-4 border-t border-gray-200 shadow-sm">
         <ControlButtons
           localStream={localStream}
           audioStream={audioStream}

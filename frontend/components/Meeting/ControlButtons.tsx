@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
 import { MicOff, Mic, ScreenShare, ScreenShareOff, Video, VideoOff, PhoneOff, XSquare } from 'lucide-react';
+import { useToast } from '@/contexts/ToastContext';
 
 interface ControlButtonsProps {
   localStream: MediaStream | null;
@@ -37,6 +38,7 @@ export default function ControlButtons({
   userName
 }: ControlButtonsProps) {
   const router = useRouter();
+  const toast = useToast();
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isAudioOnly, setIsAudioOnly] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
@@ -59,7 +61,7 @@ export default function ControlButtons({
           setIsAudioOnly(true);
           socket?.emit('startStream', { roomId });
         } catch (error) {
-          alert('Impossible d\'accéder au microphone');
+          toast.error('Impossible d\'accéder au microphone');
         }
       }
     }
@@ -77,7 +79,7 @@ export default function ControlButtons({
         setIsCameraOn(true);
         socket?.emit('startStream', { roomId });
       } catch (error) {
-        alert('Impossible d\'accéder à la caméra');
+        toast.error('Impossible d\'accéder à la caméra');
       }
     }
   };
@@ -108,7 +110,7 @@ export default function ControlButtons({
           socket?.emit('startScreen', { roomId });
         } catch (error) {
           console.error('Erreur partage d\'écran:', error);
-          alert('Impossible de partager l\'écran. Veuillez réessayer.');
+          toast.error('Impossible de partager l\'écran. Veuillez réessayer.');
         }
       }
     }
@@ -136,7 +138,7 @@ export default function ControlButtons({
   // End Meeting (Admin only)
   const handleEndMeeting = () => {
     if (!isAdmin) {
-      alert('Seul l\'administrateur peut terminer la réunion');
+      toast.warning('Seul l\'administrateur peut terminer la réunion');
       return;
     }
 
@@ -173,79 +175,79 @@ export default function ControlButtons({
       <button
         onClick={handleToggleMic}
         disabled={!hasAnyAudio}
-        className={`p-4 rounded-full transition-all ${
+        className={`p-3.5 rounded-full transition-all text-white ${
           isMicMuted
-            ? 'bg-red-600 hover:bg-red-700'
-            : 'bg-gray-700 hover:bg-gray-600'
+            ? 'bg-red-500 hover:bg-red-600'
+            : 'bg-gray-600 hover:bg-gray-700'
         } ${!hasAnyAudio && 'opacity-50 cursor-not-allowed'}`}
         title={isMicMuted ? 'Activer le micro' : 'Couper le micro'}
       >
-        {isMicMuted ? <MicOff size={24} /> : <Mic size={24} />}
+        {isMicMuted ? <MicOff size={22} /> : <Mic size={22} />}
       </button>
 
-      {/* Audio Only (nouveau) */}
+      {/* Audio Only */}
       <button
         onClick={handleToggleAudioOnly}
         disabled={isCameraOn}
-        className={`p-4 rounded-full transition-all ${
+        className={`p-3.5 rounded-full transition-all text-white ${
           isAudioOnly
-            ? 'bg-green-600 hover:bg-green-700 animate-pulse'
-            : 'bg-gray-700 hover:bg-gray-600'
+            ? 'bg-green-500 hover:bg-green-600'
+            : 'bg-gray-600 hover:bg-gray-700'
         } ${isCameraOn && 'opacity-50 cursor-not-allowed'}`}
         title={isAudioOnly ? 'Arrêter le micro' : 'Activer uniquement le micro'}
       >
-        <Mic size={24} className={isAudioOnly ? 'text-white' : ''} />
+        <Mic size={22} />
       </button>
 
       {/* Camera */}
       <button
         onClick={handleToggleCamera}
         disabled={isAudioOnly}
-        className={`p-4 rounded-full transition-all ${
+        className={`p-3.5 rounded-full transition-all text-white ${
           isCameraOn
-            ? 'bg-blue-600 hover:bg-blue-700'
-            : 'bg-gray-700 hover:bg-gray-600'
+            ? 'bg-blue-500 hover:bg-blue-600'
+            : 'bg-gray-600 hover:bg-gray-700'
         } ${isAudioOnly && 'opacity-50 cursor-not-allowed'}`}
         title={isCameraOn ? 'Arrêter la caméra' : 'Démarrer la caméra'}
       >
-        {isCameraOn ? <Video size={24} /> : <VideoOff size={24} />}
+        {isCameraOn ? <Video size={22} /> : <VideoOff size={22} />}
       </button>
 
       {/* Screen Share */}
       <button
         onClick={handleToggleScreenShare}
-        className={`p-4 rounded-full transition-all ${
+        className={`p-3.5 rounded-full transition-all text-white ${
           isScreenSharing
-            ? 'bg-purple-600 hover:bg-purple-700 animate-pulse'
-            : 'bg-gray-700 hover:bg-gray-600'
+            ? 'bg-indigo-500 hover:bg-indigo-600'
+            : 'bg-gray-600 hover:bg-gray-700'
         }`}
         title={isScreenSharing ? 'Arrêter le partage' : 'Partager l\'écran'}
       >
-        {isScreenSharing ? <ScreenShareOff size={24} /> : <ScreenShare size={24} />}
+        {isScreenSharing ? <ScreenShareOff size={22} /> : <ScreenShare size={22} />}
       </button>
 
       {/* Separator */}
-      <div className="w-px h-12 bg-gray-600 mx-2"></div>
+      <div className="w-px h-10 bg-gray-300 mx-2"></div>
 
       {/* Leave Meeting */}
       <button
         onClick={handleLeaveMeeting}
-        className="p-4 rounded-full bg-red-600 hover:bg-red-700 transition-all"
+        className="p-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-all text-white"
         title="Quitter la réunion"
       >
-        <PhoneOff size={24} />
+        <PhoneOff size={22} />
       </button>
 
       {/* End Meeting (Admin only) */}
       {isAdmin && (
         <button
           onClick={handleEndMeeting}
-          className="px-6 py-3 rounded-full bg-red-800 hover:bg-red-900 transition-all font-semibold"
+          className="px-5 py-3 rounded-full bg-red-600 hover:bg-red-700 transition-all font-medium text-white text-sm"
           title="Terminer la réunion (Admin)"
         >
           <span className="flex items-center gap-2">
-            <XSquare size={24} />
-            <span>Terminer la réunion</span>
+            <XSquare size={20} />
+            <span>Terminer</span>
           </span>
         </button>
       )}

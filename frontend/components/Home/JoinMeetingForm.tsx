@@ -96,10 +96,10 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+    <div className="bg-white rounded-2xl shadow-xl p-8 mb-6 animate-scale-in">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-          <span className="text-2xl"><DoorOpen size={24} /></span>
+        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg">
+          <DoorOpen size={24} className="text-white" />
         </div>
         <h2 className="text-2xl font-bold text-gray-800">
           Rejoindre une réunion
@@ -107,8 +107,8 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
-          <p className="font-medium"><XCircle size={16} /> {error}</p>
+        <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded animate-fade-in">
+          <p className="font-medium flex items-center gap-2"><XCircle size={16} /> {error}</p>
         </div>
       )}
 
@@ -150,10 +150,10 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
         <button
           type="submit"
           disabled={loading || !socket}
-          className={`w-full py-4 px-6 rounded-lg font-semibold text-white transition-all transform ${
+          className={`w-full py-4 px-6 rounded-lg font-semibold text-white transition-all duration-200 transform ${
             loading || !socket
               ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg hover:scale-105'
+              : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 hover:shadow-2xl hover:scale-[1.02] active:scale-95'
           }`}
         >
           {loading ? (

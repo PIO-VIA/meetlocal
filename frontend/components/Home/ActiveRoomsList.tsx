@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
 import { Mailbox, ClipboardList, Users, Video, ScreenShare, Crown } from 'lucide-react';
+import { useToast } from '@/contexts/ToastContext';
 
 interface Room {
   id: string;
@@ -25,6 +26,7 @@ interface ActiveRoomsListProps {
 
 export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
   const router = useRouter();
+  const toast = useToast();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,9 +56,9 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
 
   const handleJoinRoom = (roomId: string) => {
     const userName = localStorage.getItem('display_name');
-    
+
     if (!userName) {
-      alert('Veuillez d\'abord entrer votre nom dans le formulaire ci-dessus');
+      toast.warning('Veuillez d\'abord entrer votre nom dans le formulaire ci-dessus');
       return;
     }
 
@@ -66,7 +68,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
       if (exists) {
         router.push(`/room?room=${roomId}`);
       } else {
-        alert('Cette réunion n\'existe plus');
+        toast.error('Cette réunion n\'existe plus');
         socket.emit('getRoomsList');
       }
     });
@@ -91,7 +93,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
       <div className="bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center py-8">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-4xl"><Mailbox size={48} /></span>
+            <Mailbox className="text-gray-400" size={40} />
           </div>
           <h3 className="text-xl font-semibold text-gray-700 mb-2">
             Aucune réunion active
@@ -107,8 +109,8 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-          <span className="text-2xl"><ClipboardList size={32} /></span>
+        <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center">
+          <ClipboardList className="text-indigo-600" size={24} />
         </div>
         <h2 className="text-2xl font-bold text-gray-800">
           Réunions actives ({rooms.length})
@@ -147,7 +149,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
 
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1 text-gray-600">
-                <span><Users size={16} /></span>
+                <Users size={16} />
                 <span>
                   {room.users.length} participant{room.users.length > 1 ? 's' : ''}
                   {room.disconnectedUsers > 0 && (
@@ -160,14 +162,14 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
 
               {room.users.some(u => u.isStreaming) && (
                 <div className="flex items-center gap-1 text-green-600">
-                  <span><Video size={16} /></span>
+                  <Video size={16} />
                   <span>{room.users.filter(u => u.isStreaming).length} caméra(s)</span>
                 </div>
               )}
 
               {room.users.some(u => u.isScreenSharing) && (
-                <div className="flex items-center gap-1 text-purple-600">
-                  <span><ScreenShare size={16} /></span>
+                <div className="flex items-center gap-1 text-indigo-600">
+                  <ScreenShare size={16} />
                   <span>Partage d'écran actif</span>
                 </div>
               )}
@@ -180,9 +182,9 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
                   {room.users.slice(0, 5).map((user, idx) => (
                     <span
                       key={idx}
-                      className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                      className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full flex items-center gap-1"
                     >
-                      {user.isCreator && <Crown size={12} />}
+                      {user.isCreator && <Crown size={12} className="text-amber-600" />}
                       {user.name}
                     </span>
                   ))}
