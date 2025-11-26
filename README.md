@@ -13,7 +13,6 @@
 
 [Démo Live](#) • [Documentation](#-documentation) • [Installation](#-installation-rapide) • [Contribuer](#-contribuer)
 
-![LOCAL MEET Banner](docs/images/banner.png)
 *Visioconférence premium pour réseau local - Gratuite, sécurisée et rapide*
 
 </div>
@@ -86,9 +85,7 @@
 ![Partage d'écran](docs/screenshots/screen-share.png)
 *Partage d'écran haute qualité avec miniatures des participants*
 
-#### Interface mobile
-![Mobile](docs/screenshots/mobile.png)
-*Design responsive pour smartphone et tablette*
+
 
 </div>
 
@@ -810,7 +807,7 @@ Voir le fichier [LICENSE](LICENSE) pour plus de détails.
 
 ### 📧 Contact
 
-- **Email** : [support@localmeet.dev](mailto:piodjiele@gmail.com)
+- **Email** : [piodjiele@gmailcom](mailto:piodjiele@gmail.com)
 - **GitHub Issues** : [Créer un ticket](https://github.com/PIO-VIA/meetlocal/issues)
 - **Discussions** : [GitHub Discussions](https://github.com/PIO-VIA/meetlocal/discussions)
 
