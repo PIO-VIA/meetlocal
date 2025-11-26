@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script de démarrage LOCAL MEET avec HTTPS complet
+# Script de démarrage LOCAL MEET avec HTTPS - Version optimisée
 # Usage: ./start-local-meet.sh
 
 echo "🚀 Démarrage de LOCAL MEET (HTTPS complet)"
@@ -11,7 +11,33 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m'
+
+# Ports par défaut
+DEFAULT_FRONTEND_PORT=3000
+DEFAULT_BACKEND_PORT=3001
+
+# Fonction pour vérifier si un port est disponible
+is_port_available() {
+    ! nc -z localhost $1 2>/dev/null
+}
+
+# Fonction pour trouver un port disponible
+find_available_port() {
+    local start_port=$1
+    local max_port=$((start_port + 100))
+
+    for port in $(seq $start_port $max_port); do
+        if is_port_available $port; then
+            echo $port
+            return 0
+        fi
+    done
+
+    echo ""
+    return 1
+}
 
 # Fonction pour obtenir l'IP locale
 get_local_ip() {
@@ -21,6 +47,29 @@ get_local_ip() {
         hostname -I | awk '{print $1}'
     else
         ipconfig | grep "IPv4" | awk '{print $NF}' | head -n 1 | tr -d '\r'
+    fi
+}
+
+# Fonction pour ouvrir le navigateur
+open_browser() {
+    local url=$1
+    echo -e "${CYAN}🌐 Ouverture du navigateur...${NC}"
+
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        open "$url" 2>/dev/null
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Linux
+        if command -v xdg-open &> /dev/null; then
+            xdg-open "$url" 2>/dev/null &
+        elif command -v google-chrome &> /dev/null; then
+            google-chrome "$url" 2>/dev/null &
+        elif command -v firefox &> /dev/null; then
+            firefox "$url" 2>/dev/null &
+        fi
+    elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]]; then
+        # Windows
+        start "$url" 2>/dev/null
     fi
 }
 
@@ -36,11 +85,50 @@ fi
 echo -e "${GREEN}📡 Adresse IP détectée: $LOCAL_IP${NC}"
 echo ""
 
+# Vérifier et trouver les ports disponibles
+echo -e "${BLUE}🔍 Recherche de ports disponibles...${NC}"
+
+FRONTEND_PORT=$(find_available_port $DEFAULT_FRONTEND_PORT)
+if [ -z "$FRONTEND_PORT" ]; then
+    echo -e "${RED}❌ Impossible de trouver un port disponible pour le frontend${NC}"
+    exit 1
+fi
+
+BACKEND_PORT=$(find_available_port $DEFAULT_BACKEND_PORT)
+if [ -z "$BACKEND_PORT" ]; then
+    echo -e "${RED}❌ Impossible de trouver un port disponible pour le backend${NC}"
+    exit 1
+fi
+
+if [ $FRONTEND_PORT != $DEFAULT_FRONTEND_PORT ]; then
+    echo -e "${YELLOW}⚠️  Port frontend $DEFAULT_FRONTEND_PORT occupé, utilisation du port $FRONTEND_PORT${NC}"
+fi
+
+if [ $BACKEND_PORT != $DEFAULT_BACKEND_PORT ]; then
+    echo -e "${YELLOW}⚠️  Port backend $DEFAULT_BACKEND_PORT occupé, utilisation du port $BACKEND_PORT${NC}"
+fi
+
+echo -e "${GREEN}✅ Ports sélectionnés: Frontend=$FRONTEND_PORT, Backend=$BACKEND_PORT${NC}"
+echo ""
+
 # Créer le fichier .env.local pour le frontend
 echo -e "${BLUE}📝 Configuration du frontend...${NC}"
 ENV_FILE="frontend/.env.local"
-echo "NEXT_PUBLIC_BACKEND_URL=https://$LOCAL_IP:3001" > $ENV_FILE
+cat > $ENV_FILE << EOF
+NEXT_PUBLIC_BACKEND_URL=https://$LOCAL_IP:$BACKEND_PORT
+PORT=$FRONTEND_PORT
+EOF
 echo -e "${GREEN}✅ Fichier $ENV_FILE créé${NC}"
+echo ""
+
+# Créer le fichier .env pour le backend
+echo -e "${BLUE}📝 Configuration du backend...${NC}"
+BACKEND_ENV="backend/.env"
+cat > $BACKEND_ENV << EOF
+PORT=$BACKEND_PORT
+NODE_ENV=development
+EOF
+echo -e "${GREEN}✅ Fichier $BACKEND_ENV créé${NC}"
 echo ""
 
 # Vérifier si les dépendances sont installées
@@ -68,15 +156,15 @@ echo -e "${BLUE}🔐 Vérification des certificats SSL...${NC}"
 if [ ! -f "backend/ssl/cert.pem" ] || [ ! -f "backend/ssl/key.pem" ]; then
     echo -e "${RED}❌ Certificats SSL manquants${NC}"
     echo -e "${YELLOW}Génération automatique...${NC}"
-    
+
     mkdir -p backend/ssl
     cd backend/ssl
-    
+
     # Générer les certificats
     openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes \
         -subj "/C=CM/ST=Centre/L=Yaounde/O=LocalMeet/CN=$LOCAL_IP" \
-        -addext "subjectAltName=IP:$LOCAL_IP,IP:127.0.0.1,DNS:localhost"
-    
+        -addext "subjectAltName=IP:$LOCAL_IP,IP:127.0.0.1,DNS:localhost" 2>/dev/null
+
     cd ../..
     echo -e "${GREEN}✅ Certificats générés${NC}"
 else
@@ -85,25 +173,54 @@ fi
 echo ""
 
 # Démarrer le backend
-echo -e "${BLUE}🚀 Démarrage du backend...${NC}"
+echo -e "${BLUE}🚀 Démarrage du backend sur le port $BACKEND_PORT...${NC}"
 cd backend
-npm start &
+PORT=$BACKEND_PORT npm start > ../backend.log 2>&1 &
 BACKEND_PID=$!
 cd ..
 
 # Attendre que le backend soit prêt
 echo -e "${YELLOW}⏳ Attente du démarrage du backend...${NC}"
-sleep 8
+sleep 5
+
+# Vérifier si le backend a démarré
+if ! kill -0 $BACKEND_PID 2>/dev/null; then
+    echo -e "${RED}❌ Échec du démarrage du backend${NC}"
+    echo -e "${YELLOW}Logs:${NC}"
+    tail -n 20 backend.log
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Backend démarré${NC}"
 
 # Démarrer le frontend avec HTTPS
-echo -e "${BLUE}🚀 Démarrage du frontend (HTTPS)...${NC}"
+echo -e "${BLUE}🚀 Démarrage du frontend sur le port $FRONTEND_PORT...${NC}"
 cd frontend
-npm run dev &
+PORT=$FRONTEND_PORT npm run dev > ../frontend.log 2>&1 &
 FRONTEND_PID=$!
 cd ..
 
 # Attendre que le frontend soit prêt
+echo -e "${YELLOW}⏳ Attente du démarrage du frontend...${NC}"
 sleep 8
+
+# Vérifier si le frontend a démarré
+if ! kill -0 $FRONTEND_PID 2>/dev/null; then
+    echo -e "${RED}❌ Échec du démarrage du frontend${NC}"
+    echo -e "${YELLOW}Logs:${NC}"
+    tail -n 20 frontend.log
+    kill $BACKEND_PID 2>/dev/null
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Frontend démarré${NC}"
+echo ""
+
+# URLs
+FRONTEND_LOCAL_URL="https://localhost:$FRONTEND_PORT"
+FRONTEND_NETWORK_URL="https://$LOCAL_IP:$FRONTEND_PORT"
+BACKEND_LOCAL_URL="https://localhost:$BACKEND_PORT"
+BACKEND_NETWORK_URL="https://$LOCAL_IP:$BACKEND_PORT"
 
 echo ""
 echo "═══════════════════════════════════════"
@@ -113,34 +230,31 @@ echo ""
 echo -e "${BLUE}📡 Informations de connexion :${NC}"
 echo ""
 echo -e "  ${GREEN}Sur cet appareil :${NC}"
-echo -e "    Frontend: ${YELLOW}https://localhost:3000${NC}"
-echo -e "    Backend:  ${YELLOW}https://localhost:3001${NC}"
+echo -e "    Frontend: ${YELLOW}$FRONTEND_LOCAL_URL${NC}"
+echo -e "    Backend:  ${YELLOW}$BACKEND_LOCAL_URL${NC}"
 echo ""
 echo -e "  ${GREEN}Sur d'autres appareils du réseau :${NC}"
-echo -e "    Frontend: ${YELLOW}https://$LOCAL_IP:3000${NC}"
-echo -e "    Backend:  ${YELLOW}https://$LOCAL_IP:3001${NC}"
+echo -e "    Frontend: ${YELLOW}$FRONTEND_NETWORK_URL${NC}"
+echo -e "    Backend:  ${YELLOW}$BACKEND_NETWORK_URL${NC}"
 echo ""
-echo -e "${RED}⚠️  IMPORTANT - ACCEPTER LES CERTIFICATS SSL :${NC}"
+echo -e "${RED}⚠️  IMPORTANT - CERTIFICAT AUTO-SIGNÉ :${NC}"
 echo ""
-echo -e "  ${YELLOW}Étape 1: Backend${NC}"
-echo -e "    Allez sur: ${BLUE}https://$LOCAL_IP:3001/health${NC}"
-echo -e "    Cliquez: Avancé > Continuer vers le site"
+echo -e "  ${YELLOW}Première visite uniquement :${NC}"
+echo -e "    1. Le navigateur s'ouvre automatiquement"
+echo -e "    2. Cliquez sur ${CYAN}'Avancé'${NC} ou ${CYAN}'Paramètres avancés'${NC}"
+echo -e "    3. Cliquez sur ${CYAN}'Continuer vers le site'${NC} ou ${CYAN}'Accepter le risque'${NC}"
 echo ""
-echo -e "  ${YELLOW}Étape 2: Frontend${NC}"
-echo -e "    Allez sur: ${BLUE}https://$LOCAL_IP:3000${NC}"
-echo -e "    Cliquez: Avancé > Continuer vers le site"
-echo ""
-echo -e "  ${GREEN}✅ Répétez sur CHAQUE appareil${NC}"
+echo -e "  ${GREEN}✅ À faire une seule fois par appareil${NC}"
 echo ""
 echo "═══════════════════════════════════════"
 echo ""
 echo -e "${BLUE}ℹ️  Processus en cours :${NC}"
-echo -e "  Backend PID:  $BACKEND_PID"
-echo -e "  Frontend PID: $FRONTEND_PID"
+echo -e "  Backend PID:  $BACKEND_PID (port $BACKEND_PORT)"
+echo -e "  Frontend PID: $FRONTEND_PID (port $FRONTEND_PORT)"
 echo ""
-echo -e "${YELLOW}💡 Pourquoi HTTPS ?${NC}"
-echo -e "  Les API caméra, micro et partage d'écran"
-echo -e "  nécessitent HTTPS pour des raisons de sécurité."
+echo -e "${CYAN}📂 Logs disponibles :${NC}"
+echo -e "  Backend:  ./backend.log"
+echo -e "  Frontend: ./frontend.log"
 echo ""
 echo -e "${YELLOW}Pour arrêter les serveurs :${NC}"
 echo -e "  Appuyez sur ${RED}Ctrl+C${NC}"
@@ -152,12 +266,27 @@ cleanup() {
     echo -e "${YELLOW}🛑 Arrêt des serveurs...${NC}"
     kill $BACKEND_PID 2>/dev/null
     kill $FRONTEND_PID 2>/dev/null
+
+    # Tuer tous les processus Node.js liés aux ports
+    lsof -ti:$BACKEND_PORT | xargs kill -9 2>/dev/null
+    lsof -ti:$FRONTEND_PORT | xargs kill -9 2>/dev/null
+
     echo -e "${GREEN}✅ Serveurs arrêtés${NC}"
     exit 0
 }
 
 trap cleanup SIGINT SIGTERM
 
-# Attendre
+# Attendre un peu puis ouvrir le navigateur
+sleep 2
+echo -e "${CYAN}🌐 Ouverture automatique du navigateur...${NC}"
+open_browser "$FRONTEND_LOCAL_URL"
+
+echo ""
+echo -e "${GREEN}✨ Votre navigateur s'est ouvert automatiquement !${NC}"
+echo -e "${YELLOW}   Acceptez le certificat auto-signé pour continuer${NC}"
+echo ""
 echo -e "${BLUE}Appuyez sur Ctrl+C pour arrêter${NC}"
-wait1
+
+# Attendre
+wait
