@@ -376,6 +376,17 @@ io.on('connection', (socket) => {
 
             console.log(`✅ Producer créé: ${producerId} (${kind})`, appData);
 
+            // Écouter la fermeture du producer
+            producer.on('transportclose', () => {
+                console.log(`🔴 Producer fermé (transport close): ${producerId}`);
+                producers.delete(producerId);
+                io.to(transportData.roomId).emit('producerClosed', {
+                    producerId,
+                    userId: socket.id,
+                    appData
+                });
+            });
+
             socket.to(transportData.roomId).emit('newProducer', {
                 producerId,
                 userId: socket.id,
@@ -719,7 +730,25 @@ io.on('connection', (socket) => {
             const user = room.users.find(u => u.id === socket.id);
             if (user) {
                 user.isStreaming = false;
-                io.to(roomId).emit('streamStopped', { userName: user.name });
+
+                // Notifier tous les clients que cet utilisateur a arrêté son stream
+                io.to(roomId).emit('streamStopped', { userName: user.name, userId: socket.id });
+
+                // Fermer les producers associés à la caméra de cet utilisateur
+                for (const [producerId, data] of producers.entries()) {
+                    if (data.socketId === socket.id && data.roomId === roomId &&
+                        data.appData?.type !== 'screen') {
+                        data.producer.close();
+                        producers.delete(producerId);
+                        io.to(roomId).emit('producerClosed', {
+                            producerId,
+                            userId: socket.id,
+                            appData: data.appData
+                        });
+                        console.log(`🔴 Producer fermé (stopStream): ${producerId}`);
+                    }
+                }
+
                 broadcastRoomsList();
             }
         }
@@ -732,7 +761,7 @@ io.on('connection', (socket) => {
             const user = room.users.find(u => u.id === socket.id);
             if (user) {
                 user.isScreenSharing = true;
-                io.to(roomId).emit('screenStarted', { userName: user.name });
+                io.to(roomId).emit('screenStarted', { userName: user.name, userId: socket.id });
                 broadcastRoomsList();
             }
         }
@@ -745,7 +774,25 @@ io.on('connection', (socket) => {
             const user = room.users.find(u => u.id === socket.id);
             if (user) {
                 user.isScreenSharing = false;
-                io.to(roomId).emit('screenStopped', { userName: user.name });
+
+                // Notifier tous les clients que cet utilisateur a arrêté son partage d'écran
+                io.to(roomId).emit('screenStopped', { userName: user.name, userId: socket.id });
+
+                // Fermer les producers de partage d'écran de cet utilisateur
+                for (const [producerId, data] of producers.entries()) {
+                    if (data.socketId === socket.id && data.roomId === roomId &&
+                        data.appData?.type === 'screen') {
+                        data.producer.close();
+                        producers.delete(producerId);
+                        io.to(roomId).emit('producerClosed', {
+                            producerId,
+                            userId: socket.id,
+                            appData: data.appData
+                        });
+                        console.log(`🔴 Producer de partage d'écran fermé: ${producerId}`);
+                    }
+                }
+
                 broadcastRoomsList();
             }
         }

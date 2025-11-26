@@ -465,7 +465,7 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
 
     const handleNewProducer = async ({ producerId, userId, kind, appData }: any) => {
       console.log(`🆕 Nouveau producer détecté: ${producerId} (${kind})`, appData);
-      
+
       try {
         await consume(producerId, userId, appData);
       } catch (error) {
@@ -473,10 +473,74 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
       }
     };
 
+    const handleProducerClosed = ({ producerId, userId, appData }: any) => {
+      console.log(`🔴 Producer fermé: ${producerId}`, appData);
+
+      const isScreenShare = appData?.type === 'screen';
+
+      if (isScreenShare) {
+        // Supprimer le stream de partage d'écran
+        setRemoteScreenStreams(prev => {
+          const newMap = new Map(prev);
+          const stream = newMap.get(userId);
+
+          if (stream) {
+            // Arrêter tous les tracks du stream
+            stream.getTracks().forEach(track => {
+              track.stop();
+              stream.removeTrack(track);
+            });
+            newMap.delete(userId);
+            console.log(`🖥️ Partage d'écran supprimé pour ${userId}`);
+          }
+
+          return newMap;
+        });
+      } else {
+        // Supprimer le stream normal (caméra/audio)
+        setRemoteStreams(prev => {
+          const newMap = new Map(prev);
+          const stream = newMap.get(userId);
+
+          if (stream) {
+            // Trouver et supprimer les tracks correspondants
+            const kind = appData?.kind || appData?.type;
+            stream.getTracks().forEach(track => {
+              if (!kind || track.kind === kind ||
+                  (kind === 'camera' && track.kind === 'video') ||
+                  (kind === 'audio' && track.kind === 'audio')) {
+                track.stop();
+                stream.removeTrack(track);
+              }
+            });
+
+            // Si le stream n'a plus de tracks, le supprimer complètement
+            if (stream.getTracks().length === 0) {
+              newMap.delete(userId);
+              console.log(`📹 Stream supprimé pour ${userId}`);
+            }
+          }
+
+          return newMap;
+        });
+      }
+
+      // Fermer les consumers associés
+      consumersRef.current.forEach((consumer, consumerId) => {
+        if (consumer.producerId === producerId) {
+          consumer.close();
+          consumersRef.current.delete(consumerId);
+          console.log(`🧹 Consumer fermé: ${consumerId}`);
+        }
+      });
+    };
+
     socket.on('newProducer', handleNewProducer);
+    socket.on('producerClosed', handleProducerClosed);
 
     return () => {
       socket.off('newProducer', handleNewProducer);
+      socket.off('producerClosed', handleProducerClosed);
     };
   }, [socket, consume]);
 
