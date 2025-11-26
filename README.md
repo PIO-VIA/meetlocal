@@ -759,7 +759,6 @@ Allez sur GitHub et cliquez sur **"New Pull Request"**
 
 ### Version 1.2 (Planifié)
 
-- [ ] Support de plus de 20 participants
 - [ ] Mode grille personnalisable
 - [ ] Statistiques de qualité réseau
 - [ ] Logs serveur améliorés (Winston)
@@ -782,7 +781,7 @@ Ce projet est sous licence **MIT**.
 ```
 MIT License
 
-Copyright (c) 2024 LOCAL MEET
+Copyright (c) 2025 LOCAL MEET
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
