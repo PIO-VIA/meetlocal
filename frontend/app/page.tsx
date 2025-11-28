@@ -5,14 +5,18 @@ import { useSocket } from '@/hooks/useSocket';
 import CreateMeetingForm from '@/components/Home/CreateMeetingForm';
 import JoinMeetingForm from '@/components/Home/JoinMeetingForm';
 import ActiveRoomsList from '@/components/Home/ActiveRoomsList';
+import ServerConnectionPopup from '@/components/Meeting/ServerConnectionPopup';
 import { CircleDot, CircleOff, Shield, Zap, Video } from 'lucide-react';
 
 export default function Home() {
-  const { socket, isConnected } = useSocket();
+  const { socket, isConnected, status, error } = useSocket();
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
 
   return (
     <main className="min-h-screen bg-white relative overflow-hidden">
+      {/* Popup de connexion au serveur */}
+      <ServerConnectionPopup status={status} error={error} />
+
       {/* Background style Google Meet */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-50 via-white to-green-50 opacity-60"></div>

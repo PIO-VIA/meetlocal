@@ -8,6 +8,7 @@ import ParticipantGrid from '@/components/Meeting/ParticipantGrid';
 import ControlButtons from '@/components/Meeting/ControlButtons';
 import ParticipantsList from '@/components/Meeting/ParticipantsList';
 import ChatBox from '@/components/Meeting/ChatBox';
+import ServerConnectionPopup from '@/components/Meeting/ServerConnectionPopup';
 import { MessageCircle, Users, Crown, Monitor } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -108,6 +109,9 @@ export default function RoomPage() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
+      {/* Popup de connexion au serveur */}
+      <ServerConnectionPopup status={status} error={error} />
+
       {/* Header plus doux avec couleurs subtiles */}
       <header className="bg-white text-gray-900 px-6 py-3 flex justify-between items-center border-b border-gray-200 shadow-sm">
         <div className="flex items-center gap-4">
