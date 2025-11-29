@@ -535,12 +535,82 @@ export const useMediasoup = (socket: Socket | null, roomId: string) => {
       });
     };
 
+    // Gérer la déconnexion d'un utilisateur (nettoyer TOUS ses streams)
+    const handleUserLeft = ({ userId }: any) => {
+      console.log(`👋 Utilisateur quitté: ${userId}`);
+
+      // Nettoyer le partage d'écran si existant
+      setRemoteScreenStreams(prev => {
+        const newMap = new Map(prev);
+        const stream = newMap.get(userId);
+
+        if (stream) {
+          stream.getTracks().forEach(track => {
+            track.stop();
+            stream.removeTrack(track);
+          });
+          newMap.delete(userId);
+          console.log(`🖥️ Partage d'écran nettoyé pour ${userId}`);
+        }
+
+        return newMap;
+      });
+
+      // Nettoyer les streams normaux
+      setRemoteStreams(prev => {
+        const newMap = new Map(prev);
+        const stream = newMap.get(userId);
+
+        if (stream) {
+          stream.getTracks().forEach(track => {
+            track.stop();
+            stream.removeTrack(track);
+          });
+          newMap.delete(userId);
+          console.log(`📹 Stream normal nettoyé pour ${userId}`);
+        }
+
+        return newMap;
+      });
+
+      // Fermer tous les consumers associés à cet utilisateur
+      consumersRef.current.forEach((consumer, consumerId) => {
+        // Note: Il faudrait stocker l'userId avec chaque consumer pour un meilleur nettoyage
+        // Pour l'instant, on se fie au producerClosed pour nettoyer
+      });
+    };
+
+    // Gérer l'arrêt de partage d'écran
+    const handleScreenStopped = ({ userId }: any) => {
+      console.log(`🛑 Partage d'écran arrêté pour: ${userId}`);
+
+      setRemoteScreenStreams(prev => {
+        const newMap = new Map(prev);
+        const stream = newMap.get(userId);
+
+        if (stream) {
+          stream.getTracks().forEach(track => {
+            track.stop();
+            stream.removeTrack(track);
+          });
+          newMap.delete(userId);
+          console.log(`🖥️ Partage d'écran supprimé pour ${userId}`);
+        }
+
+        return newMap;
+      });
+    };
+
     socket.on('newProducer', handleNewProducer);
     socket.on('producerClosed', handleProducerClosed);
+    socket.on('userLeft', handleUserLeft);
+    socket.on('screenStopped', handleScreenStopped);
 
     return () => {
       socket.off('newProducer', handleNewProducer);
       socket.off('producerClosed', handleProducerClosed);
+      socket.off('userLeft', handleUserLeft);
+      socket.off('screenStopped', handleScreenStopped);
     };
   }, [socket, consume]);
 

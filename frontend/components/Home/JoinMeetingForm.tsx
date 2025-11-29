@@ -25,6 +25,11 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
       return;
     }
 
+    if (!roomId.trim()) {
+      setError('Veuillez entrer l\'ID de la réunion');
+      return;
+    }
+
     if (!socket) {
       setError('Connexion au serveur en cours...');
       return;
@@ -35,64 +40,28 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
     // Sauvegarder le nom d'utilisateur
     localStorage.setItem('display_name', userName.trim());
 
-    if (roomId.trim()) {
-      // Rejoindre une salle spécifique
-      socket.emit('joinRoom', 
-        { roomId: roomId.trim(), userName: userName.trim() }, 
-        (success: boolean, response: any) => {
-          setLoading(false);
-          
-          if (!success) {
-            if (response?.error === 'NAME_ALREADY_TAKEN') {
-              setError(response.message || 'Ce nom est déjà utilisé dans cette réunion.');
-            } else {
-              setError("La réunion n'existe pas ou n'est plus disponible.");
-            }
-            return;
-          }
-
-          // Sauvegarder le statut
-          localStorage.setItem('room_creator', response?.isCreator ? 'true' : 'false');
-          
-          // Rediriger
-          router.push(`/room?room=${roomId.trim()}`);
-        }
-      );
-    } else {
-      // Rejoindre la première salle disponible
-      socket.emit('getRoomsList');
-      
-      const roomsListHandler = (rooms: any[]) => {
-        socket.off('roomsList', roomsListHandler);
+    // Rejoindre une salle spécifique
+    socket.emit('joinRoom',
+      { roomId: roomId.trim(), userName: userName.trim() },
+      (success: boolean, response: any) => {
         setLoading(false);
 
-        if (!rooms || rooms.length === 0) {
-          setError('Aucune réunion active disponible. Veuillez créer une nouvelle réunion.');
+        if (!success) {
+          if (response?.error === 'NAME_ALREADY_TAKEN') {
+            setError(response.message || 'Ce nom est déjà utilisé dans cette réunion.');
+          } else {
+            setError("La réunion n'existe pas ou n'est plus disponible.");
+          }
           return;
         }
 
-        const firstRoom = rooms[0];
-        
-        socket.emit('joinRoom',
-          { roomId: firstRoom.id, userName: userName.trim() },
-          (success: boolean, response: any) => {
-            if (!success) {
-              if (response?.error === 'NAME_ALREADY_TAKEN') {
-                setError(response.message || 'Ce nom est déjà utilisé dans cette réunion.');
-              } else {
-                setError("Impossible de rejoindre la réunion.");
-              }
-              return;
-            }
+        // Sauvegarder le statut
+        localStorage.setItem('room_creator', response?.isCreator ? 'true' : 'false');
 
-            localStorage.setItem('room_creator', response?.isCreator ? 'true' : 'false');
-            router.push(`/room?room=${firstRoom.id}`);
-          }
-        );
-      };
-
-      socket.on('roomsList', roomsListHandler);
-    }
+        // Rediriger
+        router.push(`/room?room=${roomId.trim()}`);
+      }
+    );
   };
 
   return (
@@ -131,7 +100,7 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
 
         <div>
           <label htmlFor="roomId" className="block text-sm font-medium text-gray-700 mb-2">
-            ID de la réunion (optionnel)
+            ID de la réunion <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -139,11 +108,12 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
-            placeholder="Laissez vide pour rejoindre automatiquement"
+            placeholder="Ex: reunion-123"
+            required
             disabled={loading}
           />
-          <p className="mt-2 text-sm text-gray-500">
-            <Info size={16} /> Si vide, vous rejoindrez la première réunion disponible
+          <p className="mt-2 text-sm text-gray-500 flex items-center gap-1">
+            <Info size={16} /> Entrez l'ID de la réunion que vous souhaitez rejoindre
           </p>
         </div>
 

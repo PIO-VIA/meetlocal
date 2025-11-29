@@ -11,6 +11,16 @@ const os = require('os');
 const https = require('https');
 const { Server } = require('socket.io');
 const mediasoup = require('mediasoup');
+const multer = require('multer');
+
+// Configuration de Multer pour l'upload de fichiers
+const storage = multer.memoryStorage();
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 20 * 1024 * 1024 // Limite à 20 MB
+    }
+});
 
 // Configuration SSL
 const options = {
@@ -653,7 +663,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('message', (data, callback) => {
-        const { roomId, message, timestamp } = data;
+        const { roomId, message, timestamp, file } = data;
         const room = rooms.get(roomId);
         if (room) {
             const user = room.users.find(u => u.id === socket.id);
@@ -662,7 +672,8 @@ io.on('connection', (socket) => {
                     id: `${socket.id}-${Date.now()}`,
                     userName: user.name,
                     message,
-                    timestamp: timestamp || new Date().toISOString()
+                    timestamp: timestamp || new Date().toISOString(),
+                    file: file || null
                 };
 
                 // Sauvegarder dans l'historique

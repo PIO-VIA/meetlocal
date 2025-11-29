@@ -1,8 +1,15 @@
 'use client';
 
-import { useEffect, useState, useRef, FormEvent } from 'react';
+import { useEffect, useState, useRef, FormEvent, ChangeEvent } from 'react';
 import {  Socket } from 'socket.io-client';
-import { MessageCircle, Send, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Loader2, Paperclip, X, FileIcon, Download } from 'lucide-react';
+
+interface FileData {
+  name: string;
+  size: number;
+  type: string;
+  data: string; // Base64
+}
 
 interface Message {
   id: string;
@@ -11,6 +18,7 @@ interface Message {
   timestamp: Date;
   isSystem?: boolean;
   isSending?: boolean;
+  file?: FileData;
 }
 
 interface ChatBoxProps {
@@ -23,8 +31,10 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!socket) return;
@@ -121,33 +131,95 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Vérifier la taille du fichier (max 10 MB)
+      if (file.size > 20 * 1024 * 1024) {
+        alert('Le fichier est trop volumineux. Taille maximale : 20 MB');
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (!inputMessage.trim() || !socket || isSending) return;
+    if ((!inputMessage.trim() && !selectedFile) || !socket || isSending) return;
 
-    const messageText = inputMessage.trim();
-    const tempId = `temp-${Date.now()}`;
+    const messageText = inputMessage.trim() || (selectedFile ? `Fichier partagé: ${selectedFile.name}` : '');
 
     setIsSending(true);
     setInputMessage('');
 
-    // Envoyer au serveur sans ajouter de message temporaire
-    // Le message sera ajouté quand le serveur le renvoie
+    let fileData: FileData | undefined;
+
+    // Convertir le fichier en base64 si présent
+    if (selectedFile) {
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(selectedFile);
+        });
+
+        fileData = {
+          name: selectedFile.name,
+          size: selectedFile.size,
+          type: selectedFile.type,
+          data: base64
+        };
+      } catch (error) {
+        console.error('Erreur lors de la lecture du fichier:', error);
+        setIsSending(false);
+        return;
+      }
+    }
+
+    // Envoyer au serveur
     socket.emit('message', {
       roomId,
       message: messageText,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      file: fileData
     }, (response: { success: boolean; error?: string }) => {
       if (!response?.success) {
-        // En cas d'erreur, remettre le message dans l'input
         setInputMessage(messageText);
+      } else {
+        setSelectedFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
       setIsSending(false);
     });
 
     // Focus sur l'input après envoi
     setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const handleDownloadFile = (file: FileData) => {
+    const link = document.createElement('a');
+    link.href = file.data;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const formatTime = (date: Date) => {
@@ -160,7 +232,7 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
   return (
     <div className="h-full flex flex-col bg-white text-gray-900">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-gray-200 flex-shrink-0">
         <h3 className="text-base font-semibold flex items-center gap-2 text-gray-800">
           <MessageCircle size={20} className="text-gray-600" />
           Chat de la réunion
@@ -168,8 +240,8 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
         <p className="text-xs text-gray-500 mt-1">{messages.length} message{messages.length > 1 ? 's' : ''}</p>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50">
+      {/* Messages - Conteneur avec scroll indépendant */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50 min-h-0">
         {messages.length === 0 ? (
           <div className="text-center text-gray-400 py-8">
             <p className="text-sm">Aucun message pour le moment</p>
@@ -201,6 +273,31 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
                     </p>
                   )}
                   <p className="text-sm break-words">{msg.message}</p>
+
+                  {/* Affichage du fichier si présent */}
+                  {msg.file && (
+                    <div className="mt-2 p-2 bg-white bg-opacity-10 rounded border border-white border-opacity-20">
+                      <div className="flex items-center gap-2">
+                        <FileIcon size={20} className={msg.userName === userName ? 'text-white' : 'text-blue-600'} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{msg.file.name}</p>
+                          <p className="text-xs opacity-75">{formatFileSize(msg.file.size)}</p>
+                        </div>
+                        <button
+                          onClick={() => handleDownloadFile(msg.file!)}
+                          className={`p-1.5 rounded transition-colors ${
+                            msg.userName === userName
+                              ? 'hover:bg-white hover:bg-opacity-20'
+                              : 'hover:bg-gray-100'
+                          }`}
+                          title="Télécharger"
+                        >
+                          <Download size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-end gap-1 mt-1">
                     <p className={`text-xs ${msg.userName === userName ? 'text-blue-100' : 'text-gray-500'}`}>
                       {formatTime(msg.timestamp)}
@@ -219,8 +316,44 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
       </div>
 
       {/* Input */}
-      <div className="p-3 border-t border-gray-200 bg-white">
+      <div className="p-3 border-t border-gray-200 bg-white flex-shrink-0">
+        {/* Prévisualisation du fichier sélectionné */}
+        {selectedFile && (
+          <div className="mb-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-2">
+              <FileIcon size={16} className="text-blue-600" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-900 truncate">{selectedFile.name}</p>
+                <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
+              </div>
+              <button
+                onClick={handleRemoveFile}
+                className="p-1 hover:bg-blue-100 rounded transition-colors"
+                title="Retirer le fichier"
+              >
+                <X size={16} className="text-gray-600" />
+              </button>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileSelect}
+            className="hidden"
+            accept="*/*"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2"
+            disabled={isSending}
+            title="Joindre un fichier"
+          >
+            <Paperclip size={18} />
+          </button>
           <input
             ref={inputRef}
             type="text"
@@ -234,9 +367,9 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
           />
           <button
             type="submit"
-            disabled={!inputMessage.trim() || isSending}
+            disabled={(!inputMessage.trim() && !selectedFile) || isSending}
             className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-              inputMessage.trim() && !isSending
+              (inputMessage.trim() || selectedFile) && !isSending
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
