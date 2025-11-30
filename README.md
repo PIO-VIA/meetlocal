@@ -102,7 +102,10 @@
 
 - [x] **Audio/Vidéo HD** : Qualité jusqu'à 1080p
 - [x] **Partage d'écran** : Partagez votre écran en haute résolution
+- [x] **Partage d'écran multiple** : Support de plusieurs partages simultanés
 - [x] **Chat textuel** : Messagerie instantanée pendant les réunions
+- [x] **Partage de fichiers** : Envoi et téléchargement de fichiers jusqu'à 50 MB
+- [x] **Historique de chat** : Les nouveaux arrivants voient l'historique
 - [x] **Détection de parole** : Indicateur visuel quand quelqu'un parle
 - [x] **Contrôles média** : Activer/désactiver micro et caméra
 - [x] **Mode audio seul** : Économiser la bande passante
@@ -122,15 +125,23 @@
 - [x] **Mode clair** : Couleurs douces pour réduire la fatigue visuelle
 - [x] **Notifications toast** : Alertes élégantes au lieu des alert() natifs
 - [x] **Animations fluides** : Transitions et effets visuels
-- [x] **Responsive** : Adapté aux mobiles, tablettes et ordinateurs
+- [x] **Responsive complet** : Adapté aux mobiles, tablettes et ordinateurs
+- [x] **Layout adaptatif** : Grille optimisée selon le nombre de participants
+- [x] **Mode partage responsive** : Layout vertical sur mobile, horizontal sur desktop
 - [x] **Indicateurs de micro** : Toujours visibles dans les cadres vidéo
 - [x] **Effet de parole** : Bordure animée quand quelqu'un parle
+- [x] **Notifications de nouveaux messages** : Indicateur pulsant sur le bouton chat
+- [x] **Popup de connexion** : Alerte visuelle en cas de perte de connexion serveur
+- [x] **Mode plein écran** : Agrandir n'importe quelle vidéo ou partage d'écran
 
 ### 🔧 Technique
 
 - [x] **Architecture SFU** : Mediasoup pour des performances optimales
 - [x] **WebRTC** : Communication peer-to-peer via serveur
 - [x] **WebSocket** : Signalisation temps réel via Socket.IO
+- [x] **Upload de fichiers** : Multer avec stockage disque (jusqu'à 50 MB)
+- [x] **Nettoyage automatique** : Gestion de la mémoire et des streams
+- [x] **Synchronisation** : Nettoyage des streams en cas de déconnexion
 - [x] **Détection de ports** : Trouve automatiquement des ports libres
 - [x] **Logs structurés** : Fichiers de logs séparés
 - [x] **SSL auto-signé** : Génération automatique de certificats
@@ -233,6 +244,7 @@ sequenceDiagram
 | [Mediasoup Client](https://mediasoup.org/) | 3.18.0 | Client WebRTC SFU |
 | [Socket.IO Client](https://socket.io/) | 4.8.1 | WebSocket client |
 | [Lucide React](https://lucide.dev/) | 0.553.0 | Icônes modernes |
+| [React Hook Form](https://react-hook-form.com/) | - | Gestion de formulaires |
 
 ### Backend
 
@@ -242,6 +254,7 @@ sequenceDiagram
 | [Express](https://expressjs.com/) | 4.x | Framework web |
 | [Mediasoup](https://mediasoup.org/) | 3.x | SFU WebRTC serveur |
 | [Socket.IO](https://socket.io/) | 4.x | WebSocket serveur |
+| [Multer](https://github.com/expressjs/multer) | 1.x | Upload de fichiers |
 | [HTTPS](https://nodejs.org/api/https.html) | Native | Serveur HTTPS |
 
 ### DevOps
@@ -457,9 +470,12 @@ rm -rf backend/ssl
 
 Survolez une vidéo → Cliquez sur l'icône **⛶**
 
-#### Chat
+#### Chat et partage de fichiers
 
-Cliquez sur **💬 Chat** en haut à droite
+1. Cliquez sur **💬 Chat** en haut à droite
+2. Pour envoyer un message : Tapez et appuyez sur Entrée
+3. Pour partager un fichier : Cliquez sur 📎 et sélectionnez un fichier (max 50 MB)
+4. Pour télécharger un fichier : Cliquez sur le bouton **Télécharger** sur le fichier
 
 #### Liste des participants
 
@@ -475,8 +491,10 @@ meetlocal/
 │   ├── 📂 ssl/                    # Certificats SSL auto-signés
 │   │   ├── cert.pem
 │   │   └── key.pem
+│   ├── 📂 uploads/                # Fichiers uploadés (ignoré par git)
 │   ├── 📄 server.js               # Serveur Express + Socket.IO + Mediasoup
 │   ├── 📄 package.json
+│   ├── 📄 .gitignore
 │   └── 📄 .env                    # Variables d'environnement backend
 │
 ├── 📂 frontend/                   # Application Next.js
@@ -493,11 +511,11 @@ meetlocal/
 │   │   │   ├── JoinMeetingForm.tsx
 │   │   │   └── ActiveRoomsList.tsx
 │   │   ├── 📂 Meeting/            # Composants réunion
-│   │   │   ├── ParticipantGrid.tsx   # Grille vidéo adaptative
-│   │   │   ├── ParticipantCard.tsx   # Cadre vidéo individuel
-│   │   │   ├── ControlButtons.tsx    # Contrôles média
-│   │   │   ├── ChatBox.tsx           # Chat textuel
-│   │   │   └── ParticipantsList.tsx  # Liste participants
+│   │   │   ├── ParticipantGrid.tsx      # Grille vidéo adaptative
+│   │   │   ├── ControlButtons.tsx       # Contrôles média
+│   │   │   ├── ChatBox.tsx              # Chat + partage de fichiers
+│   │   │   ├── ParticipantsList.tsx     # Liste participants
+│   │   │   └── ServerConnectionPopup.tsx # Popup perte de connexion
 │   │   └── 📂 shared/             # Composants réutilisables
 │   │       ├── Toast.tsx             # Notification toast
 │   │       ├── ToastContainer.tsx
@@ -550,7 +568,8 @@ meetlocal/
 | `endMeeting` | `{ roomId, userName }` | Terminer une réunion (admin) |
 | `getRoomsList` | - | Obtenir la liste des réunions |
 | `getUsers` | `{ roomId }` | Obtenir les participants |
-| `sendMessage` | `{ roomId, message }` | Envoyer un message chat |
+| `message` | `{ roomId, message, timestamp, file? }` | Envoyer un message chat |
+| `getChatHistory` | `{ roomId }` | Récupérer l'historique du chat |
 | `startStream` | `{ roomId }` | Notifier démarrage vidéo |
 | `stopStream` | `{ roomId }` | Notifier arrêt vidéo |
 | `startScreen` | `{ roomId }` | Notifier démarrage partage |
@@ -566,7 +585,9 @@ meetlocal/
 | `getUsers` | `User[]` | Liste des participants |
 | `userJoined` | `{ userId, userName }` | Nouveau participant |
 | `userLeft` | `{ userId, userName }` | Participant parti |
-| `newMessage` | `{ userName, message, timestamp }` | Nouveau message chat |
+| `message` | `{ id, userName, message, timestamp, file? }` | Nouveau message chat |
+| `chatHistory` | `Message[]` | Historique des messages |
+| `screenStopped` | `{ userId }` | Partage d'écran arrêté |
 | `meetingEnded` | - | Réunion terminée par admin |
 
 ### HTTP Endpoints
@@ -574,7 +595,9 @@ meetlocal/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/health` | Vérifier l'état du serveur |
-| GET | `/` | Page d'accueil backend |
+| GET | `/get-connection-info` | Obtenir les infos de connexion Mediasoup |
+| POST | `/upload-file` | Uploader un fichier (max 50 MB) |
+| GET | `/download-file/:filename` | Télécharger un fichier |
 
 ---
 
@@ -746,7 +769,17 @@ Allez sur GitHub et cliquez sur **"New Pull Request"**
 
 ## 🗺️ Roadmap
 
-### Version 1.1 (En cours)
+### Version 1.1 ✅ (Terminé)
+
+- [x] **Partage de fichiers** : Upload/download de fichiers jusqu'à 50 MB
+- [x] **Historique de chat** : Synchronisation des messages pour nouveaux arrivants
+- [x] **Popup de connexion** : Alerte visuelle en cas de perte de connexion
+- [x] **Mode responsive complet** : Adaptation mobile/tablette/desktop
+- [x] **Indicateur de nouveaux messages** : Notification visuelle sur le bouton chat
+- [x] **Mode plein écran** : Pour vidéos et partages d'écran
+- [x] **Nettoyage automatique** : Gestion mémoire et synchronisation des streams
+
+### Version 1.2 (En cours)
 
 - [ ] Enregistrement des réunions
 - [ ] Transcription automatique (Speech-to-Text)
@@ -754,12 +787,13 @@ Allez sur GitHub et cliquez sur **"New Pull Request"**
 - [ ] Réactions emoji en temps réel
 - [ ] Tableau blanc collaboratif
 
-### Version 1.2 (Planifié)
+### Version 1.3 (Planifié)
 
 - [ ] Mode grille personnalisable
 - [ ] Statistiques de qualité réseau
 - [ ] Logs serveur améliorés (Winston)
 - [ ] Mode sombre
+- [ ] Gestion des permissions (muet forcé, etc.)
 
 ### Version 2.0 (Vision)
 
