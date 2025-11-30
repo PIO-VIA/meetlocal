@@ -298,23 +298,34 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
 
                   {/* Affichage du fichier si présent */}
                   {msg.file && (
-                    <div className="mt-2 p-2 bg-white bg-opacity-10 rounded border border-white border-opacity-20">
+                    <div className={`mt-2 p-2.5 rounded-lg border ${
+                      msg.userName === userName
+                        ? 'bg-blue-500 bg-opacity-30 border-blue-300'
+                        : 'bg-gray-50 border-gray-300'
+                    }`}>
                       <div className="flex items-center gap-2">
-                        <FileIcon size={20} className={msg.userName === userName ? 'text-white' : 'text-blue-600'} />
+                        <div className={`p-1.5 rounded ${
+                          msg.userName === userName ? 'bg-white bg-opacity-20' : 'bg-blue-50'
+                        }`}>
+                          <FileIcon size={18} className={msg.userName === userName ? 'text-white' : 'text-blue-600'} />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium truncate">{msg.file.originalName}</p>
-                          <p className="text-xs opacity-75">{formatFileSize(msg.file.size)}</p>
+                          <p className={`text-xs ${msg.userName === userName ? 'text-blue-100' : 'text-gray-500'}`}>
+                            {formatFileSize(msg.file.size)}
+                          </p>
                         </div>
                         <button
                           onClick={() => handleDownloadFile(msg.file!)}
-                          className={`p-1.5 rounded transition-colors ${
+                          className={`p-2 rounded-lg font-medium transition-all shadow-sm flex items-center gap-1.5 ${
                             msg.userName === userName
-                              ? 'hover:bg-white hover:bg-opacity-20'
-                              : 'hover:bg-gray-100'
+                              ? 'bg-white text-blue-600 hover:bg-blue-50'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
                           }`}
                           title="Télécharger"
                         >
                           <Download size={16} />
+                          <span className="text-xs hidden sm:inline">Télécharger</span>
                         </button>
                       </div>
                     </div>

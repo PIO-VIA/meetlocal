@@ -60,18 +60,18 @@ export default function ParticipantGrid({
   if (hasScreenShare) {
     // Mode partage d'écran : affichage principal + participants visibles sur le côté
     return (
-      <div className="h-full w-full flex gap-3 p-3">
+      <div className="h-full w-full flex flex-col md:flex-row gap-2 md:gap-3 p-2 md:p-3">
         {/* Partage(s) d'écran principal */}
-        <div className={`flex-1 grid gap-3 ${
+        <div className={`flex-1 grid gap-2 md:gap-3 ${
           allScreenStreams.length === 1 ? 'grid-cols-1' :
-          allScreenStreams.length === 2 ? 'grid-cols-2' :
-          allScreenStreams.length <= 4 ? 'grid-cols-2 grid-rows-2' :
-          'grid-cols-3'
+          allScreenStreams.length === 2 ? 'grid-cols-1 md:grid-cols-2' :
+          allScreenStreams.length <= 4 ? 'grid-cols-1 sm:grid-cols-2' :
+          'grid-cols-1 sm:grid-cols-2 md:grid-cols-3'
         }`}>
           {allScreenStreams.map((screenData, index) => {
             const participant = participants.find(p => p.id === screenData.userId);
             return (
-              <div key={index} className="relative bg-gray-900 rounded-lg overflow-hidden">
+              <div key={index} className="relative bg-gray-900 rounded-lg overflow-hidden min-h-[200px] md:min-h-0">
                 <ScreenShareDisplay
                   stream={screenData.stream}
                   isLocal={screenData.isLocal}
@@ -83,11 +83,11 @@ export default function ParticipantGrid({
           })}
         </div>
 
-        {/* Participants visibles sur le côté droit */}
-        <div className="w-64 flex flex-col gap-2 overflow-y-auto">
+        {/* Participants visibles sur le côté droit ou en bas sur mobile */}
+        <div className="w-full md:w-48 lg:w-64 flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible md:overflow-y-auto pb-2 md:pb-0">
           {/* Vidéo locale */}
           {localStream && (
-            <div className="flex-shrink-0 h-36">
+            <div className="flex-shrink-0 w-32 h-24 md:w-full md:h-32 lg:h-36">
               <ParticipantCard
                 participant={participants.find(p => p.id === currentUserId) || { id: currentUserId || '', name: 'Vous' }}
                 stream={localStream}
@@ -102,7 +102,7 @@ export default function ParticipantGrid({
           {participants.filter(p => p.id !== currentUserId).map((participant) => {
             const stream = remoteStreams.get(participant.id);
             return (
-              <div key={participant.id} className="flex-shrink-0 h-36">
+              <div key={participant.id} className="flex-shrink-0 w-32 h-24 md:w-full md:h-32 lg:h-36">
                 <ParticipantCard
                   participant={participant}
                   stream={stream}
