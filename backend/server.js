@@ -14,11 +14,25 @@ const mediasoup = require('mediasoup');
 const multer = require('multer');
 
 // Configuration de Multer pour l'upload de fichiers
-const storage = multer.memoryStorage();
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + '-' + file.originalname);
+    }
+});
+
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 20 * 1024 * 1024 // Limite à 20 MB
+        fileSize: 50 * 1024 * 1024 // Limite à 50 MB
     }
 });
 
@@ -187,9 +201,11 @@ app.use((req, res, next) => {
     next();
 });
 
+app.use(express.json());
+
 app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'OK', 
+    res.json({
+        status: 'OK',
         timestamp: new Date(),
         mediasoup: worker ? 'running' : 'stopped',
         serverIp: SERVER_IP,
@@ -209,6 +225,55 @@ app.get('/get-connection-info', (req, res) => {
             rtcMaxPort: mediasoupConfig.worker.rtcMaxPort
         }
     });
+});
+
+// Route pour uploader un fichier
+app.post('/upload-file', upload.single('file'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Aucun fichier fourni' });
+        }
+
+        const fileInfo = {
+            filename: req.file.filename,
+            originalName: req.file.originalname,
+            size: req.file.size,
+            mimetype: req.file.mimetype,
+            url: `/download-file/${req.file.filename}`
+        };
+
+        console.log('📎 Fichier uploadé:', fileInfo.originalName, '-', (fileInfo.size / 1024 / 1024).toFixed(2), 'MB');
+
+        res.json({ success: true, file: fileInfo });
+    } catch (error) {
+        console.error('❌ Erreur upload fichier:', error);
+        res.status(500).json({ error: 'Erreur lors de l\'upload' });
+    }
+});
+
+// Route pour télécharger un fichier
+app.get('/download-file/:filename', (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const filePath = path.join(uploadDir, filename);
+
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ error: 'Fichier non trouvé' });
+        }
+
+        // Récupérer le nom original depuis le nom du fichier
+        const originalName = filename.split('-').slice(2).join('-');
+
+        res.download(filePath, originalName, (err) => {
+            if (err) {
+                console.error('❌ Erreur téléchargement:', err);
+                res.status(500).json({ error: 'Erreur lors du téléchargement' });
+            }
+        });
+    } catch (error) {
+        console.error('❌ Erreur download fichier:', error);
+        res.status(500).json({ error: 'Erreur lors du téléchargement' });
+    }
 });
 
 // ==================== ROOMS MANAGEMENT ====================

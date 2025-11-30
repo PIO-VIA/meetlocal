@@ -5,10 +5,11 @@ import {  Socket } from 'socket.io-client';
 import { MessageCircle, Send, Loader2, Paperclip, X, FileIcon, Download } from 'lucide-react';
 
 interface FileData {
-  name: string;
+  filename: string;
+  originalName: string;
   size: number;
-  type: string;
-  data: string; // Base64
+  mimetype: string;
+  url: string;
 }
 
 interface Message {
@@ -142,9 +143,9 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Vérifier la taille du fichier (max 20 MB)
-      if (file.size > 20 * 1024 * 1024) {
-        alert('Le fichier est trop volumineux. Taille maximale : 20 MB');
+      // Vérifier la taille du fichier (max 50 MB)
+      if (file.size > 50 * 1024 * 1024) {
+        alert('Le fichier est trop volumineux. Taille maximale : 50 MB');
         return;
       }
       setSelectedFile(file);
@@ -163,37 +164,46 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
 
     if ((!inputMessage.trim() && !selectedFile) || !socket || isSending) return;
 
-    const messageText = inputMessage.trim() || (selectedFile ? `Fichier partagé: ${selectedFile.name}` : '');
+    const messageText = inputMessage.trim() || (selectedFile ? `📎 ${selectedFile.name}` : '');
 
     setIsSending(true);
     setInputMessage('');
 
     let fileData: FileData | undefined;
 
-    // Convertir le fichier en base64 si présent
+    // Uploader le fichier vers le serveur si présent
     if (selectedFile) {
       try {
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(selectedFile);
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:3001';
+        const response = await fetch(`${backendUrl}/upload-file`, {
+          method: 'POST',
+          body: formData,
         });
 
-        fileData = {
-          name: selectedFile.name,
-          size: selectedFile.size,
-          type: selectedFile.type,
-          data: base64
-        };
+        if (!response.ok) {
+          throw new Error('Erreur lors de l\'upload du fichier');
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+          fileData = result.file;
+        } else {
+          throw new Error(result.error || 'Erreur inconnue');
+        }
       } catch (error) {
-        console.error('Erreur lors de la lecture du fichier:', error);
+        console.error('Erreur lors de l\'upload du fichier:', error);
+        alert('Erreur lors de l\'envoi du fichier. Veuillez réessayer.');
         setIsSending(false);
+        setInputMessage(messageText);
         return;
       }
     }
 
-    // Envoyer au serveur
+    // Envoyer le message via Socket.IO
     socket.emit('message', {
       roomId,
       message: messageText,
@@ -222,9 +232,13 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
   };
 
   const handleDownloadFile = (file: FileData) => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:3001';
+    const downloadUrl = `${backendUrl}${file.url}`;
+
     const link = document.createElement('a');
-    link.href = file.data;
-    link.download = file.name;
+    link.href = downloadUrl;
+    link.download = file.originalName;
+    link.target = '_blank';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -288,7 +302,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
                       <div className="flex items-center gap-2">
                         <FileIcon size={20} className={msg.userName === userName ? 'text-white' : 'text-blue-600'} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{msg.file.name}</p>
+                          <p className="text-xs font-medium truncate">{msg.file.originalName}</p>
                           <p className="text-xs opacity-75">{formatFileSize(msg.file.size)}</p>
                         </div>
                         <button
