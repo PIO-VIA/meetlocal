@@ -729,7 +729,7 @@ Les contributions sont les bienvenues ! Voici comment participer :
 ### 1. Fork le projet
 
 ```bash
-git clone https://github.com/VOTRE_USERNAME/meetlocal.git
+git clone https://github.com/PIO-VIA/meetlocal.git
 cd meetlocal
 ```
 
