@@ -25,9 +25,10 @@ interface ChatBoxProps {
   socket: Socket | null;
   roomId: string;
   userName: string;
+  onNewMessage?: () => void;
 }
 
-export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
+export default function ChatBox({ socket, roomId, userName, onNewMessage }: ChatBoxProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -39,7 +40,7 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
   useEffect(() => {
     if (!socket) return;
 
-    const handleMessage = (data: { id?: string; userName: string; message: string; timestamp?: string }) => {
+    const handleMessage = (data: { id?: string; userName: string; message: string; timestamp?: string; file?: FileData }) => {
       setMessages(prev => {
         const messageId = data.id || `${data.userName}-${data.message}-${Date.now()}`;
 
@@ -57,6 +58,11 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
           return prev;
         }
 
+        // Notifier qu'il y a un nouveau message
+        if (data.userName !== userName && onNewMessage) {
+          onNewMessage();
+        }
+
         return [
           ...prev,
           {
@@ -64,7 +70,8 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
             userName: data.userName,
             message: data.message,
             timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
-            isSystem: false
+            isSystem: false,
+            file: data.file
           }
         ];
       });
@@ -106,7 +113,8 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
         userName: msg.userName,
         message: msg.message,
         timestamp: new Date(msg.timestamp),
-        isSystem: msg.isSystem || false
+        isSystem: msg.isSystem || false,
+        file: msg.file
       })));
     };
 
@@ -134,7 +142,7 @@ export default function ChatBox({ socket, roomId, userName }: ChatBoxProps) {
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Vérifier la taille du fichier (max 10 MB)
+      // Vérifier la taille du fichier (max 20 MB)
       if (file.size > 20 * 1024 * 1024) {
         alert('Le fichier est trop volumineux. Taille maximale : 20 MB');
         return;
