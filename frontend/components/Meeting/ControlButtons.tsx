@@ -202,68 +202,76 @@ export default function ControlButtons({
   };
 
   return (
-    <div className="flex justify-center items-center gap-3">
-      {/* Microphone unifié */}
+    // MODIFIÉ: Ajout de gap-2 sm:gap-3 pour responsive et flex-wrap pour empêcher débordement
+    // ANCIEN: <div className="flex justify-center items-center gap-3">
+    <div className="flex justify-center items-center gap-2 sm:gap-3 flex-wrap">
+      {/* Microphone unifié - MODIFIÉ: Taille réduite sur mobile */}
+      {/* ANCIEN: p-3.5, size={22} */}
       <button
         onClick={isMicActive ? handleStopMicrophone : handleToggleMicrophone}
-        className={`p-3.5 rounded-full transition-all text-white ${
+        className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${
           isMicActive
             ? 'bg-gray-600 hover:bg-gray-700'
             : 'bg-red-500 hover:bg-red-600'
         }`}
         title={isMicActive ? 'Désactiver le micro' : 'Activer le micro'}
       >
-        {isMicActive ? <Mic size={22} /> : <MicOff size={22} />}
+        {isMicActive ? <Mic size={18} className="sm:w-[22px] sm:h-[22px]" /> : <MicOff size={18} className="sm:w-[22px] sm:h-[22px]" />}
       </button>
 
-      {/* Camera */}
+      {/* Camera - MODIFIÉ: Taille réduite sur mobile */}
+      {/* ANCIEN: p-3.5, size={22} */}
       <button
         onClick={handleToggleCamera}
-        className={`p-3.5 rounded-full transition-all text-white ${
+        className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${
           isCameraOn
             ? 'bg-blue-500 hover:bg-blue-600'
             : 'bg-gray-600 hover:bg-gray-700'
         }`}
         title={isCameraOn ? 'Arrêter la caméra' : 'Démarrer la caméra'}
       >
-        {isCameraOn ? <Video size={22} /> : <VideoOff size={22} />}
+        {isCameraOn ? <Video size={18} className="sm:w-[22px] sm:h-[22px]" /> : <VideoOff size={18} className="sm:w-[22px] sm:h-[22px]" />}
       </button>
 
-      {/* Screen Share */}
+      {/* Screen Share - MODIFIÉ: Taille réduite sur mobile */}
+      {/* ANCIEN: p-3.5, size={22} */}
       <button
         onClick={handleToggleScreenShare}
-        className={`p-3.5 rounded-full transition-all text-white ${
+        className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${
           isScreenSharing
             ? 'bg-indigo-500 hover:bg-indigo-600'
             : 'bg-gray-600 hover:bg-gray-700'
         }`}
         title={isScreenSharing ? 'Arrêter le partage' : 'Partager l\'écran'}
       >
-        {isScreenSharing ? <ScreenShareOff size={22} /> : <ScreenShare size={22} />}
+        {isScreenSharing ? <ScreenShareOff size={18} className="sm:w-[22px] sm:h-[22px]" /> : <ScreenShare size={18} className="sm:w-[22px] sm:h-[22px]" />}
       </button>
 
-      {/* Separator */}
-      <div className="w-px h-10 bg-gray-300 mx-2"></div>
+      {/* Separator - MODIFIÉ: Caché sur mobile pour gagner de l'espace */}
+      {/* ANCIEN: <div className="w-px h-10 bg-gray-300 mx-2"></div> */}
+      <div className="hidden sm:block w-px h-10 bg-gray-300 mx-2"></div>
 
-      {/* Leave Meeting */}
+      {/* Leave Meeting - MODIFIÉ: Taille réduite sur mobile */}
+      {/* ANCIEN: p-3.5, size={22} */}
       <button
         onClick={handleLeaveMeeting}
-        className="p-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-all text-white"
+        className="p-2.5 sm:p-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-all text-white"
         title="Quitter la réunion"
       >
-        <PhoneOff size={22} />
+        <PhoneOff size={18} className="sm:w-[22px] sm:h-[22px]" />
       </button>
 
-      {/* End Meeting (Admin only) */}
+      {/* End Meeting (Admin only) - MODIFIÉ: Padding et taille de texte responsive */}
+      {/* ANCIEN: px-5 py-3, text-sm, size={20} */}
       {isAdmin && (
         <button
           onClick={handleEndMeeting}
-          className="px-5 py-3 rounded-full bg-red-600 hover:bg-red-700 transition-all font-medium text-white text-sm"
+          className="px-3 py-2 sm:px-5 sm:py-3 rounded-full bg-red-600 hover:bg-red-700 transition-all font-medium text-white text-xs sm:text-sm"
           title="Terminer la réunion (Admin)"
         >
-          <span className="flex items-center gap-2">
-            <XSquare size={20} />
-            <span>Terminer</span>
+          <span className="flex items-center gap-1.5 sm:gap-2">
+            <XSquare size={16} className="sm:w-5 sm:h-5" />
+            <span className="hidden xs:inline">Terminer</span>
           </span>
         </button>
       )}

@@ -229,8 +229,9 @@ export default function RoomPage() {
         )}
       </div>
 
-      {/* Controls avec design plus doux */}
-      <footer className="bg-white p-4 border-t border-gray-200 shadow-sm">
+      {/* Controls avec design plus doux - MODIFIÉ pour responsive */}
+      {/* ANCIEN: <footer className="bg-white p-4 border-t border-gray-200 shadow-sm"> */}
+      <footer className="bg-white p-3 pb-4 sm:p-4 sm:pb-4 border-t border-gray-200 shadow-sm">
         <ControlButtons
           localStream={localStream}
           audioStream={audioStream}

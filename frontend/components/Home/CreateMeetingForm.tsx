@@ -1,4 +1,7 @@
+//correction de la largeur fixe pour le responsive design
+
 'use client';
+
 
 import { useState, FormEvent } from 'react';
 import { Socket } from 'socket.io-client';
@@ -103,7 +106,8 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-8 animate-scale-in">
+    // 🔥 SEUL CHANGEMENT : Ajout de w-full max-w-md mx-auto
+    <div className="bg-white rounded-2xl shadow-xl p-8 animate-scale-in w-full max-w-md mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
           <Video size={24} className="text-white" />
