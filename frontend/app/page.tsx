@@ -1,5 +1,5 @@
 'use client';
-import Container from '@/components/Container'
+
 import { useState } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 import CreateMeetingForm from '@/components/Home/CreateMeetingForm';
@@ -22,8 +22,7 @@ export default function Home() {
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-50 via-white to-green-50 opacity-60"></div>
       </div>
 
-      {/*  AJOUT DU CONTAINER RESPONSIVE */}
-      <Container className="py-4 sm:py-8 relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 relative z-10">
         {/* Header avec logo et statut - Responsive */}
         <div className="flex justify-between items-center mb-6 sm:mb-8">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -92,11 +91,8 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Forms container - PROBLÈME ICI LIGNE 62 */}
-          {/* <div className="max-w-2xl mx-auto"> */} 
-          
-          {/* NOUVELLE LIGNE RESPONSIVE POUR SAMSUNG 412px */}
-          <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4">
+          {/* Forms container */}
+          <div className="max-w-2xl mx-auto">
             <div className="animate-fade-in">
               {activeTab === 'create' ? (
                 <CreateMeetingForm socket={socket} />
@@ -136,8 +132,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </Container>
-      {/*  FIN DU CONTAINER */}
+      </div>
     </main>
   );
 }

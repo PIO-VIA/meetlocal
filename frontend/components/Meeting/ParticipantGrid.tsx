@@ -120,13 +120,13 @@ export default function ParticipantGrid({
 
   // Mode normal : grille de participants
   return (
-    <div className="h-full w-full p-4">
-      <div className={`grid gap-4 h-full ${
+    <div className="h-full w-full p-2 sm:p-3 md:p-4">
+      <div className={`grid gap-2 sm:gap-3 md:gap-4 h-full ${
         participants.length === 1 ? 'grid-cols-1' :
-        participants.length === 2 ? 'grid-cols-2' :
-        participants.length <= 4 ? 'grid-cols-2 grid-rows-2' :
-        participants.length <= 6 ? 'grid-cols-3 grid-rows-2' :
-        'grid-cols-4'
+        participants.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
+        participants.length <= 4 ? 'grid-cols-1 xs:grid-cols-2' :
+        participants.length <= 6 ? 'grid-cols-2 sm:grid-cols-3' :
+        'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
       }`}>
         {participants.map((participant) => {
           const stream = participant.id === currentUserId
@@ -229,13 +229,13 @@ function ScreenShareDisplay({ stream, isLocal, userName, onFullscreen }: ScreenS
         muted={isLocal}
         className="w-full h-full object-contain bg-black"
       />
-      <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-sm px-4 py-3 rounded-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center animate-pulse">
-            <Monitor size={20} className="text-white" />
+      <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-black/80 backdrop-blur-sm px-2 sm:px-4 py-2 sm:py-3 rounded-lg">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-600 rounded-full flex items-center justify-center animate-pulse">
+            <Monitor size={16} className="sm:w-5 sm:h-5 text-white" />
           </div>
-          <div>
-            <p className="text-white font-semibold text-sm">
+          <div className="hidden xs:block">
+            <p className="text-white font-semibold text-xs sm:text-sm">
               {isLocal ? 'Votre partage d\'écran' : `Partage d'écran de ${userName}`}
             </p>
             <p className="text-gray-300 text-xs">En direct</p>
@@ -245,13 +245,13 @@ function ScreenShareDisplay({ stream, isLocal, userName, onFullscreen }: ScreenS
 
       {/* Bouton fullscreen */}
       {onFullscreen && (
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-2 sm:top-4 right-2 sm:right-4">
           <button
             onClick={onFullscreen}
-            className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-lg flex items-center justify-center transition"
+            className="w-8 h-8 sm:w-10 sm:h-10 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-lg flex items-center justify-center transition"
             title="Plein écran"
           >
-            <Maximize2 size={20} className="text-white" />
+            <Maximize2 size={16} className="sm:w-5 sm:h-5 text-white" />
           </button>
         </div>
       )}

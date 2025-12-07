@@ -194,9 +194,9 @@ export default function RoomPage() {
 
         {/* Sidebar avec couleurs douces - Responsive */}
         {(showParticipants || showChat) && (
-          <aside className="fixed md:relative inset-0 md:inset-auto z-40 md:z-auto w-full md:w-80 lg:w-96 bg-white md:border-l border-gray-200 flex flex-col shadow-lg md:animate-slide-in-right">
+          <aside className="fixed md:relative inset-0 md:inset-auto z-40 md:z-auto w-full md:w-80 lg:w-96 bg-white md:border-l border-gray-200 flex flex-col shadow-lg md:animate-slide-in-right max-h-screen md:max-h-none">
             {/* Bouton fermer sur mobile */}
-            <div className="md:hidden flex justify-end p-2 border-b border-gray-200">
+            <div className="md:hidden flex justify-end p-2 border-b border-gray-200 flex-shrink-0">
               <button
                 onClick={() => {
                   setShowChat(false);
@@ -211,12 +211,12 @@ export default function RoomPage() {
             </div>
 
             {showParticipants && (
-              <div className={showChat ? 'flex-1 border-b border-gray-200' : 'h-full'}>
+              <div className={showChat ? 'flex-1 border-b border-gray-200 overflow-hidden' : 'flex-1 overflow-hidden'}>
                 <ParticipantsList socket={socket} roomId={roomId} />
               </div>
             )}
             {showChat && (
-              <div className={showParticipants ? 'flex-1' : 'h-full'}>
+              <div className={showParticipants ? 'flex-1 overflow-hidden min-h-0' : 'flex-1 overflow-hidden min-h-0'}>
                 <ChatBox
                   socket={socket}
                   roomId={roomId}

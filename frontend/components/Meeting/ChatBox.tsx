@@ -252,18 +252,18 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
   };
 
   return (
-    <div className="h-full flex flex-col bg-white text-gray-900">
+    <div className="h-full flex flex-col bg-white text-gray-900 max-h-screen md:max-h-none">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 flex-shrink-0">
-        <h3 className="text-base font-semibold flex items-center gap-2 text-gray-800">
-          <MessageCircle size={20} className="text-gray-600" />
+      <div className="p-3 sm:p-4 border-b border-gray-200 flex-shrink-0">
+        <h3 className="text-sm sm:text-base font-semibold flex items-center gap-2 text-gray-800">
+          <MessageCircle size={18} className="sm:w-5 sm:h-5 text-gray-600" />
           Chat de la réunion
         </h3>
         <p className="text-xs text-gray-500 mt-1">{messages.length} message{messages.length > 1 ? 's' : ''}</p>
       </div>
 
       {/* Messages - Conteneur avec scroll indépendant */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50 min-h-0">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 bg-gray-50 min-h-0 overscroll-contain">
         {messages.length === 0 ? (
           <div className="text-center text-gray-400 py-8">
             <p className="text-sm">Aucun message pour le moment</p>
@@ -348,20 +348,20 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="p-3 border-t border-gray-200 bg-white flex-shrink-0">
+      {/* Input - Optimisé pour mobile */}
+      <div className="p-2 sm:p-3 border-t border-gray-200 bg-white flex-shrink-0 safe-area-bottom">
         {/* Prévisualisation du fichier sélectionné */}
         {selectedFile && (
           <div className="mb-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-center gap-2">
-              <FileIcon size={16} className="text-blue-600" />
+              <FileIcon size={16} className="text-blue-600 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-gray-900 truncate">{selectedFile.name}</p>
                 <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
               </div>
               <button
                 onClick={handleRemoveFile}
-                className="p-1 hover:bg-blue-100 rounded transition-colors"
+                className="p-1 hover:bg-blue-100 rounded transition-colors flex-shrink-0"
                 title="Retirer le fichier"
               >
                 <X size={16} className="text-gray-600" />
@@ -370,7 +370,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex gap-1.5 sm:gap-2 items-end">
           <input
             ref={fileInputRef}
             type="file"
@@ -381,11 +381,11 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2"
+            className="px-2.5 sm:px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0"
             disabled={isSending}
             title="Joindre un fichier"
           >
-            <Paperclip size={18} />
+            <Paperclip size={16} className="sm:w-[18px] sm:h-[18px]" />
           </button>
           <input
             ref={inputRef}
@@ -393,24 +393,25 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             placeholder="Envoyer un message..."
-            className="flex-1 px-3 py-2 bg-gray-100 text-gray-900 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white placeholder-gray-500 text-sm transition"
+            className="flex-1 min-w-0 px-2.5 sm:px-3 py-2 bg-gray-100 text-gray-900 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white placeholder-gray-500 text-sm transition resize-none"
             maxLength={500}
             disabled={isSending}
             autoComplete="off"
+            enterKeyHint="send"
           />
           <button
             type="submit"
             disabled={(!inputMessage.trim() && !selectedFile) || isSending}
-            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0 ${
               (inputMessage.trim() || selectedFile) && !isSending
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
             {isSending ? (
-              <Loader2 size={18} className="animate-spin" />
+              <Loader2 size={16} className="sm:w-[18px] sm:h-[18px] animate-spin" />
             ) : (
-              <Send size={18} />
+              <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
             )}
           </button>
         </form>

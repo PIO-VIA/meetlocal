@@ -106,13 +106,12 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
   };
 
   return (
-    // 🔥 SEUL CHANGEMENT : Ajout de w-full max-w-md mx-auto
-    <div className="bg-white rounded-2xl shadow-xl p-8 animate-scale-in w-full max-w-md mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-          <Video size={24} className="text-white" />
+    <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 mb-6 animate-scale-in">
+      <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+          <Video size={20} className="sm:w-6 sm:h-6 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
           Créer une nouvelle réunion
         </h2>
       </div>
@@ -123,7 +122,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         <div>
           <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-2">
             Votre nom <span className="text-red-500">*</span>
@@ -133,7 +132,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
             id="userName"
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base"
             placeholder="Ex: Jean Dupont"
             required
             disabled={loading}
@@ -149,7 +148,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
             id="roomName"
             value={roomName}
             onChange={(e) => setRoomName(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base"
             placeholder="Ex: Réunion d'équipe"
             required
             disabled={loading}
@@ -180,35 +179,35 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
           </div>
 
           {useCustomCode && (
-            <div className="space-y-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <div className="flex gap-2">
+            <div className="space-y-3 bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200">
+              <div className="flex gap-1.5 sm:gap-2">
                 <input
                   type="text"
                   value={customCode}
                   onChange={(e) => setCustomCode(e.target.value.toUpperCase())}
-                  className="flex-1 px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition font-mono text-lg"
-                  placeholder="Entrez un code (ex: ABC123)"
+                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition font-mono text-base sm:text-lg"
+                  placeholder="Entrez un code"
                   disabled={loading}
                   maxLength={20}
                 />
                 <button
                   type="button"
                   onClick={handleGenerateCode}
-                  className="px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
+                  className="px-3 sm:px-4 py-2.5 sm:py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2 flex-shrink-0"
                   disabled={loading}
                   title="Générer un code aléatoire"
                 >
-                  <Shuffle size={20} />
+                  <Shuffle size={18} className="sm:w-5 sm:h-5" />
                 </button>
                 {customCode && (
                   <button
                     type="button"
                     onClick={handleCopyCode}
-                    className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+                    className="px-3 sm:px-4 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 flex-shrink-0"
                     disabled={loading}
                     title="Copier le code"
                   >
-                    {copied ? <Check size={20} /> : <Copy size={20} />}
+                    {copied ? <Check size={18} className="sm:w-5 sm:h-5" /> : <Copy size={18} className="sm:w-5 sm:h-5" />}
                   </button>
                 )}
               </div>
@@ -232,7 +231,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
         <button
           type="submit"
           disabled={loading || !socket}
-          className={`w-full py-4 px-6 rounded-lg font-semibold text-white transition-all duration-200 transform ${
+          className={`w-full py-3 sm:py-4 px-4 sm:px-6 rounded-lg font-semibold text-white transition-all duration-200 transform text-sm sm:text-base ${
             loading || !socket
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-2xl hover:scale-[1.02] active:scale-95'

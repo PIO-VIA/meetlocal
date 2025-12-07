@@ -92,4 +92,51 @@
   background: rgba(155, 155, 155, 0.7);
 }
 
+/* Optimisations mobile */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Éviter le zoom sur les inputs sur mobile */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="tel"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Amélioration du scroll mobile */
+body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Éviter le débordement horizontal sur mobile */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Hauteur viewport mobile fixe */
+@supports (height: 100dvh) {
+  .h-screen {
+    height: 100dvh;
+  }
+
+  .max-h-screen {
+    max-height: 100dvh;
+  }
+}
+
+/* Touch feedback amélioré */
+button, a {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+}
 

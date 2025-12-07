@@ -65,12 +65,12 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-8 mb-6 animate-scale-in">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg">
-          <DoorOpen size={24} className="text-white" />
+    <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 mb-6 animate-scale-in">
+      <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg">
+          <DoorOpen size={20} className="sm:w-6 sm:h-6 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
           Rejoindre une réunion
         </h2>
       </div>
@@ -81,7 +81,7 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         <div>
           <label htmlFor="joinUserName" className="block text-sm font-medium text-gray-700 mb-2">
             Votre nom <span className="text-red-500">*</span>
@@ -91,7 +91,7 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
             id="joinUserName"
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition text-base"
             placeholder="Ex: Marie Martin"
             required
             disabled={loading}
@@ -107,7 +107,7 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
             id="roomId"
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition text-base"
             placeholder="Ex: reunion-123"
             required
             disabled={loading}
@@ -120,7 +120,7 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
         <button
           type="submit"
           disabled={loading || !socket}
-          className={`w-full py-4 px-6 rounded-lg font-semibold text-white transition-all duration-200 transform ${
+          className={`w-full py-3 sm:py-4 px-4 sm:px-6 rounded-lg font-semibold text-white transition-all duration-200 transform text-sm sm:text-base ${
             loading || !socket
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 hover:shadow-2xl hover:scale-[1.02] active:scale-95'
