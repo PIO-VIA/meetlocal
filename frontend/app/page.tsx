@@ -7,6 +7,7 @@ import JoinMeetingForm from '@/components/Home/JoinMeetingForm';
 import ActiveRoomsList from '@/components/Home/ActiveRoomsList';
 import ServerConnectionPopup from '@/components/Meeting/ServerConnectionPopup';
 import ThemeToggle from '@/components/shared/ThemeToggle';
+import Footer from '@/components/shared/Footer';
 import { CircleDot, CircleOff, Shield, Zap, Video } from 'lucide-react';
 
 export default function Home() {
@@ -37,11 +38,10 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
-            <span className={`inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium animate-fade-in ${
-              isConnected
+            <span className={`inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium animate-fade-in ${isConnected
                 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                 : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
-            }`}>
+              }`}>
               {isConnected ? (
                 <>
                   <CircleDot size={10} className="sm:w-3 sm:h-3 animate-pulse" />
@@ -71,11 +71,10 @@ export default function Home() {
           <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 mb-6 sm:mb-8 w-full max-w-md sm:w-auto">
             <button
               onClick={() => setActiveTab('create')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 rounded-md font-medium text-xs sm:text-sm transition-all ${
-                activeTab === 'create'
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 rounded-md font-medium text-xs sm:text-sm transition-all ${activeTab === 'create'
                   ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
                   : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-              }`}
+                }`}
               aria-label="Créer une nouvelle réunion"
               aria-selected={activeTab === 'create'}
               role="tab"
@@ -85,11 +84,10 @@ export default function Home() {
             </button>
             <button
               onClick={() => setActiveTab('join')}
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 rounded-md font-medium text-xs sm:text-sm transition-all ${
-                activeTab === 'join'
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 rounded-md font-medium text-xs sm:text-sm transition-all ${activeTab === 'join'
                   ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
                   : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-              }`}
+                }`}
               aria-label="Rejoindre une réunion"
               aria-selected={activeTab === 'join'}
               role="tab"
@@ -141,6 +139,8 @@ export default function Home() {
           </div>
         </div>
       </div>
-    </main>
+
+      <Footer />
+    </main >
   );
 }
