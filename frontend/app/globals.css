@@ -140,3 +140,19 @@ button, a {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
 }
 
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+  }
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* Désactiver les transitions globales pour éviter les conflits */
+input, textarea, select, video, canvas, svg {
+  transition: none !important;
+}
+

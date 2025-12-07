@@ -252,22 +252,22 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
   };
 
   return (
-    <div className="h-full flex flex-col bg-white text-gray-900 max-h-screen md:max-h-none">
+    <div className="h-full flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-white max-h-screen md:max-h-none">
       {/* Header */}
-      <div className="p-3 sm:p-4 border-b border-gray-200 flex-shrink-0">
-        <h3 className="text-sm sm:text-base font-semibold flex items-center gap-2 text-gray-800">
-          <MessageCircle size={18} className="sm:w-5 sm:h-5 text-gray-600" />
+      <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <h3 className="text-sm sm:text-base font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
+          <MessageCircle size={18} className="sm:w-5 sm:h-5 text-gray-600 dark:text-gray-400" />
           Chat de la réunion
         </h3>
-        <p className="text-xs text-gray-500 mt-1">{messages.length} message{messages.length > 1 ? 's' : ''}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{messages.length} message{messages.length > 1 ? 's' : ''}</p>
       </div>
 
       {/* Messages - Conteneur avec scroll indépendant */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 bg-gray-50 min-h-0 overscroll-contain">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 bg-gray-50 dark:bg-gray-950 min-h-0 overscroll-contain">
         {messages.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
+          <div className="text-center text-gray-400 dark:text-gray-500 py-8">
             <p className="text-sm">Aucun message pour le moment</p>
-            <p className="text-xs mt-1 text-gray-400">Commencez la conversation !</p>
+            <p className="text-xs mt-1 text-gray-400 dark:text-gray-500">Commencez la conversation !</p>
           </div>
         ) : (
           messages.map((msg) => (
@@ -275,7 +275,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
               key={msg.id}
               className={`${
                 msg.isSystem
-                  ? 'text-center text-gray-500 text-xs italic py-1'
+                  ? 'text-center text-gray-500 dark:text-gray-400 text-xs italic py-1'
                   : msg.userName === userName
                   ? 'flex justify-end'
                   : 'flex justify-start'
@@ -286,11 +286,11 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
                   className={`max-w-[75%] rounded-lg px-3 py-2 ${
                     msg.userName === userName
                       ? 'bg-blue-600 text-white'
-                      : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
+                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 shadow-sm'
                   }`}
                 >
                   {msg.userName !== userName && (
-                    <p className="text-xs font-semibold mb-0.5 text-blue-600">
+                    <p className="text-xs font-semibold mb-0.5 text-blue-600 dark:text-blue-400">
                       {msg.userName}
                     </p>
                   )}
@@ -301,17 +301,17 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
                     <div className={`mt-2 p-2.5 rounded-lg border ${
                       msg.userName === userName
                         ? 'bg-blue-500 bg-opacity-30 border-blue-300'
-                        : 'bg-gray-50 border-gray-300'
+                        : 'bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600'
                     }`}>
                       <div className="flex items-center gap-2">
                         <div className={`p-1.5 rounded ${
-                          msg.userName === userName ? 'bg-white bg-opacity-20' : 'bg-blue-50'
+                          msg.userName === userName ? 'bg-white bg-opacity-20' : 'bg-blue-50 dark:bg-blue-900/30'
                         }`}>
-                          <FileIcon size={18} className={msg.userName === userName ? 'text-white' : 'text-blue-600'} />
+                          <FileIcon size={18} className={msg.userName === userName ? 'text-white' : 'text-blue-600 dark:text-blue-400'} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium truncate">{msg.file.originalName}</p>
-                          <p className={`text-xs ${msg.userName === userName ? 'text-blue-100' : 'text-gray-500'}`}>
+                          <p className={`text-xs ${msg.userName === userName ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
                             {formatFileSize(msg.file.size)}
                           </p>
                         </div>
@@ -332,7 +332,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
                   )}
 
                   <div className="flex items-center justify-end gap-1 mt-1">
-                    <p className={`text-xs ${msg.userName === userName ? 'text-blue-100' : 'text-gray-500'}`}>
+                    <p className={`text-xs ${msg.userName === userName ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
                       {formatTime(msg.timestamp)}
                     </p>
                     {msg.isSending && (
@@ -349,22 +349,22 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
       </div>
 
       {/* Input - Optimisé pour mobile */}
-      <div className="p-2 sm:p-3 border-t border-gray-200 bg-white flex-shrink-0 safe-area-bottom">
+      <div className="p-2 sm:p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0 safe-area-bottom">
         {/* Prévisualisation du fichier sélectionné */}
         {selectedFile && (
-          <div className="mb-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
             <div className="flex items-center gap-2">
-              <FileIcon size={16} className="text-blue-600 flex-shrink-0" />
+              <FileIcon size={16} className="text-blue-600 dark:text-blue-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-900 truncate">{selectedFile.name}</p>
-                <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{selectedFile.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{formatFileSize(selectedFile.size)}</p>
               </div>
               <button
                 onClick={handleRemoveFile}
-                className="p-1 hover:bg-blue-100 rounded transition-colors flex-shrink-0"
+                className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800 rounded transition-colors flex-shrink-0"
                 title="Retirer le fichier"
               >
-                <X size={16} className="text-gray-600" />
+                <X size={16} className="text-gray-600 dark:text-gray-400" />
               </button>
             </div>
           </div>
@@ -381,9 +381,10 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="px-2.5 sm:px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0"
+            className="px-2.5 sm:px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0"
             disabled={isSending}
             title="Joindre un fichier"
+            aria-label="Joindre un fichier"
           >
             <Paperclip size={16} className="sm:w-[18px] sm:h-[18px]" />
           </button>
@@ -393,11 +394,12 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             placeholder="Envoyer un message..."
-            className="flex-1 min-w-0 px-2.5 sm:px-3 py-2 bg-gray-100 text-gray-900 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white placeholder-gray-500 text-sm transition resize-none"
+            className="flex-1 min-w-0 px-2.5 sm:px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white dark:focus:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 text-sm resize-none"
             maxLength={500}
             disabled={isSending}
             autoComplete="off"
             enterKeyHint="send"
+            aria-label="Message à envoyer"
           />
           <button
             type="submit"
@@ -405,8 +407,9 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
             className={`px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0 ${
               (inputMessage.trim() || selectedFile) && !isSending
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
             }`}
+            aria-label="Envoyer le message"
           >
             {isSending ? (
               <Loader2 size={16} className="sm:w-[18px] sm:h-[18px] animate-spin" />
@@ -416,7 +419,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
           </button>
         </form>
         {inputMessage.length > 400 && (
-          <p className="text-xs text-amber-600 mt-1">
+          <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
             {inputMessage.length}/500 caractères
           </p>
         )}

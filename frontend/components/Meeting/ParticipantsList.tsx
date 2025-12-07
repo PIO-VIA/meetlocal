@@ -57,12 +57,12 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-800 text-white">
-      <div className="p-4 border-b border-gray-700">
+    <div className="h-full flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <span><Users size={24} /></span>
           Participants
-          <span className="ml-auto bg-gray-700 px-2 py-1 rounded-full text-sm">
+          <span className="ml-auto bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full text-sm">
             {participants.length}
           </span>
         </h3>
@@ -70,14 +70,14 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {participants.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
+          <div className="text-center text-gray-400 dark:text-gray-500 py-8">
             <p>Aucun participant pour le moment</p>
           </div>
         ) : (
           participants.map((participant) => (
             <div
               key={participant.id || participant.name}
-              className="flex items-center gap-3 p-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition"
+              className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
             >
               {/* Avatar avec initiales */}
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center font-semibold text-sm flex-shrink-0">
@@ -87,11 +87,11 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
               {/* Informations du participant */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-white truncate">
+                  <p className="font-medium text-gray-900 dark:text-white truncate">
                     {participant.name}
                   </p>
                   {participant.isCreator && (
-                    <span className="text-yellow-400" title="Administrateur">
+                    <span className="text-yellow-500 dark:text-yellow-400" title="Administrateur">
                       <Crown size={16} />
                     </span>
                   )}
@@ -100,19 +100,19 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
                 {/* Statuts */}
                 <div className="flex items-center gap-2 mt-1">
                   {participant.isStreaming && (
-                    <span className="text-xs text-green-400 flex items-center gap-1">
-                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                    <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full animate-pulse"></span>
                       Caméra
                     </span>
                   )}
                   {participant.isScreenSharing && (
-                    <span className="text-xs text-purple-400 flex items-center gap-1">
-                      <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></span>
+                    <span className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                      <span className="w-2 h-2 bg-purple-600 dark:bg-purple-400 rounded-full animate-pulse"></span>
                       Écran
                     </span>
                   )}
                   {!participant.isStreaming && !participant.isScreenSharing && (
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       Pas de vidéo
                     </span>
                   )}
