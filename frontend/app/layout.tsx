@@ -4,7 +4,10 @@ import './globals.css';
 import { ToastProvider } from '@/contexts/ToastContext';
 import ThemeProvider from '@/components/providers/ThemeProvider';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({
+  subsets: ['latin'],
+  preload: false,
+});
 
 export const metadata: Metadata = {
   title: 'LOCAL MEET - Visioconférence Locale',
