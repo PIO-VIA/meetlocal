@@ -62,16 +62,15 @@ export default function ParticipantGrid({
     return (
       <div className="h-full w-full flex flex-col md:flex-row gap-2 md:gap-3 p-2 md:p-3">
         {/* Partage(s) d'écran principal */}
-        <div className={`flex-1 grid gap-2 md:gap-3 ${
+        <div className={`flex-1 grid gap-2 md:gap-3 overflow-y-auto ${
           allScreenStreams.length === 1 ? 'grid-cols-1' :
           allScreenStreams.length === 2 ? 'grid-cols-1 md:grid-cols-2' :
-          allScreenStreams.length <= 4 ? 'grid-cols-1 sm:grid-cols-2' :
-          'grid-cols-1 sm:grid-cols-2 md:grid-cols-3'
+          'grid-cols-1 sm:grid-cols-2'
         }`}>
           {allScreenStreams.map((screenData, index) => {
             const participant = participants.find(p => p.id === screenData.userId);
             return (
-              <div key={index} className="relative bg-gray-900 rounded-lg overflow-hidden min-h-[200px] md:min-h-0">
+              <div key={index} className="relative bg-gray-900 rounded-lg overflow-hidden min-h-[200px] aspect-video">
                 <ScreenShareDisplay
                   stream={screenData.stream}
                   isLocal={screenData.isLocal}
@@ -119,29 +118,33 @@ export default function ParticipantGrid({
   }
 
   // Mode normal : grille de participants
+  const isScrollable = participants.length > 4;
+
   return (
-    <div className="h-full w-full p-2 sm:p-3 md:p-4">
-      <div className={`grid gap-2 sm:gap-3 md:gap-4 h-full ${
-        participants.length === 1 ? 'grid-cols-1' :
-        participants.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
-        participants.length <= 4 ? 'grid-cols-1 xs:grid-cols-2' :
-        participants.length <= 6 ? 'grid-cols-2 sm:grid-cols-3' :
-        'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
-      }`}>
+    <div className={`h-full w-full p-2 sm:p-3 md:p-4 ${isScrollable ? 'overflow-y-auto' : ''}`}>
+      <div className={`grid gap-2 sm:gap-3 md:gap-4 ${isScrollable ? '' : 'h-full'} ${participants.length === 1 ? 'grid-cols-1' :
+          participants.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
+            'grid-cols-1 xs:grid-cols-2'
+        }`}>
         {participants.map((participant) => {
           const stream = participant.id === currentUserId
             ? localStream
             : remoteStreams.get(participant.id);
 
           return (
-            <ParticipantCard
+            <div
               key={participant.id}
-              participant={participant}
-              stream={stream || undefined}
-              isLocal={participant.id === currentUserId}
-              isMiniature={false}
-              onFullscreen={(stream, participant) => setFullscreenVideo({ stream, participant })}
-            />
+              className={isScrollable ? 'aspect-video w-full' : 'h-full w-full'}
+            >
+              <ParticipantCard
+                participant={participant}
+                stream={stream || undefined}
+                isLocal={participant.id === currentUserId}
+                isMiniature={false}
+                onFullscreen={(stream, participant) => setFullscreenVideo({ stream, participant })}
+                className="h-full"
+              />
+            </div>
           );
         })}
       </div>
@@ -265,15 +268,16 @@ interface ParticipantCardProps {
   isLocal: boolean;
   isMiniature?: boolean;
   onFullscreen?: (stream: MediaStream, participant: Participant) => void;
+  className?: string;
 }
 
-function ParticipantCard({ participant, stream, isLocal, isMiniature = false, onFullscreen }: ParticipantCardProps) {
+function ParticipantCard({ participant, stream, isLocal, isMiniature = false, onFullscreen, className = '' }: ParticipantCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number>();
-  
+
   const [audioLevel, setAudioLevel] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
@@ -340,7 +344,7 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
   const hasVideo = stream?.getVideoTracks().some(track => track.enabled) ?? false;
 
   return (
-    <div className={`relative bg-gray-900 rounded-xl overflow-hidden shadow-2xl group ${isMiniature ? 'h-full' : ''}`}>
+    <div className={`relative bg-gray-900 rounded-xl overflow-hidden shadow-2xl group ${isMiniature ? 'h-full' : ''} ${className}`}>
       {/* Bouton fullscreen - apparaît au hover */}
       {!isMiniature && stream && onFullscreen && (
         <div className="absolute top-3 right-3 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -376,8 +380,8 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
       <div
         className="absolute inset-0 rounded-xl pointer-events-none z-20 transition-all duration-100"
         style={{
-          boxShadow: isSpeaking 
-            ? `0 0 ${20 + audioLevel * 30}px rgba(59, 130, 246, ${0.4 + audioLevel * 0.4})` 
+          boxShadow: isSpeaking
+            ? `0 0 ${20 + audioLevel * 30}px rgba(59, 130, 246, ${0.4 + audioLevel * 0.4})`
             : 'none'
         }}
       />
@@ -404,13 +408,12 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
       {/* Indicateur micro en haut à gauche - toujours visible */}
       {!isMiniature && (
         <div className="absolute top-3 left-3 z-30">
-          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-lg transition-all ${
-            hasAudio
+          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-lg transition-all ${hasAudio
               ? isSpeaking
                 ? 'bg-green-600 scale-110'
                 : 'bg-gray-700/90 backdrop-blur-sm'
               : 'bg-red-600'
-          }`}>
+            }`}>
             {hasAudio ? (
               <>
                 <Mic size={16} className="text-white" />
@@ -455,13 +458,12 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
 
           {/* Indicateur micro pour miniature */}
           {isMiniature && (
-            <div className={`flex items-center gap-1 px-2 py-1 rounded ${
-              hasAudio
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${hasAudio
                 ? isSpeaking
                   ? 'bg-green-500/80'
                   : 'bg-gray-700/80'
                 : 'bg-red-500/80'
-            }`}>
+              }`}>
               {hasAudio ? (
                 <Mic size={12} className="text-white" />
               ) : (
