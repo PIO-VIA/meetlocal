@@ -58,28 +58,52 @@ export default function ParticipantGrid({
   }
 
   if (hasScreenShare) {
-    // Mode partage d'écran : affichage principal + participants visibles sur le côté
+    // Mode partage d'écran : grille 2x2 avec scroll pour plus de 4 écrans
+    const hasMultipleScreens = allScreenStreams.length > 1;
+    const needsScroll = allScreenStreams.length > 4;
+
     return (
       <div className="h-full w-full flex flex-col md:flex-row gap-2 md:gap-3 p-2 md:p-3">
-        {/* Partage(s) d'écran principal */}
-        <div className={`flex-1 grid gap-2 md:gap-3 overflow-y-auto ${
-          allScreenStreams.length === 1 ? 'grid-cols-1' :
-          allScreenStreams.length === 2 ? 'grid-cols-1 md:grid-cols-2' :
-          'grid-cols-1 sm:grid-cols-2'
-        }`}>
-          {allScreenStreams.map((screenData, index) => {
-            const participant = participants.find(p => p.id === screenData.userId);
-            return (
-              <div key={index} className="relative bg-gray-900 rounded-lg overflow-hidden min-h-[200px] aspect-video">
-                <ScreenShareDisplay
-                  stream={screenData.stream}
-                  isLocal={screenData.isLocal}
-                  userName={participant?.name || 'Utilisateur'}
-                  onFullscreen={() => participant && setFullscreenVideo({ stream: screenData.stream, participant })}
-                />
+        {/* Grille des partages d'écran - Maximum 4 visibles, scroll pour le reste */}
+        <div className={`flex-1 ${needsScroll ? 'overflow-y-auto scrollbar-custom' : ''} pr-1`}>
+          <div className={`grid gap-2 md:gap-3 ${
+            hasMultipleScreens
+              ? 'grid-cols-1 sm:grid-cols-2 auto-rows-fr'
+              : 'grid-cols-1 h-full'
+          }`}>
+            {allScreenStreams.map((screenData, index) => {
+              const participant = participants.find(p => p.id === screenData.userId);
+              return (
+                <div
+                  key={index}
+                  className={`relative bg-gray-900 rounded-lg overflow-hidden shadow-lg ${
+                    hasMultipleScreens
+                      ? 'min-h-[250px] sm:min-h-[300px] lg:min-h-[350px] aspect-video'
+                      : 'h-full'
+                  }`}
+                >
+                  <ScreenShareDisplay
+                    stream={screenData.stream}
+                    isLocal={screenData.isLocal}
+                    userName={participant?.name || 'Utilisateur'}
+                    screenNumber={hasMultipleScreens ? index + 1 : undefined}
+                    totalScreens={hasMultipleScreens ? allScreenStreams.length : undefined}
+                    onFullscreen={() => participant && setFullscreenVideo({ stream: screenData.stream, participant })}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Indicateur de scroll si plus de 4 écrans */}
+          {needsScroll && (
+            <div className="sticky bottom-0 left-0 right-0 py-2 text-center">
+              <div className="inline-flex items-center gap-2 bg-blue-600/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg text-white text-sm font-medium">
+                <Monitor size={16} />
+                <span>{allScreenStreams.length} écrans partagés - Faites défiler pour voir plus</span>
               </div>
-            );
-          })}
+            </div>
+          )}
         </div>
 
         {/* Participants visibles sur le côté droit ou en bas sur mobile */}
@@ -211,10 +235,12 @@ interface ScreenShareDisplayProps {
   stream: MediaStream;
   isLocal: boolean;
   userName: string;
+  screenNumber?: number;
+  totalScreens?: number;
   onFullscreen?: () => void;
 }
 
-function ScreenShareDisplay({ stream, isLocal, userName, onFullscreen }: ScreenShareDisplayProps) {
+function ScreenShareDisplay({ stream, isLocal, userName, screenNumber, totalScreens, onFullscreen }: ScreenShareDisplayProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -232,30 +258,56 @@ function ScreenShareDisplay({ stream, isLocal, userName, onFullscreen }: ScreenS
         muted={isLocal}
         className="w-full h-full object-contain bg-black"
       />
-      <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-black/80 backdrop-blur-sm px-2 sm:px-4 py-2 sm:py-3 rounded-lg">
+
+      {/* Badge utilisateur avec animation */}
+      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 bg-gradient-to-r from-purple-600 to-blue-600 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-3 rounded-xl shadow-lg">
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-600 rounded-full flex items-center justify-center animate-pulse">
-            <Monitor size={16} className="sm:w-5 sm:h-5 text-white" />
+          <div className="relative">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-full flex items-center justify-center">
+              <Monitor size={16} className="sm:w-5 sm:h-5 text-white" />
+            </div>
+            {/* Point d'animation "En direct" */}
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse">
+              <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-75"></div>
+            </div>
           </div>
-          <div className="hidden xs:block">
-            <p className="text-white font-semibold text-xs sm:text-sm">
-              {isLocal ? 'Votre partage d\'écran' : `Partage d'écran de ${userName}`}
+
+          <div>
+            <p className="text-white font-semibold text-xs sm:text-sm leading-tight">
+              {isLocal ? 'Votre partage d\'écran' : `${userName}`}
             </p>
-            <p className="text-gray-300 text-xs">En direct</p>
+            <p className="text-white/80 text-[10px] sm:text-xs flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
+              En direct
+              {screenNumber && totalScreens && (
+                <span className="ml-1">• Écran {screenNumber}/{totalScreens}</span>
+              )}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Bouton fullscreen */}
+      {/* Bouton fullscreen avec meilleur design */}
       {onFullscreen && (
-        <div className="absolute top-2 sm:top-4 right-2 sm:right-4">
+        <div className="absolute top-3 sm:top-4 right-3 sm:right-4">
           <button
             onClick={onFullscreen}
-            className="w-8 h-8 sm:w-10 sm:h-10 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-lg flex items-center justify-center transition"
+            className="group w-9 h-9 sm:w-11 sm:h-11 bg-black/70 hover:bg-black/90 backdrop-blur-md rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg border border-white/10"
             title="Plein écran"
           >
-            <Maximize2 size={16} className="sm:w-5 sm:h-5 text-white" />
+            <Maximize2 size={16} className="sm:w-5 sm:h-5 text-white group-hover:text-blue-400 transition-colors" />
           </button>
+        </div>
+      )}
+
+      {/* Badge de numéro d'écran pour grille multiple (en bas à droite) */}
+      {screenNumber && totalScreens && totalScreens > 1 && (
+        <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4">
+          <div className="bg-black/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/20">
+            <span className="text-white font-bold text-xs sm:text-sm">
+              #{screenNumber}
+            </span>
+          </div>
         </div>
       )}
     </>
@@ -276,7 +328,7 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
 
   const [audioLevel, setAudioLevel] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -450,7 +502,7 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
                 {participant.name}
                 {isLocal && <span className="text-xs text-gray-300">(Vous)</span>}
                 {participant.isCreator && (
-                  <Crown size={isMiniature ? 12 : 14} className="text-yellow-400" title="Administrateur" />
+                  <Crown size={isMiniature ? 12 : 14} className="text-yellow-400" />
                 )}
               </p>
             </div>
@@ -486,7 +538,7 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
 
       <canvas ref={canvasRef} className="hidden" width="100" height="100" />
 
-      <style jsx>{`
+      <style jsx global>{`
         @keyframes audioWave {
           0% {
             transform: scale(1);
@@ -499,6 +551,32 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
             transform: scale(1.15);
             opacity: 0;
           }
+        }
+
+        /* Style personnalisé pour scrollbar */
+        .scrollbar-custom::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 10px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+          border-radius: 10px;
+          transition: background 0.3s ease;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, #2563eb, #7c3aed);
+        }
+
+        /* Pour Firefox */
+        .scrollbar-custom {
+          scrollbar-width: thin;
+          scrollbar-color: #3b82f6 rgba(0, 0, 0, 0.2);
         }
       `}</style>
     </div>

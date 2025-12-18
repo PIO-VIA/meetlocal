@@ -10,11 +10,10 @@ export const useScreenShare = () => {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
-          cursor: 'always',
           displaySurface: 'monitor' as any,
           logicalSurface: true,
           frameRate: { ideal: 30, max: 60 }
-        },
+        } as MediaTrackConstraints,
         audio: {
           echoCancellation: true,
           noiseSuppression: true,

@@ -25,8 +25,8 @@ export const useSocket = () => {
   });
 
   const socketRef = useRef<Socket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-  const latencyIntervalRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const latencyIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
 
   // Mesurer la latence
@@ -103,7 +103,9 @@ export const useSocket = () => {
         // Options supplémentaires pour réseau local
         upgrade: true,
         rememberUpgrade: true,
-        perMessageDeflate: false
+        perMessageDeflate: {
+          threshold: 1024
+        } as any
       });
 
       socketRef.current = socket;
