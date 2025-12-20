@@ -3,6 +3,7 @@
 # dependencies
 /node_modules
 /backend/node_modules
+/load_test/node_modules
 
 /.pnp
 .pnp.*
