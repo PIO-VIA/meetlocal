@@ -36,6 +36,13 @@
 - [x] **Popup de connexion** : Alerte visuelle en cas de perte de connexion serveur
 - [x] **Mode plein écran** : Agrandir n'importe quelle vidéo ou partage d'écran
 
+## 🌍 Internationalisation
+
+- [x] **Support Multilingue** : Français et Anglais
+- [x] **Détection Automatique** : Utilise la langue du navigateur par défaut
+- [x] **Changement de Langue** : Possibilité de changer manuellement (supporté par l'architecture)
+
+
 ## 🔧 Technique
 
 - [x] **Architecture SFU** : Mediasoup pour des performances optimales

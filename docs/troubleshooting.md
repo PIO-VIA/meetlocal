@@ -48,6 +48,16 @@ npm install --prefix backend
 npm install --prefix frontend
 ```
 
+## Problème : Connexion échouée depuis un autre appareil
+
+**Symptôme** : Site inaccessible depuis un téléphone ou autre PC du réseau
+
+**Solution** :
+1. Vérifiez que les deux appareils sont sur le même réseau WiFi/LAN.
+2. Désactivez temporairement le pare-feu (Firewall) de l'ordinateur serveur pour tester.
+3. Vérifiez que l'adresse IP n'a pas changé (relancez le script `start-local-meet.sh` pour voir l'IP actuelle).
+
+
 ## Problème : Le navigateur ne s'ouvre pas
 
 **Cause** : Système non reconnu ou pas de navigateur

@@ -53,3 +53,9 @@ Survolez une vidéo → Cliquez sur l'icône **⛶**
 ### Liste des participants
 
 Cliquez sur **👥 Participants** en haut à droite
+
+## 🌍 Langue et Paramètres
+
+L'application détecte automatiquement la langue de votre navigateur (Français ou Anglais).
+Si vous souhaitez changer de langue, vous pouvez le faire via les paramètres de votre navigateur ou le bouton de changement de langue dans l'interface (si disponible).
+

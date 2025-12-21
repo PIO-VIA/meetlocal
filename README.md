@@ -28,7 +28,8 @@
 - **🔒 Confidentialité totale** : Aucune donnée n'est envoyée vers des serveurs externes
 - **⚡ Ultra-rapide** : Latence minimale grâce au réseau local
 - **💰 Gratuit** : Pas d'abonnement, pas de limite de temps
-- **🛡️ Sécurisé** : Chiffrement HTTPS + certificats SSL
+- **🛡️ Sécurisé** : Chiffrement HTTPS + certificats SSL auto-générés
+- **🌍 Multilingue** : Support Français / Anglais (détection automatique)
 - **🎨 Interface moderne** : Design inspiré de Google Meet
 - **📱 Multi-plateforme** : Fonctionne sur ordinateur, tablette et smartphone
 
@@ -49,6 +50,8 @@ La documentation complète est disponible dans le dossier `docs/` :
 ---
 
 ## 🚀 Installation Rapide
+
+Le script de démarrage inclus gère tout pour vous : détection de l'IP, génération des certificats SSL, et gestion des ports.
 
 ```bash
 # 1. Cloner le repository
@@ -76,6 +79,8 @@ Pour plus de détails, voir le [Guide d'installation](docs/installation.md).
 - [x] Indicateur de nouveaux messages
 - [x] Mode plein écran
 - [x] Nettoyage automatique
+- [x] **Support Multilingue (i18n)**
+- [x] **Script de démarrage automatisé (SSL/Ports)**
 
 ### Version 1.2 (En cours)
 - [ ] Enregistrement des réunions
