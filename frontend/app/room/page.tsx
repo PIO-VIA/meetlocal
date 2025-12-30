@@ -11,8 +11,11 @@ import ChatBox from '@/components/Meeting/ChatBox';
 import ServerConnectionPopup from '@/components/Meeting/ServerConnectionPopup';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import Tooltip from '@/components/shared/Tooltip';
+import LanguageSwitcher from '@/components/shared/LanguageSwitcher';
 import { MessageCircle, Users, Crown, Monitor } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
+import '@/lib/i18n'; // Initialize i18n
+import { useTranslation } from 'react-i18next';
 
 
 interface Participant {
@@ -32,24 +35,25 @@ export default function RoomPage() {
   const userName = typeof window !== 'undefined'
     ? localStorage.getItem('display_name')
     : null;
+  const { t } = useTranslation();
 
-  const { 
-    socket, 
-    isConnected, 
-    status, 
-    error, 
-    reconnectAttempts, 
-    latency, 
-    reconnect 
+  const {
+    socket,
+    isConnected,
+    status,
+    error,
+    reconnectAttempts,
+    latency,
+    reconnect
   } = useSocket();
 
-  const { 
+  const {
     localStream,
     audioStream,
-    remoteStreams, 
+    remoteStreams,
     screenStream,
     remoteScreenStreams, // NOUVEAU
-    startCamera, 
+    startCamera,
     stopCamera,
     startAudioOnly,
     stopAudioOnly,
@@ -73,7 +77,7 @@ export default function RoomPage() {
     if (socket && isConnected) {
       socket.emit('joinRoom', { roomId, userName }, (success: boolean, response: any) => {
         if (!success) {
-          toast.error(response?.message || 'Impossible de rejoindre la réunion');
+          toast.error(response?.message || t('room.toast_error_join'));
           router.push('/');
           return;
         }
@@ -104,10 +108,10 @@ export default function RoomPage() {
         socket.emit('leaveRoom', { roomId, userName });
       }
     };
-  }, [socket, isConnected, roomId, userName, router]);
+  }, [socket, isConnected, roomId, userName, router, t]);
 
   if (!roomId) {
-    return <div className="h-screen flex items-center justify-center">Chargement...</div>;
+    return <div className="h-screen flex items-center justify-center">{t('room.loading')}</div>;
   }
 
   return (
@@ -129,17 +133,17 @@ export default function RoomPage() {
               <div className="flex items-center gap-1 sm:gap-2 mt-0.5 flex-wrap">
                 {isAdmin && (
                   <span className="text-xs px-1.5 sm:px-2 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full flex items-center gap-1 border border-amber-200 dark:border-amber-800">
-                    <Crown size={10} className="sm:w-3 sm:h-3" /> <span className="hidden sm:inline">Admin</span>
+                    <Crown size={10} className="sm:w-3 sm:h-3" /> <span className="hidden sm:inline">{t('room.admin')}</span>
                   </span>
                 )}
                 <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                   <Users size={10} className="sm:w-3 sm:h-3" />
                   <span className="hidden xs:inline">{participants.length}</span>
-                  <span className="hidden sm:inline">participant{participants.length > 1 ? 's' : ''}</span>
+                  <span className="hidden sm:inline">{t('room.participants')}</span>
                 </span>
                 {(screenStream || remoteScreenStreams.size > 0) && (
                   <span className="text-xs px-1.5 sm:px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full flex items-center gap-1 border border-blue-200 dark:border-blue-800">
-                    <Monitor size={10} className="sm:w-3 sm:h-3" /> <span className="hidden sm:inline">{screenStream && remoteScreenStreams.size > 0 ? `${remoteScreenStreams.size + 1} partages` : 'Partage actif'}</span>
+                    <Monitor size={10} className="sm:w-3 sm:h-3" /> <span className="hidden sm:inline">{screenStream && remoteScreenStreams.size > 0 ? `${remoteScreenStreams.size + 1} ${t('room.shares')}` : t('room.active_share')}</span>
                   </span>
                 )}
               </div>
@@ -147,22 +151,22 @@ export default function RoomPage() {
           </div>
         </div>
         <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+          <LanguageSwitcher />
           <ThemeToggle />
-          <Tooltip content={showParticipants ? 'Masquer les participants' : 'Afficher les participants'} position="bottom">
+          <Tooltip content={showParticipants ? t('room.tooltips.hide_participants') : t('room.tooltips.show_participants')} position="bottom">
             <button
               onClick={() => setShowParticipants(!showParticipants)}
-              className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 ${
-                showParticipants
-                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
+              className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 ${showParticipants
+                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
               aria-label="Afficher/Masquer les participants"
             >
               <Users size={14} className="sm:w-4 sm:h-4" />
               <span className="hidden md:inline">Participants</span>
             </button>
           </Tooltip>
-          <Tooltip content={showChat ? 'Masquer le chat' : 'Afficher le chat'} position="bottom">
+          <Tooltip content={showChat ? t('room.tooltips.hide_chat') : t('room.tooltips.show_chat')} position="bottom">
             <button
               onClick={() => {
                 setShowChat(!showChat);
@@ -170,15 +174,14 @@ export default function RoomPage() {
                   setHasNewMessages(false);
                 }
               }}
-              className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 relative ${
-                showChat
-                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
+              className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 relative ${showChat
+                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
               aria-label="Afficher/Masquer le chat"
             >
               <MessageCircle size={14} className="sm:w-4 sm:h-4" />
-              <span className="hidden md:inline">Chat</span>
+              <span className="hidden md:inline">{t('room.chat')}</span>
               {hasNewMessages && !showChat && (
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse"></span>
               )}
@@ -212,7 +215,7 @@ export default function RoomPage() {
                   setShowParticipants(false);
                 }}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-900 dark:text-white"
-                aria-label="Fermer la sidebar"
+                aria-label={t('room.tooltips.close_sidebar')}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

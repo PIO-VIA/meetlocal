@@ -4,6 +4,7 @@ import { useState, FormEvent } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
 import { DoorOpen, XCircle, Info, CheckCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface JoinMeetingFormProps {
   socket: Socket | null;
@@ -15,23 +16,24 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
   const [roomId, setRoomId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (!userName.trim()) {
-      setError('Veuillez entrer votre nom');
+      setError(t('join_meeting.errors.enter_name'));
       return;
     }
 
     if (!roomId.trim()) {
-      setError('Veuillez entrer l\'ID de la réunion');
+      setError(t('join_meeting.errors.enter_id'));
       return;
     }
 
     if (!socket) {
-      setError('Connexion au serveur en cours...');
+      setError(t('join_meeting.errors.connecting'));
       return;
     }
 
@@ -48,9 +50,9 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
 
         if (!success) {
           if (response?.error === 'NAME_ALREADY_TAKEN') {
-            setError(response.message || 'Ce nom est déjà utilisé dans cette réunion.');
+            setError(response.message || t('join_meeting.errors.name_taken_in_room'));
           } else {
-            setError("La réunion n'existe pas ou n'est plus disponible.");
+            setError(t('join_meeting.errors.room_not_found'));
           }
           return;
         }
@@ -71,7 +73,7 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
           <DoorOpen size={20} className="sm:w-6 sm:h-6 text-white" />
         </div>
         <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 dark:text-white">
-          Rejoindre une réunion
+          {t('join_meeting.title')}
         </h2>
       </div>
 
@@ -84,7 +86,7 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         <div>
           <label htmlFor="joinUserName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Votre nom <span className="text-red-500">*</span>
+            {t('join_meeting.labels.your_name')} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -92,17 +94,17 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
             className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition text-base placeholder-gray-500 dark:placeholder-gray-400"
-            placeholder="Ex: Marie Martin"
+            placeholder={t('join_meeting.placeholders.name_example')}
             required
             disabled={loading}
-            aria-label="Votre nom"
+            aria-label={t('join_meeting.labels.your_name')}
             aria-required="true"
           />
         </div>
 
         <div>
           <label htmlFor="roomId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            ID de la réunion <span className="text-red-500">*</span>
+            {t('join_meeting.labels.meeting_id')} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -110,25 +112,24 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
             className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition text-base placeholder-gray-500 dark:placeholder-gray-400"
-            placeholder="Ex: reunion-123"
+            placeholder={t('join_meeting.placeholders.meeting_id_example')}
             required
             disabled={loading}
-            aria-label="ID de la réunion"
+            aria-label={t('join_meeting.labels.meeting_id')}
             aria-required="true"
           />
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-            <Info size={16} /> Entrez l'ID de la réunion que vous souhaitez rejoindre
+            <Info size={16} /> {t('join_meeting.info.enter_id')}
           </p>
         </div>
 
         <button
           type="submit"
           disabled={loading || !socket}
-          className={`w-full py-3 sm:py-4 px-4 sm:px-6 rounded-lg font-semibold text-white transition-all duration-200 transform text-sm sm:text-base ${
-            loading || !socket
+          className={`w-full py-3 sm:py-4 px-4 sm:px-6 rounded-lg font-semibold text-white transition-all duration-200 transform text-sm sm:text-base ${loading || !socket
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 hover:shadow-2xl hover:scale-[1.02] active:scale-95'
-          }`}
+            }`}
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -136,11 +137,11 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              Connexion en cours...
+              {t('join_meeting.buttons.connecting')}
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">
-              <CheckCircle size={20} /> Rejoindre maintenant
+              <CheckCircle size={20} /> {t('join_meeting.buttons.join_now')}
             </span>
           )}
         </button>

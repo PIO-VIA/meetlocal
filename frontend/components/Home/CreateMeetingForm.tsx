@@ -7,6 +7,7 @@ import { useState, FormEvent } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
 import { Video, XCircle, Info, Rocket, Key, Shuffle, Copy, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface CreateMeetingFormProps {
   socket: Socket | null;
@@ -21,6 +22,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
   const [useCustomCode, setUseCustomCode] = useState(false);
   const [customCode, setCustomCode] = useState('');
   const [copied, setCopied] = useState(false);
+  const { t } = useTranslation();
 
   const generateRandomCode = () => {
     // Générer un code de 6 caractères alphanumériques
@@ -51,22 +53,22 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
     setError('');
 
     if (!userName.trim()) {
-      setError('Veuillez entrer votre nom');
+      setError(t('create_meeting.errors.enter_name'));
       return;
     }
 
     if (!roomName.trim()) {
-      setError('Veuillez donner un nom à votre réunion');
+      setError(t('create_meeting.errors.enter_meeting_name'));
       return;
     }
 
     if (useCustomCode && !customCode.trim()) {
-      setError('Veuillez entrer un code ou générez-en un automatiquement');
+      setError(t('create_meeting.errors.enter_code'));
       return;
     }
 
     if (!socket) {
-      setError('Connexion au serveur en cours...');
+      setError(t('create_meeting.errors.connecting'));
       return;
     }
 
@@ -89,11 +91,11 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
     socket.once('roomError', (data) => {
       setLoading(false);
       if (data.error === 'NAME_ALREADY_EXISTS') {
-        setError('Ce nom de réunion est déjà utilisé. Veuillez en choisir un autre.');
+        setError(t('create_meeting.errors.name_taken'));
       } else if (data.error === 'ID_ALREADY_EXISTS') {
-        setError('Cet ID de réunion est déjà utilisé. Veuillez réessayer.');
+        setError(t('create_meeting.errors.id_taken'));
       } else {
-        setError(data.message || 'Une erreur est survenue lors de la création de la réunion.');
+        setError(data.message || t('create_meeting.errors.generic'));
       }
     });
 
@@ -112,7 +114,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
           <Video size={20} className="sm:w-6 sm:h-6 text-white" />
         </div>
         <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 dark:text-white">
-          Créer une nouvelle réunion
+          {t('create_meeting.title')}
         </h2>
       </div>
 
@@ -125,7 +127,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         <div>
           <label htmlFor="userName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Votre nom <span className="text-red-500">*</span>
+            {t('create_meeting.labels.your_name')} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -133,17 +135,17 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
             className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base placeholder-gray-500 dark:placeholder-gray-400"
-            placeholder="Ex: Jean Dupont"
+            placeholder={t('create_meeting.placeholders.name_example')}
             required
             disabled={loading}
-            aria-label="Votre nom"
+            aria-label={t('create_meeting.labels.your_name')}
             aria-required="true"
           />
         </div>
 
         <div>
           <label htmlFor="roomName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Nom de la réunion <span className="text-red-500">*</span>
+            {t('create_meeting.labels.meeting_name')} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -151,10 +153,10 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
             value={roomName}
             onChange={(e) => setRoomName(e.target.value)}
             className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base placeholder-gray-500 dark:placeholder-gray-400"
-            placeholder="Ex: Réunion d'équipe"
+            placeholder={t('create_meeting.placeholders.meeting_example')}
             required
             disabled={loading}
-            aria-label="Nom de la réunion"
+            aria-label={t('create_meeting.labels.meeting_name')}
             aria-required="true"
           />
         </div>
@@ -164,7 +166,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
           <div className="flex items-center justify-between mb-3">
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
               <Key size={18} className="text-blue-600 dark:text-blue-400" />
-              Code de réunion personnalisé
+              {t('create_meeting.labels.custom_code')}
             </label>
             <button
               type="button"
@@ -172,13 +174,12 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
                 setUseCustomCode(!useCustomCode);
                 if (useCustomCode) setCustomCode('');
               }}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition ${
-                useCustomCode
+              className={`px-3 py-1 rounded-full text-xs font-medium transition ${useCustomCode
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+                }`}
             >
-              {useCustomCode ? 'Activé' : 'Désactivé'}
+              {useCustomCode ? t('create_meeting.labels.activated') : t('create_meeting.labels.deactivated')}
             </button>
           </div>
 
@@ -190,18 +191,18 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
                   value={customCode}
                   onChange={(e) => setCustomCode(e.target.value.toUpperCase())}
                   className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition font-mono text-base sm:text-lg placeholder-gray-500 dark:placeholder-gray-400"
-                  placeholder="Entrez un code"
+                  placeholder={t('create_meeting.placeholders.code_enter')}
                   disabled={loading}
                   maxLength={20}
-                  aria-label="Code personnalisé de la réunion"
+                  aria-label={t('create_meeting.labels.custom_code')}
                 />
                 <button
                   type="button"
                   onClick={handleGenerateCode}
                   className="px-3 sm:px-4 py-2.5 sm:py-3 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-lg transition flex items-center gap-2 flex-shrink-0"
                   disabled={loading}
-                  aria-label="Générer un code aléatoire"
-                  title="Générer un code aléatoire"
+                  aria-label={t('create_meeting.buttons.generate_random')}
+                  title={t('create_meeting.buttons.generate_random')}
                 >
                   <Shuffle size={18} className="sm:w-5 sm:h-5" />
                 </button>
@@ -211,8 +212,8 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
                     onClick={handleCopyCode}
                     className="px-3 sm:px-4 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white rounded-lg transition flex items-center gap-2 flex-shrink-0"
                     disabled={loading}
-                    aria-label={copied ? "Code copié" : "Copier le code"}
-                    title={copied ? "Code copié !" : "Copier le code"}
+                    aria-label={copied ? t('create_meeting.buttons.copied') : t('create_meeting.buttons.copy_code')}
+                    title={copied ? t('create_meeting.buttons.copied') : t('create_meeting.buttons.copy_code')}
                   >
                     {copied ? <Check size={18} className="sm:w-5 sm:h-5" /> : <Copy size={18} className="sm:w-5 sm:h-5" />}
                   </button>
@@ -221,8 +222,8 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
               <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-1">
                 <Info size={14} />
                 {customCode
-                  ? 'Les participants pourront rejoindre avec ce code'
-                  : 'Créez un code personnalisé ou générez-en un automatiquement'}
+                  ? t('create_meeting.info.code_participants')
+                  : t('create_meeting.info.create_or_generate')}
               </p>
             </div>
           )}
@@ -230,7 +231,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
           {!useCustomCode && (
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
               <Info size={16} />
-              Un identifiant unique sera généré automatiquement
+              {t('create_meeting.info.auto_id')}
             </p>
           )}
         </div>
@@ -238,11 +239,10 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
         <button
           type="submit"
           disabled={loading || !socket}
-          className={`w-full py-3 sm:py-4 px-4 sm:px-6 rounded-lg font-semibold text-white transition-all duration-200 transform text-sm sm:text-base ${
-            loading || !socket
+          className={`w-full py-3 sm:py-4 px-4 sm:px-6 rounded-lg font-semibold text-white transition-all duration-200 transform text-sm sm:text-base ${loading || !socket
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-2xl hover:scale-[1.02] active:scale-95'
-          }`}
+            }`}
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -250,11 +250,11 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              Création en cours...
+              {t('create_meeting.buttons.creating')}
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">
-              <Rocket size={20} /> Lancer la réunion
+              <Rocket size={20} /> {t('create_meeting.buttons.launch')}
             </span>
           )}
         </button>

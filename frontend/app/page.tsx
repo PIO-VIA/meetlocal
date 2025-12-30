@@ -7,12 +7,16 @@ import JoinMeetingForm from '@/components/Home/JoinMeetingForm';
 import ActiveRoomsList from '@/components/Home/ActiveRoomsList';
 import ServerConnectionPopup from '@/components/Meeting/ServerConnectionPopup';
 import ThemeToggle from '@/components/shared/ThemeToggle';
+import LanguageSwitcher from '@/components/shared/LanguageSwitcher';
 import Footer from '@/components/shared/Footer';
 import { CircleDot, CircleOff, Shield, Zap, Video } from 'lucide-react';
+import '@/lib/i18n'; // Initialize i18n
+import { useTranslation } from 'react-i18next';
 
 export default function Home() {
   const { socket, isConnected, status, error } = useSocket();
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
+  const { t } = useTranslation();
 
   return (
     <main className="min-h-screen bg-white dark:bg-gray-900 relative overflow-hidden transition-colors">
@@ -32,25 +36,26 @@ export default function Home() {
               <span className="text-white text-lg sm:text-xl font-bold">LM</span>
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">LOCAL MEET</h1>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Visioconférence sécurisée</p>
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">{t('app.title')}</h1>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t('app.subtitle')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
+            <LanguageSwitcher />
             <ThemeToggle />
             <span className={`inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium animate-fade-in ${isConnected
-                ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+              ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+              : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
               }`}>
               {isConnected ? (
                 <>
                   <CircleDot size={10} className="sm:w-3 sm:h-3 animate-pulse" />
-                  <span className="hidden xs:inline">Connecté</span>
+                  <span className="hidden xs:inline">{t('app.status.connected')}</span>
                 </>
               ) : (
                 <>
                   <CircleOff size={10} className="sm:w-3 sm:h-3" />
-                  <span className="hidden xs:inline">Déconnecté</span>
+                  <span className="hidden xs:inline">{t('app.status.disconnected')}</span>
                 </>
               )}
             </span>
@@ -60,11 +65,11 @@ export default function Home() {
         {/* Hero section - Responsive */}
         <div className="text-center mb-8 sm:mb-12 py-6 sm:py-12 animate-scale-in">
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 px-2">
-            Réunions vidéo premium.<br className="hidden sm:block" />
-            <span className="sm:hidden"> </span>Maintenant gratuites pour tous.
+            {t('app.hero.title_line1')}<br className="hidden sm:block" />
+            <span className="sm:hidden"> </span>{t('app.hero.title_line2')}
           </h2>
           <p className="text-sm sm:text-base lg:text-lg text-gray-600 dark:text-gray-400 mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
-            Nous avons réinventé la vidéoconférence pour votre réseau local. Sécurisée, rapide et gratuite.
+            {t('app.hero.description')}
           </p>
 
           {/* Tabs style Google Meet - Responsive */}
@@ -72,28 +77,28 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('create')}
               className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 rounded-md font-medium text-xs sm:text-sm transition-all ${activeTab === 'create'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                 }`}
-              aria-label="Créer une nouvelle réunion"
+              aria-label={t('app.tabs.new_meeting')}
               aria-selected={activeTab === 'create'}
               role="tab"
             >
-              <span className="hidden sm:inline">Nouvelle réunion</span>
-              <span className="sm:hidden">Créer</span>
+              <span className="hidden sm:inline">{t('app.tabs.new_meeting')}</span>
+              <span className="sm:hidden">{t('app.tabs.create')}</span>
             </button>
             <button
               onClick={() => setActiveTab('join')}
               className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 rounded-md font-medium text-xs sm:text-sm transition-all ${activeTab === 'join'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                 }`}
-              aria-label="Rejoindre une réunion"
+              aria-label={t('app.tabs.join_meeting')}
               aria-selected={activeTab === 'join'}
               role="tab"
             >
-              <span className="hidden sm:inline">Rejoindre une réunion</span>
-              <span className="sm:hidden">Rejoindre</span>
+              <span className="hidden sm:inline">{t('app.tabs.join_meeting')}</span>
+              <span className="sm:hidden">{t('app.tabs.join')}</span>
             </button>
           </div>
 
@@ -119,22 +124,22 @@ export default function Home() {
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                 <Shield className="text-blue-600 dark:text-blue-400" size={24} />
               </div>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">Sécurisé par conception</h3>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Vos réunions restent sur votre réseau local</p>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">{t('app.features.secure.title')}</h3>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t('app.features.secure.description')}</p>
             </div>
             <div className="text-center p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                 <Zap className="text-green-600 dark:text-green-400" size={24} />
               </div>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">Ultra-rapide</h3>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Latence minimale sur votre réseau local</p>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">{t('app.features.fast.title')}</h3>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t('app.features.fast.description')}</p>
             </div>
             <div className="text-center p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow sm:col-span-2 md:col-span-1">
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                 <Video className="text-indigo-600 dark:text-indigo-400" size={24} />
               </div>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">Qualité premium</h3>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Partage d'écran et vidéo HD</p>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">{t('app.features.premium.title')}</h3>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t('app.features.premium.description')}</p>
             </div>
           </div>
         </div>

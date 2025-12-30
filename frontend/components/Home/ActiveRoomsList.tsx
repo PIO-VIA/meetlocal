@@ -5,6 +5,7 @@ import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
 import { Mailbox, ClipboardList, Users, Video, ScreenShare, Crown } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
+import { useTranslation } from 'react-i18next';
 
 interface Room {
   id: string;
@@ -29,6 +30,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
   const toast = useToast();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!socket) return;
@@ -58,7 +60,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
     const userName = localStorage.getItem('display_name');
 
     if (!userName) {
-      toast.warning('Veuillez d\'abord entrer votre nom dans le formulaire ci-dessus');
+      toast.warning(t('active_rooms.toast_name_required'));
       return;
     }
 
@@ -68,7 +70,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
       if (exists) {
         router.push(`/room?room=${roomId}`);
       } else {
-        toast.error('Cette réunion n\'existe plus');
+        toast.error(t('active_rooms.toast_not_exist'));
         socket.emit('getRoomsList');
       }
     });
@@ -82,7 +84,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          <span className="ml-3 text-gray-600">Chargement des réunions...</span>
+          <span className="ml-3 text-gray-600">{t('active_rooms.loading')}</span>
         </div>
       </div>
     );
@@ -96,10 +98,10 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
             <Mailbox className="text-gray-400" size={40} />
           </div>
           <h3 className="text-xl font-semibold text-gray-700 mb-2">
-            Aucune réunion active
+            {t('active_rooms.empty')}
           </h3>
           <p className="text-gray-500">
-            Créez une nouvelle réunion pour commencer
+            {t('active_rooms.start_new')}
           </p>
         </div>
       </div>
@@ -113,7 +115,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
           <ClipboardList className="text-indigo-600" size={24} />
         </div>
         <h2 className="text-2xl font-bold text-gray-800">
-          Réunions actives ({rooms.length})
+          {t('active_rooms.title')} ({rooms.length})
         </h2>
       </div>
 
@@ -131,7 +133,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
                   </h3>
                   {room.persistent && (
                     <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                      Permanente
+                      {t('active_rooms.persistent')}
                     </span>
                   )}
                 </div>
@@ -143,7 +145,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
                 onClick={() => handleJoinRoom(room.id)}
                 className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 font-medium"
               >
-                Rejoindre
+                {t('active_rooms.join')}
               </button>
             </div>
 
@@ -151,10 +153,10 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
               <div className="flex items-center gap-1 text-gray-600">
                 <Users size={16} />
                 <span>
-                  {room.users.length} participant{room.users.length > 1 ? 's' : ''}
+                  {room.users.length} {room.users.length > 1 ? t('active_rooms.participants_plural') : t('active_rooms.participants')}
                   {room.disconnectedUsers > 0 && (
                     <span className="text-gray-400">
-                      {' '}+ {room.disconnectedUsers} déconnecté{room.disconnectedUsers > 1 ? 's' : ''}
+                      {' '}+ {room.disconnectedUsers} {t('active_rooms.disconnected')}
                     </span>
                   )}
                 </span>
@@ -163,14 +165,14 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
               {room.users.some(u => u.isStreaming) && (
                 <div className="flex items-center gap-1 text-green-600">
                   <Video size={16} />
-                  <span>{room.users.filter(u => u.isStreaming).length} caméra(s)</span>
+                  <span>{room.users.filter(u => u.isStreaming).length} {t('active_rooms.cameras')}</span>
                 </div>
               )}
 
               {room.users.some(u => u.isScreenSharing) && (
                 <div className="flex items-center gap-1 text-indigo-600">
                   <ScreenShare size={16} />
-                  <span>Partage d'écran actif</span>
+                  <span>{t('active_rooms.screen_share')}</span>
                 </div>
               )}
             </div>
@@ -190,7 +192,7 @@ export default function ActiveRoomsList({ socket }: ActiveRoomsListProps) {
                   ))}
                   {room.users.length > 5 && (
                     <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
-                      +{room.users.length - 5} autres
+                      +{room.users.length - 5} {t('active_rooms.others')}
                     </span>
                   )}
                 </div>

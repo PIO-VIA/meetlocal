@@ -1,0 +1,147 @@
+{
+    "app": {
+        "title": "LOCAL MEET",
+        "subtitle": "Visioconférence sécurisée",
+        "hero": {
+            "title_line1": "Réunions vidéo premium.",
+            "title_line2": "Maintenant gratuites pour tous.",
+            "description": "Nous avons réinventé la vidéoconférence pour votre réseau local. Sécurisée, rapide et gratuite."
+        },
+        "tabs": {
+            "new_meeting": "Nouvelle réunion",
+            "create": "Créer",
+            "join_meeting": "Rejoindre une réunion",
+            "join": "Rejoindre"
+        },
+        "features": {
+            "secure": {
+                "title": "Sécurisé par conception",
+                "description": "Vos réunions restent sur votre réseau local"
+            },
+            "fast": {
+                "title": "Ultra-fast",
+                "description": "Latence minimale sur votre réseau local"
+            },
+            "premium": {
+                "title": "Qualité premium",
+                "description": "Partage d'écran et vidéo HD"
+            }
+        },
+        "status": {
+            "connected": "Connecté",
+            "disconnected": "Déconnecté"
+        }
+    },
+    "create_meeting": {
+        "title": "Créer une nouvelle réunion",
+        "labels": {
+            "your_name": "Votre nom",
+            "meeting_name": "Nom de la réunion",
+            "custom_code": "Code de réunion personnalisé",
+            "activated": "Activé",
+            "deactivated": "Désactivé"
+        },
+        "placeholders": {
+            "name_example": "Ex: Jean Dupont",
+            "meeting_example": "Ex: Réunion d'équipe",
+            "code_enter": "Entrez un code"
+        },
+        "buttons": {
+            "generate_random": "Générer un code aléatoire",
+            "copy_code": "Copier le code",
+            "copied": "Code copié",
+            "launch": "Lancer la réunion",
+            "creating": "Création en cours..."
+        },
+        "info": {
+            "code_participants": "Les participants pourront rejoindre avec ce code",
+            "create_or_generate": "Créez un code personnalisé ou générez-en un automatiquement",
+            "auto_id": "Un identifiant unique sera généré automatiquement"
+        },
+        "errors": {
+            "enter_name": "Veuillez entrer votre nom",
+            "enter_meeting_name": "Veuillez donner un nom à votre réunion",
+            "enter_code": "Veuillez entrer un code ou générez-en un automatiquement",
+            "connecting": "Connexion au serveur en cours...",
+            "name_taken": "Ce nom de réunion est déjà utilisé. Veuillez en choisir un autre.",
+            "id_taken": "Cet ID de réunion est déjà utilisé. Veuillez réessayer.",
+            "generic": "Une erreur est survenue lors de la création de la réunion."
+        }
+    },
+    "join_meeting": {
+        "title": "Rejoindre une réunion",
+        "labels": {
+            "your_name": "Votre nom",
+            "meeting_id": "ID de la réunion"
+        },
+        "placeholders": {
+            "name_example": "Ex: Marie Martin",
+            "meeting_id_example": "Ex: reunion-123"
+        },
+        "buttons": {
+            "join_now": "Rejoindre maintenant",
+            "connecting": "Connexion en cours..."
+        },
+        "info": {
+            "enter_id": "Entrez l'ID de la réunion que vous souhaitez rejoindre"
+        },
+        "errors": {
+            "enter_name": "Veuillez entrer votre nom",
+            "enter_id": "Veuillez entrer l'ID de la réunion",
+            "connecting": "Connexion au serveur en cours...",
+            "name_taken_in_room": "Ce nom est déjà utilisé dans cette réunion.",
+            "room_not_found": "La réunion n'existe pas ou n'est plus disponible."
+        }
+    },
+    "active_rooms": {
+        "title": "Réunions actives",
+        "loading": "Chargement des réunions...",
+        "empty": "Aucune réunion active",
+        "start_new": "Créez une nouvelle réunion pour commencer",
+        "persistent": "Permanente",
+        "join": "Rejoindre",
+        "participants": "participant",
+        "participants_plural": "participants",
+        "disconnected": "déconnecté",
+        "cameras": "caméra(s)",
+        "screen_share": "Partage d'écran actif",
+        "others": "autres",
+        "toast_name_required": "Veuillez d'abord entrer votre nom dans le formulaire ci-dessus",
+        "toast_not_exist": "Cette réunion n'existe plus"
+    },
+    "server_popup": {
+        "title": "Connexion au serveur perdue",
+        "subtitle": "Impossible de communiquer avec le serveur",
+        "what_to_do": "Que faire ?",
+        "steps": {
+            "1": "Vérifiez que le serveur backend est démarré",
+            "2": "Cliquez sur le bouton ci-dessous pour vous connecter au serveur",
+            "3": "Acceptez le certificat SSL si demandé",
+            "4": "Revenez sur cette page pour continuer"
+        },
+        "button": "Se connecter au serveur",
+        "url_label": "URL du serveur:"
+    },
+    "room": {
+        "loading": "Chargement...",
+        "admin": "Admin",
+        "participants": "participant(s)",
+        "shares": "partages",
+        "active_share": "Partage actif",
+        "tooltips": {
+            "hide_participants": "Masquer les participants",
+            "show_participants": "Afficher les participants",
+            "hide_chat": "Masquer le chat",
+            "show_chat": "Afficher le chat",
+            "close_sidebar": "Fermer la sidebar"
+        },
+        "toast_error_join": "Impossible de rejoindre la réunion",
+        "chat": "Chat"
+    },
+    "footer": {
+        "rights": "© {{year}} LOCAL MEET",
+        "made_with": "Fait avec",
+        "by": "par PIO",
+        "website": "Site Web"
+    }
+}

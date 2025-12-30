@@ -1,0 +1,147 @@
+{
+    "app": {
+        "title": "LOCAL MEET",
+        "subtitle": "Local Video Conferencing",
+        "hero": {
+            "title_line1": "Premium video meetings.",
+            "title_line2": "Now free for everyone.",
+            "description": "We reinvented video conferencing for your local network. Secure, fast, and free."
+        },
+        "tabs": {
+            "new_meeting": "New meeting",
+            "create": "Create",
+            "join_meeting": "Join a meeting",
+            "join": "Join"
+        },
+        "features": {
+            "secure": {
+                "title": "Secure by design",
+                "description": "Your meetings stay on your local network"
+            },
+            "fast": {
+                "title": "Ultra-fast",
+                "description": "Minimal latency on your local network"
+            },
+            "premium": {
+                "title": "Premium quality",
+                "description": "Screen sharing and HD video"
+            }
+        },
+        "status": {
+            "connected": "Connected",
+            "disconnected": "Disconnected"
+        }
+    },
+    "create_meeting": {
+        "title": "Create a new meeting",
+        "labels": {
+            "your_name": "Your name",
+            "meeting_name": "Meeting name",
+            "custom_code": "Custom meeting code",
+            "activated": "Enabled",
+            "deactivated": "Disabled"
+        },
+        "placeholders": {
+            "name_example": "Ex: John Doe",
+            "meeting_example": "Ex: Team Meeting",
+            "code_enter": "Enter a code"
+        },
+        "buttons": {
+            "generate_random": "Generate random code",
+            "copy_code": "Copy code",
+            "copied": "Code copied",
+            "launch": "Start meeting",
+            "creating": "Creating..."
+        },
+        "info": {
+            "code_participants": "Participants will be able to join with this code",
+            "create_or_generate": "Create a custom code or generate one automatically",
+            "auto_id": "A unique ID will be generated automatically"
+        },
+        "errors": {
+            "enter_name": "Please enter your name",
+            "enter_meeting_name": "Please name your meeting",
+            "enter_code": "Please enter a code or generate one automatically",
+            "connecting": "Connecting to server...",
+            "name_taken": "This meeting name is already in use. Please choose another.",
+            "id_taken": "This meeting ID is already in use. Please try again.",
+            "generic": "An error occurred while creating the meeting."
+        }
+    },
+    "join_meeting": {
+        "title": "Join a meeting",
+        "labels": {
+            "your_name": "Your name",
+            "meeting_id": "Meeting ID"
+        },
+        "placeholders": {
+            "name_example": "Ex: Mary Martin",
+            "meeting_id_example": "Ex: meeting-123"
+        },
+        "buttons": {
+            "join_now": "Join now",
+            "connecting": "Connecting..."
+        },
+        "info": {
+            "enter_id": "Enter the ID of the meeting you want to join"
+        },
+        "errors": {
+            "enter_name": "Please enter your name",
+            "enter_id": "Please enter the meeting ID",
+            "connecting": "Connecting to server...",
+            "name_taken_in_room": "This name is already used in this meeting.",
+            "room_not_found": "The meeting does not exist or is no longer available."
+        }
+    },
+    "active_rooms": {
+        "title": "Active Meetings",
+        "loading": "Loading meetings...",
+        "empty": "No active meetings",
+        "start_new": "Create a new meeting to start",
+        "persistent": "Persistent",
+        "join": "Join",
+        "participants": "participant",
+        "participants_plural": "participants",
+        "disconnected": "disconnected",
+        "cameras": "camera(s)",
+        "screen_share": "Screen share active",
+        "others": "others",
+        "toast_name_required": "Please enter your name in the form above first",
+        "toast_not_exist": "This meeting no longer exists"
+    },
+    "server_popup": {
+        "title": "Server Connection Lost",
+        "subtitle": "Unable to communicate with the server",
+        "what_to_do": "What to do?",
+        "steps": {
+            "1": "Check that the backend server is running",
+            "2": "Click the button below to connect to the server",
+            "3": "Accept the SSL certificate if asked",
+            "4": "Come back to this page to continue"
+        },
+        "button": "Connect to Server",
+        "url_label": "Server URL:"
+    },
+    "room": {
+        "loading": "Loading...",
+        "admin": "Admin",
+        "participants": "participant(s)",
+        "shares": "shares",
+        "active_share": "Active share",
+        "tooltips": {
+            "hide_participants": "Hide participants",
+            "show_participants": "Show participants",
+            "hide_chat": "Hide chat",
+            "show_chat": "Show chat",
+            "close_sidebar": "Close sidebar"
+        },
+        "toast_error_join": "Unable to join the meeting",
+        "chat": "Chat"
+    },
+    "footer": {
+        "rights": "© {{year}} LOCAL MEET",
+        "made_with": "Made with",
+        "by": "by PIO",
+        "website": "Website"
+    }
+}
