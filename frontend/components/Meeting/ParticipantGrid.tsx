@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Mic, MicOff, Crown, User, Monitor, Maximize2, Minimize2, X } from 'lucide-react';
+import { getParticipantColor, hexToRgb } from '@/lib/utils';
 
 interface Participant {
   id: string;
@@ -66,21 +67,19 @@ export default function ParticipantGrid({
       <div className="h-full w-full flex flex-col md:flex-row gap-2 md:gap-3 p-2 md:p-3">
         {/* Grille des partages d'écran - Maximum 4 visibles, scroll pour le reste */}
         <div className={`flex-1 ${needsScroll ? 'overflow-y-auto scrollbar-custom' : ''} pr-1`}>
-          <div className={`grid gap-2 md:gap-3 ${
-            hasMultipleScreens
+          <div className={`grid gap-2 md:gap-3 ${hasMultipleScreens
               ? 'grid-cols-1 sm:grid-cols-2 auto-rows-fr'
               : 'grid-cols-1 h-full'
-          }`}>
+            }`}>
             {allScreenStreams.map((screenData, index) => {
               const participant = participants.find(p => p.id === screenData.userId);
               return (
                 <div
                   key={index}
-                  className={`relative bg-gray-900 rounded-lg overflow-hidden shadow-lg ${
-                    hasMultipleScreens
+                  className={`relative bg-gray-900 rounded-lg overflow-hidden shadow-lg ${hasMultipleScreens
                       ? 'min-h-[250px] sm:min-h-[300px] lg:min-h-[350px] aspect-video'
                       : 'h-full'
-                  }`}
+                    }`}
                 >
                   <ScreenShareDisplay
                     stream={screenData.stream}
@@ -147,8 +146,8 @@ export default function ParticipantGrid({
   return (
     <div className={`h-full w-full p-2 sm:p-3 md:p-4 ${isScrollable ? 'overflow-y-auto' : ''}`}>
       <div className={`grid gap-2 sm:gap-3 md:gap-4 ${isScrollable ? '' : 'h-full'} ${participants.length === 1 ? 'grid-cols-1' :
-          participants.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
-            'grid-cols-1 xs:grid-cols-2'
+        participants.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
+          'grid-cols-1 xs:grid-cols-2'
         }`}>
         {participants.map((participant) => {
           const stream = participant.id === currentUserId
@@ -333,6 +332,10 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
   const [audioLevel, setAudioLevel] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
+  // Générer la couleur unique pour ce participant
+  const participantColor = getParticipantColor(participant.id);
+  const rgbColor = hexToRgb(participantColor) || { r: 59, g: 130, b: 246 }; // Fallback to blue
+
   // Initialiser la vidéo
   useEffect(() => {
     if (videoRef.current && stream) {
@@ -418,7 +421,7 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
               key={i}
               className="absolute inset-0 rounded-xl pointer-events-none z-10"
               style={{
-                border: `${3 + i}px solid rgba(59, 130, 246, ${0.6 - i * 0.15})`,
+                border: `${3 + i}px solid rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, ${0.6 - i * 0.15})`,
                 animation: `audioWave 1.5s ease-out infinite`,
                 animationDelay: `${i * 0.2}s`,
                 transform: `scale(${1 + audioLevel * 0.1})`
@@ -433,7 +436,7 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
         className="absolute inset-0 rounded-xl pointer-events-none z-20 transition-all duration-100"
         style={{
           boxShadow: isSpeaking
-            ? `0 0 ${20 + audioLevel * 30}px rgba(59, 130, 246, ${0.4 + audioLevel * 0.4})`
+            ? `0 0 ${20 + audioLevel * 30}px rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, ${0.4 + audioLevel * 0.4})`
             : 'none'
         }}
       />
@@ -449,8 +452,11 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600 to-purple-600">
-            <div className={`${isMiniature ? 'text-4xl' : 'text-6xl'} font-bold text-white`}>
+          <div
+            className="w-full h-full flex items-center justify-center"
+            style={{ backgroundColor: participantColor }}
+          >
+            <div className={`${isMiniature ? 'text-4xl' : 'text-6xl'} font-bold text-white drop-shadow-md`}>
               {getInitials(participant.name)}
             </div>
           </div>
@@ -461,11 +467,17 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
       {!isMiniature && (
         <div className="absolute top-3 left-3 z-30">
           <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-lg transition-all ${hasAudio
-              ? isSpeaking
-                ? 'bg-green-600 scale-110'
-                : 'bg-gray-700/90 backdrop-blur-sm'
-              : 'bg-red-600'
-            }`}>
+            ? isSpeaking
+              ? 'scale-110 ring-2 ring-white/50'
+              : 'backdrop-blur-sm'
+            : ''
+            }`}
+            style={{
+              backgroundColor: hasAudio
+                ? isSpeaking ? participantColor : 'rgba(55, 65, 81, 0.9)'
+                : '#dc2626'
+            }}
+          >
             {hasAudio ? (
               <>
                 <Mic size={16} className="text-white" />
@@ -494,11 +506,20 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className={`${isMiniature ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gray-700 flex items-center justify-center`}>
-              <User size={isMiniature ? 12 : 16} className="text-white" />
+            <div
+              className={`${isMiniature ? 'w-6 h-6' : 'w-8 h-8'} rounded-full flex items-center justify-center text-white font-bold border border-white/20`}
+              style={{ backgroundColor: participantColor }}
+            >
+              {hasVideo ? (
+                <span className={isMiniature ? 'text-[10px]' : 'text-xs'}>
+                  {getInitials(participant.name)}
+                </span>
+              ) : (
+                <User size={isMiniature ? 12 : 16} className="text-white" />
+              )}
             </div>
             <div>
-              <p className={`text-white font-semibold ${isMiniature ? 'text-xs' : 'text-sm'} flex items-center gap-2`}>
+              <p className={`text-white font-semibold ${isMiniature ? 'text-xs' : 'text-sm'} flex items-center gap-2 shadow-sm`}>
                 {participant.name}
                 {isLocal && <span className="text-xs text-gray-300">(Vous)</span>}
                 {participant.isCreator && (
@@ -511,11 +532,13 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
           {/* Indicateur micro pour miniature */}
           {isMiniature && (
             <div className={`flex items-center gap-1 px-2 py-1 rounded ${hasAudio
-                ? isSpeaking
-                  ? 'bg-green-500/80'
-                  : 'bg-gray-700/80'
-                : 'bg-red-500/80'
-              }`}>
+              ? isSpeaking
+                ? 'bg-opacity-80'
+                : 'bg-gray-700/80'
+              : 'bg-red-500/80'
+              }`}
+              style={{ backgroundColor: hasAudio && isSpeaking ? participantColor : undefined }}
+            >
               {hasAudio ? (
                 <Mic size={12} className="text-white" />
               ) : (
@@ -525,12 +548,15 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
           )}
         </div>
 
-        {/* Barre de niveau audio */}
+        {/* Barre de niveau audio avec la couleur du participant */}
         {hasAudio && isSpeaking && !isMiniature && (
           <div className="mt-2 h-1 bg-gray-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-100"
-              style={{ width: `${audioLevel * 100}%` }}
+              className="h-full transition-all duration-100"
+              style={{
+                width: `${audioLevel * 100}%`,
+                backgroundColor: participantColor
+              }}
             />
           </div>
         )}

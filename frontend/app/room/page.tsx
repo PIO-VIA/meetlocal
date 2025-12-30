@@ -108,7 +108,8 @@ export default function RoomPage() {
         socket.emit('leaveRoom', { roomId, userName });
       }
     };
-  }, [socket, isConnected, roomId, userName, router, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, isConnected, roomId, userName, router]);
 
   if (!roomId) {
     return <div className="h-screen flex items-center justify-center">{t('room.loading')}</div>;
