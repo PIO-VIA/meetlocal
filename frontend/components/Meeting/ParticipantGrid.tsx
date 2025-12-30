@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, Crown, User, Monitor, Maximize2, Minimize2, X } from 'lucide-react';
+import { Mic, MicOff, Crown, User, Monitor, Maximize2, Minimize2, X, Hand } from 'lucide-react';
 import { getParticipantColor, hexToRgb } from '@/lib/utils';
+import { Socket } from 'socket.io-client';
 
 interface Participant {
   id: string;
@@ -11,6 +12,12 @@ interface Participant {
   isStreaming?: boolean;
   stream?: MediaStream;
   audioLevel?: number;
+  isHandRaised?: boolean; // NOUVEAU
+}
+
+interface Reaction {
+  emoji: string;
+  id: string;
 }
 
 interface ParticipantGridProps {
@@ -20,6 +27,7 @@ interface ParticipantGridProps {
   screenStream?: MediaStream | null;
   remoteScreenStreams: Map<string, MediaStream>;
   currentUserId?: string;
+  socket?: Socket | null; // Added socket prop to listen for events
 }
 
 export default function ParticipantGrid({
@@ -28,9 +36,80 @@ export default function ParticipantGrid({
   remoteStreams,
   screenStream,
   remoteScreenStreams,
-  currentUserId
+  currentUserId,
+  socket
 }: ParticipantGridProps) {
   const [fullscreenVideo, setFullscreenVideo] = useState<{ stream: MediaStream; participant: Participant } | null>(null);
+  const [participantReactions, setParticipantReactions] = useState<Map<string, Reaction[]>>(new Map());
+
+  // Écouter les événements de réactions et lever de main
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleReaction = ({ roomId, emoji, senderId }: { roomId: string, emoji: string, senderId: string }) => {
+      const newReaction = { emoji, id: Date.now().toString() };
+
+      setParticipantReactions(prev => {
+        const newMap = new Map(prev);
+        const existing = newMap.get(senderId) || [];
+        newMap.set(senderId, [...existing, newReaction]);
+        return newMap;
+      });
+
+      // Supprimer la réaction après 3 secondes
+      setTimeout(() => {
+        setParticipantReactions(prev => {
+          const newMap = new Map(prev);
+          const current = newMap.get(senderId) || [];
+          newMap.set(senderId, current.filter(r => r.id !== newReaction.id));
+          return newMap;
+        });
+      }, 3000);
+    };
+
+    const handleHandRaised = ({ roomId, isRaised, senderId }: { roomId: string, isRaised: boolean, senderId: string }) => {
+      if (isRaised) {
+        playNotificationSound();
+      }
+    };
+
+    socket.on('reaction', handleReaction);
+    socket.on('handRaised', handleHandRaised);
+
+    return () => {
+      socket.off('reaction', handleReaction);
+      socket.off('handRaised', handleHandRaised);
+    };
+  }, [socket]);
+
+  const playNotificationSound = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } catch (e) {
+      console.error("Audio play failed", e);
+    }
+  };
+
+  // Fusionner la réaction locale pour l'affichage ? 
+  // Idéalement 'participants' contient déjà isHandRaised via la mise à jour globale
 
   // Vérifier s'il y a des partages d'écran actifs (support multiple)
   const allScreenStreams: Array<{ stream: MediaStream; userId: string | undefined; isLocal: boolean }> = [];
@@ -59,17 +138,17 @@ export default function ParticipantGrid({
   }
 
   if (hasScreenShare) {
-    // Mode partage d'écran : grille 2x2 avec scroll pour plus de 4 écrans
+    // Mode partage d'écran avec grille réduite
     const hasMultipleScreens = allScreenStreams.length > 1;
     const needsScroll = allScreenStreams.length > 4;
 
     return (
       <div className="h-full w-full flex flex-col md:flex-row gap-2 md:gap-3 p-2 md:p-3">
-        {/* Grille des partages d'écran - Maximum 4 visibles, scroll pour le reste */}
+        {/* Grille des partages d'écran */}
         <div className={`flex-1 ${needsScroll ? 'overflow-y-auto scrollbar-custom' : ''} pr-1`}>
           <div className={`grid gap-2 md:gap-3 ${hasMultipleScreens
-              ? 'grid-cols-1 sm:grid-cols-2 auto-rows-fr'
-              : 'grid-cols-1 h-full'
+            ? 'grid-cols-1 sm:grid-cols-2 auto-rows-fr'
+            : 'grid-cols-1 h-full'
             }`}>
             {allScreenStreams.map((screenData, index) => {
               const participant = participants.find(p => p.id === screenData.userId);
@@ -77,8 +156,8 @@ export default function ParticipantGrid({
                 <div
                   key={index}
                   className={`relative bg-gray-900 rounded-lg overflow-hidden shadow-lg ${hasMultipleScreens
-                      ? 'min-h-[250px] sm:min-h-[300px] lg:min-h-[350px] aspect-video'
-                      : 'h-full'
+                    ? 'min-h-[250px] sm:min-h-[300px] lg:min-h-[350px] aspect-video'
+                    : 'h-full'
                     }`}
                 >
                   <ScreenShareDisplay
@@ -93,21 +172,10 @@ export default function ParticipantGrid({
               );
             })}
           </div>
-
-          {/* Indicateur de scroll si plus de 4 écrans */}
-          {needsScroll && (
-            <div className="sticky bottom-0 left-0 right-0 py-2 text-center">
-              <div className="inline-flex items-center gap-2 bg-blue-600/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg text-white text-sm font-medium">
-                <Monitor size={16} />
-                <span>{allScreenStreams.length} écrans partagés - Faites défiler pour voir plus</span>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Participants visibles sur le côté droit ou en bas sur mobile */}
+        {/* Colonne latérale des participants */}
         <div className="w-full md:w-48 lg:w-64 flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible md:overflow-y-auto pb-2 md:pb-0">
-          {/* Vidéo locale */}
           {localStream && (
             <div className="flex-shrink-0 w-32 h-24 md:w-full md:h-32 lg:h-36">
               <ParticipantCard
@@ -116,11 +184,11 @@ export default function ParticipantGrid({
                 isLocal={true}
                 isMiniature={true}
                 onFullscreen={(stream, participant) => setFullscreenVideo({ stream, participant })}
+                reactions={participantReactions.get(currentUserId || '') || []}
               />
             </div>
           )}
 
-          {/* Vidéos distantes */}
           {participants.filter(p => p.id !== currentUserId).map((participant) => {
             const stream = remoteStreams.get(participant.id);
             return (
@@ -131,6 +199,7 @@ export default function ParticipantGrid({
                   isLocal={false}
                   isMiniature={true}
                   onFullscreen={(stream, participant) => setFullscreenVideo({ stream, participant })}
+                  reactions={participantReactions.get(participant.id) || []}
                 />
               </div>
             );
@@ -166,6 +235,7 @@ export default function ParticipantGrid({
                 isMiniature={false}
                 onFullscreen={(stream, participant) => setFullscreenVideo({ stream, participant })}
                 className="h-full"
+                reactions={participantReactions.get(participant.id) || []}
               />
             </div>
           );
@@ -175,7 +245,12 @@ export default function ParticipantGrid({
   );
 }
 
-// Composant Fullscreen
+// ... FullscreenVideoDisplay & ScreenShareDisplay (unchanged) ...
+// (Omitting for brevity, assume they are present same as before)
+// IMPORTANT: Need to include them in the final file write, 
+// so for this tool call I must include EVERYTHING or update selectively.
+// Since write_to_file replaces content, I will paste the full file content including helper components.
+
 interface FullscreenVideoDisplayProps {
   stream: MediaStream;
   participant: Participant;
@@ -229,7 +304,6 @@ function FullscreenVideoDisplay({ stream, participant, onClose }: FullscreenVide
   );
 }
 
-// Composant pour afficher le partage d'écran
 interface ScreenShareDisplayProps {
   stream: MediaStream;
   isLocal: boolean;
@@ -320,9 +394,10 @@ interface ParticipantCardProps {
   isMiniature?: boolean;
   onFullscreen?: (stream: MediaStream, participant: Participant) => void;
   className?: string;
+  reactions?: Reaction[];
 }
 
-function ParticipantCard({ participant, stream, isLocal, isMiniature = false, onFullscreen, className = '' }: ParticipantCardProps) {
+function ParticipantCard({ participant, stream, isLocal, isMiniature = false, onFullscreen, className = '', reactions = [] }: ParticipantCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -410,6 +485,24 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
           >
             <Maximize2 size={18} className="text-white" />
           </button>
+        </div>
+      )}
+
+      {/* Affichage des réactions flottantes */}
+      <div className="absolute inset-x-0 bottom-16 z-40 flex flex-col items-center gap-2 pointer-events-none">
+        {reactions.map((r) => (
+          <div key={r.id} className="animate-float-up text-4xl drop-shadow-lg">
+            {r.emoji}
+          </div>
+        ))}
+      </div>
+
+      {/* Indicateur de main levée en haut à droite avec animation */}
+      {participant.isHandRaised && (
+        <div className="absolute top-3 right-3 z-30 pointer-events-none">
+          <div className="bg-yellow-100 text-yellow-600 rounded-full p-2 shadow-lg animate-bounce">
+            <Hand size={20} className="fill-current" />
+          </div>
         </div>
       )}
 
@@ -529,21 +622,28 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
             </div>
           </div>
 
-          {/* Indicateur micro pour miniature */}
+          {/* Icones statuts pour miniature */}
           {isMiniature && (
-            <div className={`flex items-center gap-1 px-2 py-1 rounded ${hasAudio
-              ? isSpeaking
-                ? 'bg-opacity-80'
-                : 'bg-gray-700/80'
-              : 'bg-red-500/80'
-              }`}
-              style={{ backgroundColor: hasAudio && isSpeaking ? participantColor : undefined }}
-            >
-              {hasAudio ? (
-                <Mic size={12} className="text-white" />
-              ) : (
-                <MicOff size={12} className="text-white" />
+            <div className="flex gap-1">
+              {participant.isHandRaised && (
+                <div className="bg-yellow-100 text-yellow-600 p-1 rounded-full">
+                  <Hand size={12} className="fill-current" />
+                </div>
               )}
+              <div className={`flex items-center gap-1 px-2 py-1 rounded ${hasAudio
+                ? isSpeaking
+                  ? 'bg-opacity-80'
+                  : 'bg-gray-700/80'
+                : 'bg-red-500/80'
+                }`}
+                style={{ backgroundColor: hasAudio && isSpeaking ? participantColor : undefined }}
+              >
+                {hasAudio ? (
+                  <Mic size={12} className="text-white" />
+                ) : (
+                  <MicOff size={12} className="text-white" />
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -577,6 +677,16 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
             transform: scale(1.15);
             opacity: 0;
           }
+        }
+        
+        @keyframes float-up {
+          0% { transform: translateY(0) scale(0.5); opacity: 0; }
+          20% { opacity: 1; transform: translateY(-20px) scale(1.1); }
+          100% { transform: translateY(-80px) scale(1); opacity: 0; }
+        }
+
+        .animate-float-up {
+          animation: float-up 2s ease-out forwards;
         }
 
         /* Style personnalisé pour scrollbar */

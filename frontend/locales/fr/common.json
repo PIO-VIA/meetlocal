@@ -138,6 +138,33 @@
         "toast_error_join": "Impossible de rejoindre la réunion",
         "chat": "Chat"
     },
+    "participants_list": {
+        "title": "Participants",
+        "empty": "Aucun participant pour le moment",
+        "admin": "Administrateur",
+        "camera": "Caméra",
+        "screen": "Écran",
+        "no_video": "Pas de vidéo"
+    },
+    "chat_box": {
+        "title": "Chat de la réunion",
+        "messages_count_one": "{{count}} message",
+        "messages_count_other": "{{count}} messages",
+        "empty": "Aucun message pour le moment",
+        "start_conversation": "Commencez la conversation !",
+        "joined": "a rejoint la réunion",
+        "left": "a quitté la réunion",
+        "file_too_large": "Le fichier est trop volumineux. Taille maximale : 50 MB",
+        "upload_error": "Erreur lors de l'upload du fichier",
+        "send_error": "Erreur lors de l'envoi du fichier. Veuillez réessayer.",
+        "download": "Télécharger",
+        "placeholder": "Envoyer un message...",
+        "remove_file": "Retirer le fichier",
+        "attach_file": "Joindre un fichier",
+        "message_label": "Message à envoyer",
+        "send_label": "Envoyer le message",
+        "chars_limit": "{{length}}/500 caractères"
+    },
     "footer": {
         "rights": "© {{year}} LOCAL MEET",
         "made_with": "Fait avec",

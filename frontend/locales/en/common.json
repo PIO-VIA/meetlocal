@@ -138,6 +138,33 @@
         "toast_error_join": "Unable to join the meeting",
         "chat": "Chat"
     },
+    "participants_list": {
+        "title": "Participants",
+        "empty": "No participants yet",
+        "admin": "Administrator",
+        "camera": "Camera",
+        "screen": "Screen",
+        "no_video": "No video"
+    },
+    "chat_box": {
+        "title": "Meeting Chat",
+        "messages_count_one": "{{count}} message",
+        "messages_count_other": "{{count}} messages",
+        "empty": "No messages yet",
+        "start_conversation": "Start the conversation!",
+        "joined": "joined the meeting",
+        "left": "left the meeting",
+        "file_too_large": "The file is too large. Maximum size: 50 MB",
+        "upload_error": "Error uploading file",
+        "send_error": "Error sending file. Please try again.",
+        "download": "Download",
+        "placeholder": "Send a message...",
+        "remove_file": "Remove file",
+        "attach_file": "Attach file",
+        "message_label": "Message to send",
+        "send_label": "Send message",
+        "chars_limit": "{{length}}/500 characters"
+    },
     "footer": {
         "rights": "© {{year}} LOCAL MEET",
         "made_with": "Made with",

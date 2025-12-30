@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
-import { MicOff, Mic, ScreenShare, ScreenShareOff, Video, VideoOff, PhoneOff, XSquare } from 'lucide-react';
+import { MicOff, Mic, ScreenShare, ScreenShareOff, Video, VideoOff, PhoneOff, XSquare, MoreVertical, Hand } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import Tooltip from '@/components/shared/Tooltip';
+import Reactions from './Reactions';
 
 interface ControlButtonsProps {
   localStream: MediaStream | null;
@@ -43,19 +44,21 @@ export default function ControlButtons({
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isAudioOnly, setIsAudioOnly] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
   const isScreenSharing = !!screenStream;
+
+  // États pour les fonctionnalités "More Options"
+  const [isHandRaised, setIsHandRaised] = useState(false);
 
   // Toggle Audio uniquement
   const handleToggleAudioOnly = async () => {
     if (isAudioOnly) {
-      // Arrêter l'audio
       if (onStopAudioOnly) {
         onStopAudioOnly();
       }
       setIsAudioOnly(false);
       socket?.emit('stopStream', { roomId });
     } else {
-      // Démarrer l'audio seul
       if (onStartAudioOnly) {
         try {
           await onStartAudioOnly();
@@ -117,7 +120,7 @@ export default function ControlButtons({
     }
   };
 
-  // Leave Meeting avec confirmation améliorée
+  // Leave Meeting
   const handleLeaveMeeting = () => {
     const confirmLeave = window.confirm(
       'Êtes-vous sûr de vouloir quitter cette réunion ?\n\nVotre caméra et votre micro seront désactivés.'
@@ -173,13 +176,10 @@ export default function ControlButtons({
   const hasAnyStream = localStream || audioStream;
   const isMicActive = hasAnyStream && !isMicMuted;
 
-  // Nouveau handler pour le micro qui gère audio seul + vidéo
   const handleToggleMicrophone = async () => {
     if (hasAnyStream) {
-      // Si on a déjà un stream, on toggle juste le mute
       handleToggleMic();
     } else {
-      // Si pas de stream, on démarre l'audio seul
       if (onStartAudioOnly) {
         try {
           await onStartAudioOnly();
@@ -192,86 +192,98 @@ export default function ControlButtons({
     }
   };
 
-  // Handler pour arrêter complètement le micro
   const handleStopMicrophone = () => {
     if (isAudioOnly && onStopAudioOnly) {
       onStopAudioOnly();
       setIsAudioOnly(false);
       socket?.emit('stopStream', { roomId });
     } else if (isCameraOn) {
-      // Si caméra active, on mute juste
       handleToggleMic();
     }
   };
 
+  // ---- Nouvelles fonctionnalités : Réactions & Lever la main ----
+
+  const handleReaction = (emoji: string) => {
+    socket?.emit('reaction', { roomId, emoji });
+    // Afficher l'émoji localement aussi (optionnel, géré par le retour serveur normalement mais pour l'instant simple)
+  };
+
+  const handleRaiseHand = () => {
+    const newState = !isHandRaised;
+    setIsHandRaised(newState);
+    socket?.emit('raiseHand', { roomId, isRaised: newState });
+  };
+
   return (
-    <div className="flex justify-center items-center gap-2 sm:gap-3 flex-wrap">
-      {/* Microphone unifié avec tooltip */}
+    <div className="flex justify-center items-center gap-2 sm:gap-3 flex-wrap relative">
+      {/* Microphone */}
       <Tooltip content={isMicActive ? 'Désactiver le micro' : 'Activer le micro'} position="top">
         <button
           onClick={isMicActive ? handleStopMicrophone : handleToggleMicrophone}
-          className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${
-            isMicActive
+          className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${isMicActive
               ? 'bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600'
               : 'bg-red-500 hover:bg-red-600'
-          }`}
-          aria-label={isMicActive ? 'Désactiver le micro' : 'Activer le micro'}
+            }`}
         >
           {isMicActive ? <Mic size={18} className="sm:w-[22px] sm:h-[22px]" /> : <MicOff size={18} className="sm:w-[22px] sm:h-[22px]" />}
         </button>
       </Tooltip>
 
-      {/* Camera avec tooltip */}
+      {/* Camera */}
       <Tooltip content={isCameraOn ? 'Arrêter la caméra' : 'Démarrer la caméra'} position="top">
         <button
           onClick={handleToggleCamera}
-          className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${
-            isCameraOn
+          className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${isCameraOn
               ? 'bg-blue-500 hover:bg-blue-600'
               : 'bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600'
-          }`}
-          aria-label={isCameraOn ? 'Arrêter la caméra' : 'Démarrer la caméra'}
+            }`}
         >
           {isCameraOn ? <Video size={18} className="sm:w-[22px] sm:h-[22px]" /> : <VideoOff size={18} className="sm:w-[22px] sm:h-[22px]" />}
         </button>
       </Tooltip>
 
-      {/* Screen Share avec tooltip */}
+      {/* Réactions & Emoji */}
+      <Reactions
+        onReaction={handleReaction}
+        onRaiseHand={handleRaiseHand}
+        isHandRaised={isHandRaised}
+      />
+
+      {/* Screen Share */}
       <Tooltip content={isScreenSharing ? 'Arrêter le partage' : 'Partager l\'écran'} position="top">
         <button
           onClick={handleToggleScreenShare}
-          className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${
-            isScreenSharing
+          className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${isScreenSharing
               ? 'bg-indigo-500 hover:bg-indigo-600'
               : 'bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600'
-          }`}
-          aria-label={isScreenSharing ? 'Arrêter le partage' : 'Partager l\'écran'}
+            }`}
         >
           {isScreenSharing ? <ScreenShareOff size={18} className="sm:w-[22px] sm:h-[22px]" /> : <ScreenShare size={18} className="sm:w-[22px] sm:h-[22px]" />}
         </button>
       </Tooltip>
 
+      {/* Actions supplémentaires (More Options) pourrait être ici si besoin d'un menu déroulant plus complexe */}
+
       {/* Separator */}
       <div className="hidden sm:block w-px h-10 bg-gray-300 dark:bg-gray-600 mx-2"></div>
 
-      {/* Leave Meeting avec tooltip */}
+      {/* Leave Meeting */}
       <Tooltip content="Quitter la réunion" position="top">
         <button
           onClick={handleLeaveMeeting}
           className="p-2.5 sm:p-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-all text-white"
-          aria-label="Quitter la réunion"
         >
           <PhoneOff size={18} className="sm:w-[22px] sm:h-[22px]" />
         </button>
       </Tooltip>
 
-      {/* End Meeting (Admin only) avec tooltip */}
+      {/* End Meeting (Admin only) */}
       {isAdmin && (
         <Tooltip content="Terminer la réunion pour tous" position="top">
           <button
             onClick={handleEndMeeting}
             className="px-3 py-2 sm:px-5 sm:py-3 rounded-full bg-red-600 hover:bg-red-700 transition-all font-medium text-white text-xs sm:text-sm"
-            aria-label="Terminer la réunion (Admin)"
           >
             <span className="flex items-center gap-1.5 sm:gap-2">
               <XSquare size={16} className="sm:w-5 sm:h-5" />

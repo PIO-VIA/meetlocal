@@ -161,7 +161,8 @@ function broadcastRoomsList() {
                 name: user.name,
                 isCreator: user.isCreator,
                 isStreaming: user.isStreaming,
-                isScreenSharing: user.isScreenSharing
+                isScreenSharing: user.isScreenSharing,
+                isHandRaised: user.isHandRaised || false
             })),
             disconnectedUsers: disconnectedUsers,
             totalUsers: room.users.length
@@ -579,6 +580,7 @@ io.on('connection', (socket) => {
         }
     });
 
+
     socket.on('stopScreen', ({ roomId }) => {
         const room = roomManager.getRoom(roomId);
         if (room) {
@@ -593,6 +595,27 @@ io.on('connection', (socket) => {
                         io.to(roomId).emit('producerClosed', { producerId: pid, userId: socket.id, appData: data.appData });
                     }
                 }
+                broadcastRoomsList();
+            }
+        }
+    });
+
+    socket.on('reaction', ({ roomId, emoji }) => {
+        const room = roomManager.getRoom(roomId);
+        if (room) {
+            // Broadcast reaction to all users in the room
+            io.to(roomId).emit('reaction', { roomId, emoji, senderId: socket.id });
+        }
+    });
+
+    socket.on('raiseHand', ({ roomId, isRaised }) => {
+        const room = roomManager.getRoom(roomId);
+        if (room) {
+            const user = room.users.find(u => u.id === socket.id);
+            if (user) {
+                user.isHandRaised = isRaised;
+                io.to(roomId).emit('handRaised', { roomId, isRaised, senderId: socket.id });
+                // Also broadcast updated user list so UI reflects the hand status properly
                 broadcastRoomsList();
             }
         }

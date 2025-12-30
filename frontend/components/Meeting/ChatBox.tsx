@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef, FormEvent, ChangeEvent } from 'react';
-import {  Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 import { MessageCircle, Send, Loader2, Paperclip, X, FileIcon, Download } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface FileData {
   filename: string;
@@ -37,6 +38,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!socket) return;
@@ -51,8 +53,8 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
           // Éviter les doublons basés sur le contenu dans les 2 dernières secondes
           const timeDiff = Math.abs(new Date().getTime() - msg.timestamp.getTime());
           return msg.userName === data.userName &&
-                 msg.message === data.message &&
-                 timeDiff < 2000;
+            msg.message === data.message &&
+            timeDiff < 2000;
         });
 
         if (exists) {
@@ -87,7 +89,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
         {
           id: `system-join-${data.userName}-${Date.now()}`,
           userName: 'Système',
-          message: `${data.userName} a rejoint la réunion`,
+          message: `${data.userName} ${t('chat_box.joined')}`,
           timestamp: new Date(),
           isSystem: true
         }
@@ -100,7 +102,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
         {
           id: `system-left-${data.userName}-${Date.now()}`,
           userName: 'Système',
-          message: `${data.userName} a quitté la réunion`,
+          message: `${data.userName} ${t('chat_box.left')}`,
           timestamp: new Date(),
           isSystem: true
         }
@@ -133,7 +135,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
       socket.off('userLeft', handleUserLeft);
       socket.off('chatHistory', handleChatHistory);
     };
-  }, [socket, roomId]);
+  }, [socket, roomId, t]);
 
   useEffect(() => {
     // Scroll automatique vers le bas
@@ -145,7 +147,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
     if (file) {
       // Vérifier la taille du fichier (max 50 MB)
       if (file.size > 50 * 1024 * 1024) {
-        alert('Le fichier est trop volumineux. Taille maximale : 50 MB');
+        alert(t('chat_box.file_too_large'));
         return;
       }
       setSelectedFile(file);
@@ -196,7 +198,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
         }
       } catch (error) {
         console.error('Erreur lors de l\'upload du fichier:', error);
-        alert('Erreur lors de l\'envoi du fichier. Veuillez réessayer.');
+        alert(t('chat_box.send_error'));
         setIsSending(false);
         setInputMessage(messageText);
         return;
@@ -257,37 +259,37 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
       <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
         <h3 className="text-sm sm:text-base font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
           <MessageCircle size={18} className="sm:w-5 sm:h-5 text-gray-600 dark:text-gray-400" />
-          Chat de la réunion
+          {t('chat_box.title')}
         </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{messages.length} message{messages.length > 1 ? 's' : ''}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          {t(messages.length === 1 ? 'chat_box.messages_count_one' : 'chat_box.messages_count_other', { count: messages.length })}
+        </p>
       </div>
 
       {/* Messages - Conteneur avec scroll indépendant */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 bg-gray-50 dark:bg-gray-950 min-h-0 overscroll-contain">
         {messages.length === 0 ? (
           <div className="text-center text-gray-400 dark:text-gray-500 py-8">
-            <p className="text-sm">Aucun message pour le moment</p>
-            <p className="text-xs mt-1 text-gray-400 dark:text-gray-500">Commencez la conversation !</p>
+            <p className="text-sm">{t('chat_box.empty')}</p>
+            <p className="text-xs mt-1 text-gray-400 dark:text-gray-500">{t('chat_box.start_conversation')}</p>
           </div>
         ) : (
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`${
-                msg.isSystem
-                  ? 'text-center text-gray-500 dark:text-gray-400 text-xs italic py-1'
-                  : msg.userName === userName
+              className={`${msg.isSystem
+                ? 'text-center text-gray-500 dark:text-gray-400 text-xs italic py-1'
+                : msg.userName === userName
                   ? 'flex justify-end'
                   : 'flex justify-start'
-              } ${msg.isSending ? 'opacity-50' : 'opacity-100'} transition-opacity`}
+                } ${msg.isSending ? 'opacity-50' : 'opacity-100'} transition-opacity`}
             >
               {!msg.isSystem && (
                 <div
-                  className={`max-w-[75%] rounded-lg px-3 py-2 ${
-                    msg.userName === userName
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 shadow-sm'
-                  }`}
+                  className={`max-w-[75%] rounded-lg px-3 py-2 ${msg.userName === userName
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 shadow-sm'
+                    }`}
                 >
                   {msg.userName !== userName && (
                     <p className="text-xs font-semibold mb-0.5 text-blue-600 dark:text-blue-400">
@@ -298,15 +300,13 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
 
                   {/* Affichage du fichier si présent */}
                   {msg.file && (
-                    <div className={`mt-2 p-2.5 rounded-lg border ${
-                      msg.userName === userName
-                        ? 'bg-blue-500 bg-opacity-30 border-blue-300'
-                        : 'bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600'
-                    }`}>
+                    <div className={`mt-2 p-2.5 rounded-lg border ${msg.userName === userName
+                      ? 'bg-blue-500 bg-opacity-30 border-blue-300'
+                      : 'bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600'
+                      }`}>
                       <div className="flex items-center gap-2">
-                        <div className={`p-1.5 rounded ${
-                          msg.userName === userName ? 'bg-white bg-opacity-20' : 'bg-blue-50 dark:bg-blue-900/30'
-                        }`}>
+                        <div className={`p-1.5 rounded ${msg.userName === userName ? 'bg-white bg-opacity-20' : 'bg-blue-50 dark:bg-blue-900/30'
+                          }`}>
                           <FileIcon size={18} className={msg.userName === userName ? 'text-white' : 'text-blue-600 dark:text-blue-400'} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -317,15 +317,14 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
                         </div>
                         <button
                           onClick={() => handleDownloadFile(msg.file!)}
-                          className={`p-2 rounded-lg font-medium transition-all shadow-sm flex items-center gap-1.5 ${
-                            msg.userName === userName
-                              ? 'bg-white text-blue-600 hover:bg-blue-50'
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
-                          }`}
-                          title="Télécharger"
+                          className={`p-2 rounded-lg font-medium transition-all shadow-sm flex items-center gap-1.5 ${msg.userName === userName
+                            ? 'bg-white text-blue-600 hover:bg-blue-50'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                            }`}
+                          title={t('chat_box.download')}
                         >
                           <Download size={16} />
-                          <span className="text-xs hidden sm:inline">Télécharger</span>
+                          <span className="text-xs hidden sm:inline">{t('chat_box.download')}</span>
                         </button>
                       </div>
                     </div>
@@ -362,7 +361,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
               <button
                 onClick={handleRemoveFile}
                 className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800 rounded transition-colors flex-shrink-0"
-                title="Retirer le fichier"
+                title={t('chat_box.remove_file')}
               >
                 <X size={16} className="text-gray-600 dark:text-gray-400" />
               </button>
@@ -383,8 +382,8 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
             onClick={() => fileInputRef.current?.click()}
             className="px-2.5 sm:px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0"
             disabled={isSending}
-            title="Joindre un fichier"
-            aria-label="Joindre un fichier"
+            title={t('chat_box.attach_file')}
+            aria-label={t('chat_box.attach_file')}
           >
             <Paperclip size={16} className="sm:w-[18px] sm:h-[18px]" />
           </button>
@@ -393,23 +392,22 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
             type="text"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            placeholder="Envoyer un message..."
+            placeholder={t('chat_box.placeholder')}
             className="flex-1 min-w-0 px-2.5 sm:px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white dark:focus:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 text-sm resize-none"
             maxLength={500}
             disabled={isSending}
             autoComplete="off"
             enterKeyHint="send"
-            aria-label="Message à envoyer"
+            aria-label={t('chat_box.message_label')}
           />
           <button
             type="submit"
             disabled={(!inputMessage.trim() && !selectedFile) || isSending}
-            className={`px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0 ${
-              (inputMessage.trim() || selectedFile) && !isSending
+            className={`px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0 ${(inputMessage.trim() || selectedFile) && !isSending
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-            }`}
-            aria-label="Envoyer le message"
+              }`}
+            aria-label={t('chat_box.send_label')}
           >
             {isSending ? (
               <Loader2 size={16} className="sm:w-[18px] sm:h-[18px] animate-spin" />
@@ -420,7 +418,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
         </form>
         {inputMessage.length > 400 && (
           <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
-            {inputMessage.length}/500 caractères
+            {t('chat_box.chars_limit', { length: inputMessage.length })}
           </p>
         )}
       </div>

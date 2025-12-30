@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { Users, Crown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { getParticipantColor } from '@/lib/utils';
+
 
 interface Participant {
   id?: string;
@@ -20,6 +23,7 @@ interface ParticipantsListProps {
 
 export default function ParticipantsList({ socket, roomId }: ParticipantsListProps) {
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!socket) return;
@@ -61,7 +65,7 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <span><Users size={24} /></span>
-          Participants
+          {t('participants_list.title')}
           <span className="ml-auto bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full text-sm">
             {participants.length}
           </span>
@@ -71,7 +75,7 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {participants.length === 0 ? (
           <div className="text-center text-gray-400 dark:text-gray-500 py-8">
-            <p>Aucun participant pour le moment</p>
+            <p>{t('participants_list.empty')}</p>
           </div>
         ) : (
           participants.map((participant) => (
@@ -80,7 +84,10 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
               className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
             >
               {/* Avatar avec initiales */}
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center font-semibold text-sm flex-shrink-0">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm flex-shrink-0 text-white shadow-sm"
+                style={{ backgroundColor: getParticipantColor(participant.id || participant.name) }}
+              >
                 {getInitials(participant.name)}
               </div>
 
@@ -91,7 +98,7 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
                     {participant.name}
                   </p>
                   {participant.isCreator && (
-                    <span className="text-yellow-500 dark:text-yellow-400" title="Administrateur">
+                    <span className="text-yellow-500 dark:text-yellow-400" title={t('participants_list.admin')}>
                       <Crown size={16} />
                     </span>
                   )}
@@ -102,18 +109,18 @@ export default function ParticipantsList({ socket, roomId }: ParticipantsListPro
                   {participant.isStreaming && (
                     <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
                       <span className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full animate-pulse"></span>
-                      Caméra
+                      {t('participants_list.camera')}
                     </span>
                   )}
                   {participant.isScreenSharing && (
                     <span className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1">
                       <span className="w-2 h-2 bg-purple-600 dark:bg-purple-400 rounded-full animate-pulse"></span>
-                      Écran
+                      {t('participants_list.screen')}
                     </span>
                   )}
                   {!participant.isStreaming && !participant.isScreenSharing && (
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                      Pas de vidéo
+                      {t('participants_list.no_video')}
                     </span>
                   )}
                 </div>
