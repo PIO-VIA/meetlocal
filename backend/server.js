@@ -7,7 +7,7 @@ const express = require('express');
 const app = express();
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
+const http = require('http');
 const { Server } = require('socket.io');
 const multer = require('multer');
 
@@ -39,20 +39,8 @@ const upload = multer({
     }
 });
 
-// Configuration SSL
-const sslOptions = {
-    key: fs.readFileSync(path.join(__dirname, 'ssl/key.pem')),
-    cert: fs.readFileSync(path.join(__dirname, 'ssl/cert.pem')),
-    minVersion: 'TLSv1.2',
-    ciphers: [
-        'ECDHE-ECDSA-AES128-GCM-SHA256',
-        'ECDHE-RSA-AES128-GCM-SHA256',
-    ].join(':'),
-    honorCipherOrder: true
-};
-
-// Créer le serveur HTTPS
-const server = https.createServer(sslOptions, app);
+// Créer le serveur HTTP
+const server = http.createServer(app);
 
 const SERVER_IP = config.serverIp;
 console.log(`📡 Adresse IP du serveur: ${SERVER_IP}`);
@@ -106,8 +94,8 @@ app.get('/get-connection-info', (req, res) => {
     res.json({
         ip: SERVER_IP,
         port: PORT,
-        protocol: 'https',
-        secure: true,
+        protocol: 'http',
+        secure: false,
         mediasoup: {
             announcedIp: config.webRtcTransport.listenIps[0].announcedIp,
             rtcMinPort: config.worker.rtcMinPort,
@@ -695,9 +683,9 @@ process.on('uncaughtException', (error) => {
 
         console.log("IO CREATED");
 
-        server.listen(PORT, '0.0.0.0', () => {
+        server.listen(PORT, '127.0.0.1', () => {
             console.log(`🚀 Serveur Socket.IO + Mediasoup (Multi-Worker) démarré`);
-            console.log(`📡 URL: https://${SERVER_IP}:${PORT}`);
+            console.log(`📡 URL: http://127.0.0.1:${PORT}`);
         });
 
     } catch (error) {

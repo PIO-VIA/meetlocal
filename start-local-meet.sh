@@ -115,7 +115,7 @@ echo ""
 echo -e "${BLUE}📝 Configuration du frontend...${NC}"
 ENV_FILE="frontend/.env.local"
 cat > $ENV_FILE << EOF
-NEXT_PUBLIC_BACKEND_URL=https://$LOCAL_IP:$BACKEND_PORT
+NEXT_PUBLIC_BACKEND_URL=/api
 PORT=$FRONTEND_PORT
 EOF
 echo -e "${GREEN}✅ Fichier $ENV_FILE créé${NC}"
@@ -196,9 +196,10 @@ echo -e "${GREEN}✅ Backend démarré${NC}"
 # Démarrer le frontend avec HTTPS
 echo -e "${BLUE}🚀 Démarrage du frontend sur le port $FRONTEND_PORT...${NC}"
 cd frontend
-PORT=$FRONTEND_PORT npm run dev > ../frontend.log 2>&1 &
+HOSTNAME=127.0.0.1 PORT=$FRONTEND_PORT npm run dev > ../frontend.log 2>&1 &
 FRONTEND_PID=$!
 cd ..
+
 
 # Attendre que le frontend soit prêt
 echo -e "${YELLOW}⏳ Attente du démarrage du frontend...${NC}"
@@ -216,35 +217,22 @@ fi
 echo -e "${GREEN}✅ Frontend démarré${NC}"
 echo ""
 
-# URLs
-FRONTEND_LOCAL_URL="https://localhost:$FRONTEND_PORT"
-FRONTEND_NETWORK_URL="https://$LOCAL_IP:$FRONTEND_PORT"
-BACKEND_LOCAL_URL="https://localhost:$BACKEND_PORT"
-BACKEND_NETWORK_URL="https://$LOCAL_IP:$BACKEND_PORT"
+# URLs (Via Nginx Proxy)
+FINAL_URL="https://$LOCAL_IP"
 
 echo ""
 echo "═══════════════════════════════════════"
 echo -e "${GREEN}✅ LOCAL MEET démarré avec succès !${NC}"
 echo "═══════════════════════════════════════"
 echo ""
-echo -e "${BLUE}📡 Informations de connexion :${NC}"
+echo -e "${BLUE}📡 Accès à l'application :${NC}"
 echo ""
-echo -e "  ${GREEN}Sur cet appareil :${NC}"
-echo -e "    Frontend: ${YELLOW}$FRONTEND_LOCAL_URL${NC}"
-echo -e "    Backend:  ${YELLOW}$BACKEND_LOCAL_URL${NC}"
+echo -e "  ${GREEN}URL Unique :${NC} ${YELLOW}$FINAL_URL${NC}"
 echo ""
-echo -e "  ${GREEN}Sur d'autres appareils du réseau :${NC}"
-echo -e "    Frontend: ${YELLOW}$FRONTEND_NETWORK_URL${NC}"
-echo -e "    Backend:  ${YELLOW}$BACKEND_NETWORK_URL${NC}"
+echo -e "${RED}⚠️  NOTE :${NC}"
 echo ""
-echo -e "${RED}⚠️  IMPORTANT - CERTIFICAT AUTO-SIGNÉ :${NC}"
-echo ""
-echo -e "  ${YELLOW}Première visite uniquement :${NC}"
-echo -e "    1. Le navigateur s'ouvre automatiquement"
-echo -e "    2. Cliquez sur ${CYAN}'Avancé'${NC} ou ${CYAN}'Paramètres avancés'${NC}"
-echo -e "    3. Cliquez sur ${CYAN}'Continuer vers le site'${NC} ou ${CYAN}'Accepter le risque'${NC}"
-echo ""
-echo -e "  ${GREEN}✅ À faire une seule fois par appareil${NC}"
+echo -e "  L'application est maintenant accessible via Nginx."
+echo -e "  Le frontend (port $FRONTEND_PORT) et le backend (port $BACKEND_PORT) sont internes."
 echo ""
 echo "═══════════════════════════════════════"
 echo ""
@@ -280,7 +268,7 @@ trap cleanup SIGINT SIGTERM
 # Attendre un peu puis ouvrir le navigateur
 sleep 2
 echo -e "${CYAN}🌐 Ouverture automatique du navigateur...${NC}"
-open_browser "$FRONTEND_LOCAL_URL"
+open_browser "$FINAL_URL"
 
 echo ""
 echo -e "${GREEN}✨ Votre navigateur s'est ouvert automatiquement !${NC}"

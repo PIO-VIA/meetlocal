@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node server-https.js",
-    "dev:http": "next dev --webpack",
-    "build": "next build --webpack",
-    "start": "NODE_ENV=production node server-https.js",
+    "dev": "next dev --webpack",
+    "dev:http": "next dev",
+    "build": "next build",
+    "start": "next start",
     "start:http": "next start",
     "lint": "eslint"
   },
@@ -28,6 +28,7 @@
     "@types/node": "^20.19.24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.1",
     "tailwindcss": "^4.1.17",

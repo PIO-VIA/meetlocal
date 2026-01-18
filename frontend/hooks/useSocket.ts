@@ -40,27 +40,26 @@ export const useSocket = () => {
     });
   }, []);
 
-  // Vérifier la connexion SSL
-  const checkSSLConnection = useCallback(async () => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:3001';
-    
+  // Vérifier la connexion backend
+  const checkConnection = useCallback(async () => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '/api';
+
     try {
       const response = await fetch(`${backendUrl}/health`, {
         method: 'GET',
-        mode: 'cors',
       });
-      
+
       if (!response.ok) {
         console.warn('⚠️ Backend accessible mais retourne une erreur');
       }
-      
+
       return true;
     } catch (error) {
       console.error('❌ Impossible de contacter le backend:', error);
       setState(prev => ({
         ...prev,
         status: 'error',
-        error: 'Impossible de contacter le serveur. Assurez-vous d\'avoir accepté le certificat SSL.'
+        error: 'Impossible de contacter le serveur via ' + backendUrl
       }));
       return false;
     }
@@ -75,28 +74,30 @@ export const useSocket = () => {
 
     setState(prev => ({ ...prev, status: 'connecting' }));
 
-    // Vérifier la connexion SSL d'abord
-    const sslOk = await checkSSLConnection();
-    if (!sslOk) {
+    // Vérifier la connexion d'abord
+    const ok = await checkConnection();
+    if (!ok) {
       return;
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:3001';
-    
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '/api';
+
     console.log('🔌 Tentative de connexion Socket.IO...');
     console.log('📡 URL:', backendUrl);
 
     try {
-      const socket = io(backendUrl, {
-        path: '/socket.io',
+      // Si backendUrl est un chemin relatif (ex: /api), on ne le passe pas en premier argument
+      // car Socket.IO l'interpréterait comme un Namespace.
+      const url = backendUrl.startsWith('http') ? backendUrl : undefined;
+      const socket = io(url, {
+        path: backendUrl === '/api' ? '/api/socket.io' : '/socket.io',
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: 10,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         timeout: 20000,
-        secure: true,
-        rejectUnauthorized: false,
+        secure: false,
         autoConnect: true,
         forceNew: false,
         multiplex: true,
@@ -115,9 +116,9 @@ export const useSocket = () => {
         console.log('✅ Socket connecté avec succès!');
         console.log('📡 Socket ID:', socket.id);
         console.log('🔗 Transport utilisé:', socket.io.engine.transport.name);
-        
+
         reconnectAttemptsRef.current = 0;
-        
+
         setState(prev => ({
           ...prev,
           socket,
@@ -136,7 +137,7 @@ export const useSocket = () => {
 
       socket.on('disconnect', (reason) => {
         console.log('❌ Socket déconnecté:', reason);
-        
+
         setState(prev => ({
           ...prev,
           isConnected: false,
@@ -150,11 +151,11 @@ export const useSocket = () => {
 
       socket.on('connect_error', (error) => {
         console.error('🔴 Erreur de connexion Socket.IO:', error.message);
-        
+
         reconnectAttemptsRef.current += 1;
-        
+
         let errorMessage = 'Erreur de connexion au serveur';
-        
+
         if (error.message.includes('xhr poll error')) {
           errorMessage = 'Problème réseau. Vérifiez votre connexion.';
         } else if (error.message.includes('timeout')) {
@@ -173,7 +174,7 @@ export const useSocket = () => {
 
       socket.on('reconnect_attempt', (attempt) => {
         console.log(`🔄 Tentative de reconnexion #${attempt}...`);
-        
+
         setState(prev => ({
           ...prev,
           status: 'reconnecting',
@@ -183,9 +184,9 @@ export const useSocket = () => {
 
       socket.on('reconnect', (attempt) => {
         console.log(`✅ Reconnecté après ${attempt} tentative(s)`);
-        
+
         reconnectAttemptsRef.current = 0;
-        
+
         setState(prev => ({
           ...prev,
           isConnected: true,
@@ -197,7 +198,7 @@ export const useSocket = () => {
 
       socket.on('reconnect_failed', () => {
         console.error('❌ Échec de toutes les tentatives de reconnexion');
-        
+
         setState(prev => ({
           ...prev,
           status: 'error',
@@ -229,7 +230,7 @@ export const useSocket = () => {
         error: 'Erreur d\'initialisation du socket'
       }));
     }
-  }, [checkSSLConnection, measureLatency]);
+  }, [checkConnection, measureLatency]);
 
   // Déconnecter proprement
   const disconnect = useCallback(() => {
@@ -237,7 +238,7 @@ export const useSocket = () => {
       console.log('🔌 Déconnexion du socket...');
       socketRef.current.disconnect();
       socketRef.current = null;
-      
+
       setState({
         socket: null,
         isConnected: false,
@@ -247,11 +248,11 @@ export const useSocket = () => {
         latency: 0
       });
     }
-    
+
     if (latencyIntervalRef.current) {
       clearInterval(latencyIntervalRef.current);
     }
-    
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }

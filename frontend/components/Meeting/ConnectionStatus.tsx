@@ -92,22 +92,22 @@ export default function ConnectionStatus({
     <div className="fixed top-4 right-4 z-50 max-w-sm">
       <div className={`${config.bgColor} ${config.borderColor} border-2 rounded-lg shadow-lg p-4 transition-all duration-300`}>
         <div className="flex items-center gap-3">
-          <Icon 
-            size={24} 
+          <Icon
+            size={24}
             className={`${config.textColor} ${config.animate ? 'animate-spin' : ''}`}
           />
-          
+
           <div className="flex-1">
             <p className={`${config.textColor} font-semibold text-sm`}>
               {config.text}
             </p>
-            
+
             {error && (
               <p className="text-xs text-red-600 mt-1">
                 {error}
               </p>
             )}
-            
+
             {config.showLatency && latency > 0 && (
               <div className="flex items-center gap-2 mt-1">
                 <Zap size={14} className={getLatencyColor()} />
@@ -128,26 +128,16 @@ export default function ConnectionStatus({
           )}
         </div>
 
-        {/* Instructions si erreur SSL */}
-        {error?.includes('SSL') && (
-          <div className="mt-3 pt-3 border-t border-red-200">
-            <p className="text-xs text-red-700 font-semibold mb-1">
-              📋 Instructions:
-            </p>
-            <ol className="text-xs text-red-600 space-y-1 list-decimal list-inside">
-              <li>Ouvrez {process.env.NEXT_PUBLIC_BACKEND_URL}/health</li>
-              <li>Acceptez l'avertissement de sécurité</li>
-              <li>Revenez sur cette page</li>
-            </ol>
-          </div>
-        )}
-
-        {/* Conseils si problème réseau */}
-        {(status === 'error' || status === 'disconnected') && !error?.includes('SSL') && (
+        {/* Instructions si erreur de connexion */}
+        {(status === 'error' || status === 'disconnected') && (
           <div className="mt-3 pt-3 border-t border-gray-200">
-            <p className="text-xs text-gray-600">
-              💡 Vérifiez que le backend est démarré sur le port 3001
+            <p className="text-xs text-gray-700 font-semibold mb-1">
+              📋 Actions possibles:
             </p>
+            <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
+              <li>Vérifiez que le backend est démarré</li>
+              <li>Vérifiez l'accès à {process.env.NEXT_PUBLIC_BACKEND_URL || '/api'}/health</li>
+            </ol>
           </div>
         )}
       </div>

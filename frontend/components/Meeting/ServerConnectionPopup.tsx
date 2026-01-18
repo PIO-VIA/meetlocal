@@ -23,7 +23,7 @@ export default function ServerConnectionPopup({
   if (!shouldShow) return null;
 
   const handleConnectToServer = () => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '/api';
     const healthUrl = `${backendUrl}/health`;
 
     // Ouvrir dans un nouvel onglet
@@ -78,7 +78,7 @@ export default function ServerConnectionPopup({
             <p className="text-xs text-blue-700">
               <span className="font-semibold">{t('server_popup.url_label')}</span>
               <br />
-              {process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:3001'}/health
+              {process.env.NEXT_PUBLIC_BACKEND_URL || '/api'}/health
             </p>
           </div>
         </div>
