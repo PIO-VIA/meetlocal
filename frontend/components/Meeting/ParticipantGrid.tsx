@@ -140,14 +140,12 @@ export default function ParticipantGrid({
   if (hasScreenShare) {
     // Mode partage d'écran avec grille réduite
     const hasMultipleScreens = allScreenStreams.length > 1;
-    const needsScroll = allScreenStreams.length > 4;
-
     return (
-      <div className="h-full w-full flex flex-col md:flex-row gap-2 md:gap-3 p-2 md:p-3">
-        {/* Grille des partages d'écran */}
-        <div className={`flex-1 ${needsScroll ? 'overflow-y-auto scrollbar-custom' : ''} pr-1`}>
-          <div className={`grid gap-2 md:gap-3 ${hasMultipleScreens
-            ? 'grid-cols-1 sm:grid-cols-2 auto-rows-fr'
+      <div className="h-full w-full flex flex-col md:flex-row gap-2 md:gap-3 p-2 md:p-3 overflow-hidden">
+        {/* Grille des partages d'écran - Scrollable */}
+        <div className="flex-1 overflow-y-auto scrollbar-custom pr-1 pb-4">
+          <div className={`grid gap-3 sm:gap-4 ${hasMultipleScreens
+            ? 'grid-cols-1 lg:grid-cols-2 auto-rows-fr'
             : 'grid-cols-1 h-full'
             }`}>
             {allScreenStreams.map((screenData, index) => {
@@ -155,9 +153,9 @@ export default function ParticipantGrid({
               return (
                 <div
                   key={index}
-                  className={`relative bg-gray-900 rounded-lg overflow-hidden shadow-lg ${hasMultipleScreens
-                    ? 'min-h-[250px] sm:min-h-[300px] lg:min-h-[350px] aspect-video'
-                    : 'h-full'
+                  className={`relative bg-gray-900 rounded-xl overflow-hidden shadow-2xl transition-all duration-300 hover:ring-2 hover:ring-blue-500/50 ${hasMultipleScreens
+                    ? 'min-h-[300px] sm:min-h-[400px] aspect-video w-full'
+                    : 'h-full w-full'
                     }`}
                 >
                   <ScreenShareDisplay
