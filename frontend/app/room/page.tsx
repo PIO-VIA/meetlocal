@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useSocket } from '@/hooks/useSocket';
 import { useMediasoup } from '@/hooks/useMediasoup';
@@ -27,7 +27,7 @@ interface Participant {
   disconnected?: boolean;
 }
 
-export default function RoomPage() {
+function RoomContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const toast = useToast();
@@ -143,7 +143,7 @@ export default function RoomPage() {
                   <span className="hidden sm:inline">{t('room.participants')}</span>
                 </span>
                 {(screenStream || remoteScreenStreams.size > 0) && (
-                  <span className="text-xs px-1.5 sm:px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full flex items-center gap-1 border border-blue-200 dark:border-blue-800">
+                  <span className="text-xs px-1.5 sm:px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-amber-400 rounded-full flex items-center gap-1 border border-blue-200 dark:border-blue-800">
                     <Monitor size={10} className="sm:w-3 sm:h-3" /> <span className="hidden sm:inline">{screenStream && remoteScreenStreams.size > 0 ? `${remoteScreenStreams.size + 1} ${t('room.shares')}` : t('room.active_share')}</span>
                   </span>
                 )}
@@ -263,5 +263,14 @@ export default function RoomPage() {
         />
       </footer>
     </div>
+  );
+}
+
+export default function RoomPage() {
+  const { t } = useTranslation();
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center">{t?.('room.loading') || 'Loading...'}</div>}>
+      <RoomContent />
+    </Suspense>
   );
 }

@@ -179,7 +179,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
         const formData = new FormData();
         formData.append('file', selectedFile);
 
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:3001';
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '/api';
         const response = await fetch(`${backendUrl}/upload-file`, {
           method: 'POST',
           body: formData,
@@ -234,7 +234,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
   };
 
   const handleDownloadFile = (file: FileData) => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '/api';
     const downloadUrl = `${backendUrl}${file.url}`;
 
     const link = document.createElement('a');
@@ -404,8 +404,8 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
             type="submit"
             disabled={(!inputMessage.trim() && !selectedFile) || isSending}
             className={`px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0 ${(inputMessage.trim() || selectedFile) && !isSending
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
               }`}
             aria-label={t('chat_box.send_label')}
           >

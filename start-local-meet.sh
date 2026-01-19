@@ -88,9 +88,14 @@ echo ""
 # Vérifier et trouver les ports disponibles
 echo -e "${BLUE}🔍 Recherche de ports disponibles...${NC}"
 
-FRONTEND_PORT=$(find_available_port $DEFAULT_FRONTEND_PORT)
-if [ -z "$FRONTEND_PORT" ]; then
-    echo -e "${RED}❌ Impossible de trouver un port disponible pour le frontend${NC}"
+# FRONTEND_PORT est fixe à 3000 pour la production
+FRONTEND_PORT=3000
+echo -e "${BLUE}ℹ️  Port frontend fixé à : $FRONTEND_PORT${NC}"
+
+# Vérifier si le port 3000 est libre
+if ! is_port_available $FRONTEND_PORT; then
+    echo -e "${RED}❌ Le port $FRONTEND_PORT est déjà utilisé.${NC}"
+    echo -e "${YELLOW}⚠️  Veuillez libérer le port 3000 et relancer le script.${NC}"
     exit 1
 fi
 
@@ -115,7 +120,7 @@ echo ""
 echo -e "${BLUE}📝 Configuration du frontend...${NC}"
 ENV_FILE="frontend/.env.local"
 cat > $ENV_FILE << EOF
-NEXT_PUBLIC_BACKEND_URL=https://$LOCAL_IP:$BACKEND_PORT
+NEXT_PUBLIC_BACKEND_URL=/api
 PORT=$FRONTEND_PORT
 EOF
 echo -e "${GREEN}✅ Fichier $ENV_FILE créé${NC}"
@@ -193,16 +198,21 @@ fi
 
 echo -e "${GREEN}✅ Backend démarré${NC}"
 
-# Démarrer le frontend avec HTTPS
-echo -e "${BLUE}🚀 Démarrage du frontend sur le port $FRONTEND_PORT...${NC}"
+# Démarrer le frontend en production
+echo -e "${BLUE}🔨 Construction du frontend en production...${NC}"
 cd frontend
-PORT=$FRONTEND_PORT npm run dev > ../frontend.log 2>&1 &
+npm run build
+echo -e "${GREEN}✅ Build terminé${NC}"
+
+echo -e "${BLUE}🚀 Démarrage du frontend en production sur le port 3000...${NC}"
+NODE_ENV=production PORT=3000 HOST=0.0.0.0 npm start > ../frontend.log 2>&1 &
 FRONTEND_PID=$!
 cd ..
 
+
 # Attendre que le frontend soit prêt
 echo -e "${YELLOW}⏳ Attente du démarrage du frontend...${NC}"
-sleep 8
+sleep 5
 
 # Vérifier si le frontend a démarré
 if ! kill -0 $FRONTEND_PID 2>/dev/null; then
@@ -213,44 +223,31 @@ if ! kill -0 $FRONTEND_PID 2>/dev/null; then
     exit 1
 fi
 
-echo -e "${GREEN}✅ Frontend démarré${NC}"
+echo -e "${GREEN}✅ Frontend démarré en mode PRODUCTION${NC}"
 echo ""
 
-# URLs
-FRONTEND_LOCAL_URL="https://localhost:$FRONTEND_PORT"
-FRONTEND_NETWORK_URL="https://$LOCAL_IP:$FRONTEND_PORT"
-BACKEND_LOCAL_URL="https://localhost:$BACKEND_PORT"
-BACKEND_NETWORK_URL="https://$LOCAL_IP:$BACKEND_PORT"
+# URLs (Via Nginx Proxy)
+FINAL_URL="https://$LOCAL_IP"
 
 echo ""
 echo "═══════════════════════════════════════"
 echo -e "${GREEN}✅ LOCAL MEET démarré avec succès !${NC}"
 echo "═══════════════════════════════════════"
 echo ""
-echo -e "${BLUE}📡 Informations de connexion :${NC}"
+echo -e "${BLUE}📡 Accès à l'application :${NC}"
 echo ""
-echo -e "  ${GREEN}Sur cet appareil :${NC}"
-echo -e "    Frontend: ${YELLOW}$FRONTEND_LOCAL_URL${NC}"
-echo -e "    Backend:  ${YELLOW}$BACKEND_LOCAL_URL${NC}"
+echo -e "  ${GREEN}URL Unique :${NC} ${YELLOW}$FINAL_URL${NC}"
 echo ""
-echo -e "  ${GREEN}Sur d'autres appareils du réseau :${NC}"
-echo -e "    Frontend: ${YELLOW}$FRONTEND_NETWORK_URL${NC}"
-echo -e "    Backend:  ${YELLOW}$BACKEND_NETWORK_URL${NC}"
+echo -e "${RED}⚠️  NOTE :${NC}"
 echo ""
-echo -e "${RED}⚠️  IMPORTANT - CERTIFICAT AUTO-SIGNÉ :${NC}"
-echo ""
-echo -e "  ${YELLOW}Première visite uniquement :${NC}"
-echo -e "    1. Le navigateur s'ouvre automatiquement"
-echo -e "    2. Cliquez sur ${CYAN}'Avancé'${NC} ou ${CYAN}'Paramètres avancés'${NC}"
-echo -e "    3. Cliquez sur ${CYAN}'Continuer vers le site'${NC} ou ${CYAN}'Accepter le risque'${NC}"
-echo ""
-echo -e "  ${GREEN}✅ À faire une seule fois par appareil${NC}"
+echo -e "  L'application est maintenant accessible via Nginx."
+echo -e "  Le frontend (port $FRONTEND_PORT) et le backend (port $BACKEND_PORT) sont internes."
 echo ""
 echo "═══════════════════════════════════════"
 echo ""
 echo -e "${BLUE}ℹ️  Processus en cours :${NC}"
 echo -e "  Backend PID:  $BACKEND_PID (port $BACKEND_PORT)"
-echo -e "  Frontend PID: $FRONTEND_PID (port $FRONTEND_PORT)"
+echo -e "  Frontend PID: $FRONTEND_PID (port 3000)"
 echo ""
 echo -e "${CYAN}📂 Logs disponibles :${NC}"
 echo -e "  Backend:  ./backend.log"
@@ -280,7 +277,7 @@ trap cleanup SIGINT SIGTERM
 # Attendre un peu puis ouvrir le navigateur
 sleep 2
 echo -e "${CYAN}🌐 Ouverture automatique du navigateur...${NC}"
-open_browser "$FRONTEND_LOCAL_URL"
+open_browser "$FINAL_URL"
 
 echo ""
 echo -e "${GREEN}✨ Votre navigateur s'est ouvert automatiquement !${NC}"
