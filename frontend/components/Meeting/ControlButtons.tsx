@@ -7,6 +7,7 @@ import { MicOff, Mic, ScreenShare, ScreenShareOff, Video, VideoOff, PhoneOff, XS
 import { useToast } from '@/contexts/ToastContext';
 import Tooltip from '@/components/shared/Tooltip';
 import Reactions from './Reactions';
+import ConfirmationModal from './ConfirmationModal';
 
 interface ControlButtonsProps {
   localStream: MediaStream | null;
@@ -49,6 +50,9 @@ export default function ControlButtons({
 
   // États pour les fonctionnalités "More Options"
   const [isHandRaised, setIsHandRaised] = useState(false);
+
+  // État pour les modaux de confirmation
+  const [modalType, setModalType] = useState<'leave' | 'end' | null>(null);
 
   // Toggle Audio uniquement
   const handleToggleAudioOnly = async () => {
@@ -122,11 +126,10 @@ export default function ControlButtons({
 
   // Leave Meeting
   const handleLeaveMeeting = () => {
-    const confirmLeave = window.confirm(
-      'Êtes-vous sûr de vouloir quitter cette réunion ?\n\nVotre caméra et votre micro seront désactivés.'
-    );
-    if (!confirmLeave) return;
+    setModalType('leave');
+  };
 
+  const confirmLeaveMeeting = () => {
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
     }
@@ -139,6 +142,7 @@ export default function ControlButtons({
 
     socket?.emit('leaveRoom', { roomId, userName });
     router.push('/');
+    setModalType(null);
   };
 
   // End Meeting (Admin only)
@@ -147,12 +151,10 @@ export default function ControlButtons({
       toast.warning('Seul l\'administrateur peut terminer la réunion');
       return;
     }
+    setModalType('end');
+  };
 
-    const confirmEnd = confirm(
-      'Êtes-vous sûr de vouloir arrêter définitivement cette réunion ? Tous les participants seront déconnectés.'
-    );
-    if (!confirmEnd) return;
-
+  const confirmEndMeeting = () => {
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
     }
@@ -171,6 +173,7 @@ export default function ControlButtons({
     localStorage.removeItem('room_created_time');
 
     router.push('/');
+    setModalType(null);
   };
 
   const hasAnyStream = localStream || audioStream;
@@ -222,8 +225,8 @@ export default function ControlButtons({
         <button
           onClick={isMicActive ? handleStopMicrophone : handleToggleMicrophone}
           className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${isMicActive
-              ? 'bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600'
-              : 'bg-red-500 hover:bg-red-600'
+            ? 'bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600'
+            : 'bg-red-500 hover:bg-red-600'
             }`}
         >
           {isMicActive ? <Mic size={18} className="sm:w-[22px] sm:h-[22px]" /> : <MicOff size={18} className="sm:w-[22px] sm:h-[22px]" />}
@@ -235,8 +238,8 @@ export default function ControlButtons({
         <button
           onClick={handleToggleCamera}
           className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${isCameraOn
-              ? 'bg-blue-500 hover:bg-blue-600'
-              : 'bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600'
+            ? 'bg-blue-500 hover:bg-blue-600'
+            : 'bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600'
             }`}
         >
           {isCameraOn ? <Video size={18} className="sm:w-[22px] sm:h-[22px]" /> : <VideoOff size={18} className="sm:w-[22px] sm:h-[22px]" />}
@@ -255,8 +258,8 @@ export default function ControlButtons({
         <button
           onClick={handleToggleScreenShare}
           className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${isScreenSharing
-              ? 'bg-indigo-500 hover:bg-indigo-600'
-              : 'bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600'
+            ? 'bg-indigo-500 hover:bg-indigo-600'
+            : 'bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600'
             }`}
         >
           {isScreenSharing ? <ScreenShareOff size={18} className="sm:w-[22px] sm:h-[22px]" /> : <ScreenShare size={18} className="sm:w-[22px] sm:h-[22px]" />}
@@ -292,6 +295,30 @@ export default function ControlButtons({
           </button>
         </Tooltip>
       )}
+
+      {/* Modal de confirmation pour quitter */}
+      <ConfirmationModal
+        isOpen={modalType === 'leave'}
+        onClose={() => setModalType(null)}
+        onConfirm={confirmLeaveMeeting}
+        title="Quitter la réunion"
+        message="Êtes-vous sûr de vouloir quitter cette réunion ? Votre caméra et votre micro seront immédiatement désactivés."
+        confirmLabel="Quitter"
+        cancelLabel="Annuler"
+        isDestructive={true}
+      />
+
+      {/* Modal de confirmation pour terminer (Admin) */}
+      <ConfirmationModal
+        isOpen={modalType === 'end'}
+        onClose={() => setModalType(null)}
+        onConfirm={confirmEndMeeting}
+        title="Terminer la réunion"
+        message="Êtes-vous sûr de vouloir arrêter définitivement cette réunion ? Tous les participants seront déconnectés."
+        confirmLabel="Terminer pour tous"
+        cancelLabel="Annuler"
+        isDestructive={true}
+      />
     </div>
   );
 }
