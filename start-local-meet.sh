@@ -88,9 +88,14 @@ echo ""
 # Vérifier et trouver les ports disponibles
 echo -e "${BLUE}🔍 Recherche de ports disponibles...${NC}"
 
-FRONTEND_PORT=$(find_available_port $DEFAULT_FRONTEND_PORT)
-if [ -z "$FRONTEND_PORT" ]; then
-    echo -e "${RED}❌ Impossible de trouver un port disponible pour le frontend${NC}"
+# FRONTEND_PORT est fixe à 3000 pour la production
+FRONTEND_PORT=3000
+echo -e "${BLUE}ℹ️  Port frontend fixé à : $FRONTEND_PORT${NC}"
+
+# Vérifier si le port 3000 est libre
+if ! is_port_available $FRONTEND_PORT; then
+    echo -e "${RED}❌ Le port $FRONTEND_PORT est déjà utilisé.${NC}"
+    echo -e "${YELLOW}⚠️  Veuillez libérer le port 3000 et relancer le script.${NC}"
     exit 1
 fi
 
@@ -193,17 +198,21 @@ fi
 
 echo -e "${GREEN}✅ Backend démarré${NC}"
 
-# Démarrer le frontend avec HTTPS
-echo -e "${BLUE}🚀 Démarrage du frontend sur le port $FRONTEND_PORT...${NC}"
+# Démarrer le frontend en production
+echo -e "${BLUE}🔨 Construction du frontend en production...${NC}"
 cd frontend
-HOSTNAME=127.0.0.1 PORT=$FRONTEND_PORT npm run dev > ../frontend.log 2>&1 &
+npm run build
+echo -e "${GREEN}✅ Build terminé${NC}"
+
+echo -e "${BLUE}🚀 Démarrage du frontend en production sur le port 3000...${NC}"
+NODE_ENV=production PORT=3000 HOST=0.0.0.0 npm start > ../frontend.log 2>&1 &
 FRONTEND_PID=$!
 cd ..
 
 
 # Attendre que le frontend soit prêt
 echo -e "${YELLOW}⏳ Attente du démarrage du frontend...${NC}"
-sleep 8
+sleep 5
 
 # Vérifier si le frontend a démarré
 if ! kill -0 $FRONTEND_PID 2>/dev/null; then
@@ -214,7 +223,7 @@ if ! kill -0 $FRONTEND_PID 2>/dev/null; then
     exit 1
 fi
 
-echo -e "${GREEN}✅ Frontend démarré${NC}"
+echo -e "${GREEN}✅ Frontend démarré en mode PRODUCTION${NC}"
 echo ""
 
 # URLs (Via Nginx Proxy)
@@ -238,7 +247,7 @@ echo "════════════════════════�
 echo ""
 echo -e "${BLUE}ℹ️  Processus en cours :${NC}"
 echo -e "  Backend PID:  $BACKEND_PID (port $BACKEND_PORT)"
-echo -e "  Frontend PID: $FRONTEND_PID (port $FRONTEND_PORT)"
+echo -e "  Frontend PID: $FRONTEND_PID (port 3000)"
 echo ""
 echo -e "${CYAN}📂 Logs disponibles :${NC}"
 echo -e "  Backend:  ./backend.log"
