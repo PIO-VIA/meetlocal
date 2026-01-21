@@ -45,6 +45,7 @@ La documentation complète est disponible dans le dossier `docs/` :
 - [🏗️ Architecture](docs/architecture.md) : Fonctionnement technique (SFU, Mediasoup, WebRTC).
 - [🔌 API & WebSockets](docs/api.md) : Documentation des événements Socket.IO.
 - [🔧 Dépannage](docs/troubleshooting.md) : Solutions aux problèmes courants.
+- [🌐 Déploiement Nginx](docs/deployment-nginx.md) : Guide pour configurer Nginx comme reverse proxy.
 - [🤝 Contribuer](docs/contributing.md) : Guide pour les contributeurs.
 
 ---

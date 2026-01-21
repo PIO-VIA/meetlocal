@@ -150,3 +150,10 @@ Pour régénérer :
 rm -rf backend/ssl
 ./start-local-meet.sh
 ```
+
+---
+
+## 🌐 Déploiement en Production
+
+Pour une mise en production réelle derrière un serveur web, consultez notre guide :
+👉 [**Configuration de Nginx**](deployment-nginx.md)
