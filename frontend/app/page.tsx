@@ -11,6 +11,7 @@ import LanguageSwitcher from '@/components/shared/LanguageSwitcher';
 import Footer from '@/components/shared/Footer';
 import { CircleDot, CircleOff, Shield, Zap, Video } from 'lucide-react';
 import '@/lib/i18n'; // Initialize i18n
+import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 
 export default function Home() {
@@ -32,8 +33,14 @@ export default function Home() {
         {/* Header avec logo et statut - Responsive */}
         <div className="flex justify-between items-center mb-6 sm:mb-8">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-white text-lg sm:text-xl font-bold">LM</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700">
+              <Image
+                src="/logo.png"
+                alt="MeetLocal Logo"
+                width={48}
+                height={48}
+                className="object-contain"
+              />
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">{t('app.title')}</h1>

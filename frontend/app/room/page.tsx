@@ -16,6 +16,7 @@ import { MessageCircle, Users, Crown, Monitor } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import '@/lib/i18n'; // Initialize i18n
 import { useTranslation } from 'react-i18next';
+import Image from 'next/image';
 
 
 interface Participant {
@@ -124,8 +125,14 @@ function RoomContent() {
       <header className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 sm:px-6 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
-              <span className="text-white text-xs sm:text-sm font-bold">LM</span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden border border-gray-100 dark:border-gray-700">
+              <Image
+                src="/logo.png"
+                alt="MeetLocal Logo"
+                width={32}
+                height={32}
+                className="object-contain"
+              />
             </div>
             <div className="min-w-0">
               <h2 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">

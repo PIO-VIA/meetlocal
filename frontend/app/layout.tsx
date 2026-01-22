@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   title: 'LOCAL MEET - Visioconférence Locale',
   description: 'Solution de visioconférence sécurisée en réseau local',
   keywords: ['visioconférence', 'local', 'mediasoup', 'meeting'],
+  icons: {
+    icon: '/logo.png',
+  },
 };
 
 export default function RootLayout({
