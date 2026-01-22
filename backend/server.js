@@ -160,6 +160,14 @@ function broadcastRoomsList() {
     io.emit('roomsList', roomsList);
 }
 
+function broadcastUserList(roomId) {
+    const room = roomManager.getRoom(roomId);
+    if (room) {
+        const activeUsers = room.users.filter(u => !u.disconnected);
+        io.to(roomId).emit('getUsers', activeUsers);
+    }
+}
+
 // ==================== SOCKET.IO EVENTS ====================
 
 io.on('connection', (socket) => {
@@ -531,6 +539,7 @@ io.on('connection', (socket) => {
             if (user) {
                 user.isStreaming = true;
                 io.to(roomId).emit('streamStarted', { userName: user.name, userId: user.id });
+                broadcastUserList(roomId);
                 broadcastRoomsList();
             }
         }
@@ -551,6 +560,7 @@ io.on('connection', (socket) => {
                         io.to(roomId).emit('producerClosed', { producerId: pid, userId: socket.id, appData: data.appData });
                     }
                 }
+                broadcastUserList(roomId);
                 broadcastRoomsList();
             }
         }
@@ -563,6 +573,7 @@ io.on('connection', (socket) => {
             if (user) {
                 user.isScreenSharing = true;
                 io.to(roomId).emit('screenStarted', { userName: user.name, userId: socket.id });
+                broadcastUserList(roomId);
                 broadcastRoomsList();
             }
         }
@@ -583,6 +594,7 @@ io.on('connection', (socket) => {
                         io.to(roomId).emit('producerClosed', { producerId: pid, userId: socket.id, appData: data.appData });
                     }
                 }
+                broadcastUserList(roomId);
                 broadcastRoomsList();
             }
         }
@@ -604,6 +616,7 @@ io.on('connection', (socket) => {
                 user.isHandRaised = isRaised;
                 io.to(roomId).emit('handRaised', { roomId, isRaised, senderId: socket.id });
                 // Also broadcast updated user list so UI reflects the hand status properly
+                broadcastUserList(roomId);
                 broadcastRoomsList();
             }
         }

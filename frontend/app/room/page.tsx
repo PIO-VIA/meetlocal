@@ -209,6 +209,7 @@ function RoomContent() {
             screenStream={screenStream}
             remoteScreenStreams={remoteScreenStreams}
             currentUserId={currentUserId}
+            socket={socket}
           />
         </div>
 
