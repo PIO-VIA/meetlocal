@@ -14,58 +14,28 @@ Bien que le projet inclue un script de démarrage gérant le HTTPS, Nginx est re
 
 Voici un exemple de configuration pour un site utilisant un domaine (ex: `meet.local`) ou une IP.
 
-### Fichier `/etc/nginx/sites-available/meetlocal`
+### Fichier `/etc/nginx/sites-available/visio`
 
 ```nginx
 server {
-    listen 80;
-    server_name meet.local; # Remplacez par votre domaine ou IP
-    return 301 https://$server_name$request_uri;
-}
+    listen 443 ssl;
+    server_name localhost;
 
-server {
-    listen 443 ssl http2;
-    server_name meet.local;
+    ssl_certificate     /etc/nginx/certs/localhost+2.pem;
+    ssl_certificate_key /etc/nginx/certs/localhost+2-key.pem;
 
-    # Configuration SSL (Let's Encrypt recommandé)
-    ssl_certificate /etc/letsencrypt/live/meet.local/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/meet.local/privkey.pem;
-    
-    # Optimisation SSL
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers on;
-    ssl_session_cache shared:SSL:10m;
-
-    # 1. Frontend (Next.js)
     location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
+        proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # 2. Backend API & Socket.IO
-    location /socket.io/ {
-        proxy_pass http://localhost:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "Upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        # WebSocket timeouts
-        proxy_read_timeout 86400;
-        proxy_send_timeout 86400;
+        proxy_set_header X-Forwarded-For $remote_addr;
     }
 
     location /api/ {
-        proxy_pass http://localhost:3001;
+        proxy_pass http://127.0.0.1:3001/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
     }
 }
 ```
@@ -79,10 +49,36 @@ Nginx peut gérer l'HTTP et les WebSockets (signalisation), mais il **ne peut pa
 
 ## 🚀 Activation
 
-```bash
-# Activer le site
-sudo ln -s /etc/nginx/sites-available/meetlocal /etc/nginx/sites-enabled/
+### 🧱 ÉTAPE 1 — Activer ton site visio (OBLIGATOIRE)
 
+```bash
+sudo ln -s /etc/nginx/sites-available/visio /etc/nginx/sites-enabled/
+```
+
+Vérifie :
+
+```bash
+ls -l /etc/nginx/sites-enabled/
+```
+
+👉 Tu DOIS voir :
+
+```text
+visio -> /etc/nginx/sites-available/visio
+default -> ...
+```
+
+### 🧱 ÉTAPE 2 — Désactiver le site par défaut (IMPORTANT)
+
+Sinon Nginx reste sur le port 80 seulement.
+
+```bash
+sudo rm /etc/nginx/sites-enabled/default
+```
+
+### 🧱 ÉTAPE 3 — Validation et Redémarrage
+
+```bash
 # Tester la configuration
 sudo nginx -t
 
