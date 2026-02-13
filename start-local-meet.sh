@@ -73,6 +73,46 @@ open_browser() {
     fi
 }
 
+# Fonction pour vérifier les versions de Node et NPM
+check_versions() {
+    local min_node=20
+    local min_npm=10
+
+    echo -e "${BLUE}🔍 Vérification de l'environnement...${NC}"
+
+    # Vérifier Node.js
+    if ! command -v node &> /dev/null; then
+        echo -e "${RED}❌ Node.js n'est pas installé.${NC}"
+        exit 1
+    fi
+
+    local node_version=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+    if [ "$node_version" -lt "$min_node" ]; then
+        echo -e "${RED}❌ Version de Node.js insuffisante : v$(node -v)${NC}"
+        echo -e "${YELLOW}💡 Vous devez utiliser au moins Node.js v${min_node}.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✅ Node.js v$(node -v) détecté${NC}"
+
+    # Vérifier NPM
+    if ! command -v npm &> /dev/null; then
+        echo -e "${RED}❌ NPM n'est pas installé.${NC}"
+        exit 1
+    fi
+
+    local npm_version=$(npm -v | cut -d'.' -f1)
+    if [ "$npm_version" -lt "$min_npm" ]; then
+        echo -e "${RED}❌ Version de NPM insuffisante : $(npm -v)${NC}"
+        echo -e "${YELLOW}💡 Vous devez utiliser au moins NPM v${min_npm}.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✅ NPM v$(npm -v) détecté${NC}"
+    echo ""
+}
+
+# Exécuter les vérifications
+check_versions
+
 # Obtenir l'IP
 LOCAL_IP=$(get_local_ip)
 
@@ -88,32 +128,67 @@ echo ""
 # Vérifier et trouver les ports disponibles
 echo -e "${BLUE}🔍 Recherche de ports disponibles...${NC}"
 
-# FRONTEND_PORT est fixe à 3000 pour la production
-FRONTEND_PORT=3000
-echo -e "${BLUE}ℹ️  Port frontend fixé à : $FRONTEND_PORT${NC}"
-
-# Vérifier si le port 3000 est libre
-if ! is_port_available $FRONTEND_PORT; then
-    echo -e "${RED}❌ Le port $FRONTEND_PORT est déjà utilisé.${NC}"
-    echo -e "${YELLOW}⚠️  Veuillez libérer le port 3000 et relancer le script.${NC}"
+# Trouver un port pour le frontend (commence à 3000)
+FRONTEND_PORT=$(find_available_port $DEFAULT_FRONTEND_PORT)
+if [ -z "$FRONTEND_PORT" ]; then
+    echo -e "${RED}❌ Impossible de trouver un port disponible pour le frontend${NC}"
     exit 1
 fi
 
+# Trouver un port pour le backend (commence à 3001)
 BACKEND_PORT=$(find_available_port $DEFAULT_BACKEND_PORT)
+# S'assurer que le port backend n'est pas le même que le frontend
+if [ "$BACKEND_PORT" == "$FRONTEND_PORT" ]; then
+    BACKEND_PORT=$(find_available_port $((FRONTEND_PORT + 1)))
+fi
+
 if [ -z "$BACKEND_PORT" ]; then
     echo -e "${RED}❌ Impossible de trouver un port disponible pour le backend${NC}"
     exit 1
 fi
 
-if [ $FRONTEND_PORT != $DEFAULT_FRONTEND_PORT ]; then
+if [ "$FRONTEND_PORT" != "$DEFAULT_FRONTEND_PORT" ]; then
     echo -e "${YELLOW}⚠️  Port frontend $DEFAULT_FRONTEND_PORT occupé, utilisation du port $FRONTEND_PORT${NC}"
 fi
 
-if [ $BACKEND_PORT != $DEFAULT_BACKEND_PORT ]; then
+if [ "$BACKEND_PORT" != "$DEFAULT_BACKEND_PORT" ]; then
     echo -e "${YELLOW}⚠️  Port backend $DEFAULT_BACKEND_PORT occupé, utilisation du port $BACKEND_PORT${NC}"
 fi
 
 echo -e "${GREEN}✅ Ports sélectionnés: Frontend=$FRONTEND_PORT, Backend=$BACKEND_PORT${NC}"
+echo ""
+
+# Générer la configuration Nginx dynamique
+echo -e "${BLUE}⚙️  Génération de la configuration Nginx dynamique...${NC}"
+NGINX_CONF="nginx-meet.conf"
+cat > $NGINX_CONF << EOF
+server {
+    listen 443 ssl;
+    server_name localhost;
+
+    ssl_certificate     $(pwd)/backend/ssl/cert.pem;
+    ssl_certificate_key $(pwd)/backend/ssl/key.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:$FRONTEND_PORT;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:$BACKEND_PORT/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+    }
+}
+EOF
+echo -e "${GREEN}✅ Fichier $NGINX_CONF généré avec succès${NC}"
+echo -e "${YELLOW}💡 Note: Utilisez ce fichier pour votre configuration Nginx locale${NC}"
 echo ""
 
 # Créer le fichier .env.local pour le frontend
@@ -204,8 +279,8 @@ cd frontend
 npm run build
 echo -e "${GREEN}✅ Build terminé${NC}"
 
-echo -e "${BLUE}🚀 Démarrage du frontend en production sur le port 3000...${NC}"
-NODE_ENV=production PORT=3000 HOST=0.0.0.0 npm start > ../frontend.log 2>&1 &
+echo -e "${BLUE}🚀 Démarrage du frontend en production sur le port $FRONTEND_PORT...${NC}"
+NODE_ENV=production PORT=$FRONTEND_PORT HOST=0.0.0.0 npm start > ../frontend.log 2>&1 &
 FRONTEND_PID=$!
 cd ..
 
@@ -247,7 +322,7 @@ echo "════════════════════════�
 echo ""
 echo -e "${BLUE}ℹ️  Processus en cours :${NC}"
 echo -e "  Backend PID:  $BACKEND_PID (port $BACKEND_PORT)"
-echo -e "  Frontend PID: $FRONTEND_PID (port 3000)"
+echo -e "  Frontend PID: $FRONTEND_PID (port $FRONTEND_PORT)"
 echo ""
 echo -e "${CYAN}📂 Logs disponibles :${NC}"
 echo -e "  Backend:  ./backend.log"
