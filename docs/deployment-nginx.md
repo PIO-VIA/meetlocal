@@ -4,37 +4,55 @@ Ce guide détaille comment configurer Nginx comme reverse proxy pour déployer *
 
 ## 📋 Pourquoi utiliser Nginx ?
 
-Bien que le projet inclue un script de démarrage gérant le HTTPS, Nginx est recommandé pour une mise en production :
+Nginx est recommandé pour une mise en production pour plusieurs raisons :
 - **Gestion centralisée du SSL** (via Let's Encrypt).
 - **Terminaison SSL** plus performante.
 - **Sécurité accrue** (masquage des ports réels, filtrage IP).
 - **Scalabilité** (possibilité de load balancing).
 
-## 🛠️ Configuration de Nginx
+---
 
-Il existe deux méthodes pour configurer Nginx. La méthode **Recommandée** automatise la mise à jour des ports.
+## 🛠️ ÉTAPE 1 — Installation de Nginx
 
-### Option 1 : Méthode Automatique (Recommandée)
+Si Nginx n'est pas encore installé sur votre serveur (Ubuntu/Debian), exécutez les commandes suivantes :
 
-Cette méthode lie directement la configuration Nginx au fichier généré par le script de lancement.
+```bash
+sudo apt update
+sudo apt install nginx -y
+```
+
+Vérifiez que le service est actif :
+```bash
+sudo systemctl status nginx
+```
+
+---
+
+## 🏗️ ÉTAPE 2 — Création du fichier de configuration "visio"
+
+Il existe deux méthodes pour configurer Nginx. La méthode **Automatique** est fortement recommandée car elle s'adapte aux changements de ports.
+
+### Option A : Méthode Automatique (Recommandée)
+
+Cette méthode lie directement la configuration Nginx au fichier généré dynamiquement par le script de lancement.
 
 1.  **Générez la configuration** en lançant le projet au moins une fois :
     ```bash
     ./start-local-meet.sh
     ```
-2.  **Créez un lien symbolique** (à faire une seule fois) :
+2.  **Créez un lien symbolique** vers le fichier généré :
     ```bash
     sudo ln -sf $(pwd)/nginx-meet.conf /etc/nginx/sites-available/visio
     ```
-3.  **Activez le site** (voir section Activation plus bas).
 
-> [!IMPORTANT]
-> À chaque fois que vous relancez `./start-local-meet.sh`, si les ports changent, il vous suffit de recharger Nginx : `sudo systemctl reload nginx`.
+### Option B : Méthode Manuelle
 
-### Option 2 : Méthode Manuelle
+Si vous préférez gérer le fichier manuellement, créez le fichier `/etc/nginx/sites-available/visio` :
+```bash
+sudo nano /etc/nginx/sites-available/visio
+```
 
-Si vous préférez gérer le fichier vous-même, copiez ce modèle dans `/etc/nginx/sites-available/visio` :
-
+Collez-y ce modèle (en adaptant les chemins et ports) :
 ```nginx
 server {
     listen 443 ssl;
@@ -62,30 +80,42 @@ server {
 }
 ```
 
-## ⚠️ Important : Mediasoup & UDP
+---
 
-Nginx peut gérer l'HTTP et les WebSockets (signalisation), mais il **ne peut pas** faire proxy pour le trafic média (WebRTC/UDP) de Mediasoup.
+## 🚀 ÉTAPE 3 — Activation et Nettoyage
 
-- **Vérifiez votre Firewall** : Vous devez ouvrir les plages de ports UDP configurées dans `backend/mediasoup/config.js` (par défaut `10000-10100`).
-- **RTC_ANNOUNCED_IP** : Assurez-vous que l'IP publique de votre serveur est renseignée dans Mediasoup.
-
-## 🚀 Activation
-
-### 🧱 ÉTAPE 1 — Activer ton site visio
+### 1. Activer le site "visio"
+Créez un lien symbolique dans le dossier `sites-enabled` :
 ```bash
 sudo ln -sf /etc/nginx/sites-available/visio /etc/nginx/sites-enabled/
 ```
 
-### 🧱 ÉTAPE 2 — Désactiver le site par défaut
+### 2. Désactiver le site par défaut
+Il est crucial de désactiver la configuration par défaut pour éviter les conflits :
 ```bash
 sudo rm -f /etc/nginx/sites-enabled/default
 ```
 
-### 🧱 ÉTAPE 3 — Validation et Redémarrage
+### 3. Validation et Redémarrage
+Testez toujours votre configuration avant de redémarrer :
 ```bash
 sudo nginx -t
+```
+Si le test est réussi (`syntax is ok`), rechargez Nginx :
+```bash
 sudo systemctl reload nginx
 ```
+
+---
+
+## ⚠️ Important : Mediasoup & UDP
+
+Nginx peut gérer l'HTTP et les WebSockets (signalisation), mais il **ne peut pas** faire proxy pour le trafic média (WebRTC/UDP).
+
+- **Ouvrir le Firewall** : Vous devez ouvrir les plages de ports UDP configurées dans `backend/mediasoup/config.js` (par défaut `10000-10100`).
+- **RTC_ANNOUNCED_IP** : Assurez-vous que l'IP publique de votre serveur est configurée.
+
+---
 
 ## ❌ Dépannage : "Permission Denied"
 
@@ -93,13 +123,10 @@ Si `nginx -t` échoue avec une erreur de permission sur les certificats SSL situ
 
 1. **Donnez l'accès au dossier** à Nginx (l'utilisateur `www-data`) :
    ```bash
-   # Autorise Nginx à traverser votre dossier home
    chmod +x /home/$(whoami)
    chmod +x /home/$(whoami)/Documents
    ```
-2. **OU déplacez les certificats** dans un dossier standard comme `/etc/nginx/certs/` et mettez à jour la configuration.
-
----
+2. **OU déplacez les certificats** dans `/etc/nginx/certs/`.
 
 > [!TIP]
-> Pour voir les erreurs exactes de Nginx : `sudo journalctl -xeu nginx`
+> Pour voir les erreurs exactes : `sudo journalctl -xeu nginx`
