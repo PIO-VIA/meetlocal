@@ -489,7 +489,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('message', ({ roomId, message, timestamp, file }, callback) => {
+    socket.on('message', ({ roomId, message, timestamp, file, replyTo }, callback) => {
         const room = roomManager.getRoom(roomId);
         if (room) {
             const user = room.users.find(u => u.id === socket.id);
@@ -499,7 +499,8 @@ io.on('connection', (socket) => {
                     userName: user.name,
                     message,
                     timestamp: timestamp || new Date().toISOString(),
-                    file: file || null
+                    file: file || null,
+                    replyTo: replyTo || null
                 };
 
                 room.chatHistory = room.chatHistory || [];

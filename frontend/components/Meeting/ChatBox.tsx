@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, FormEvent, ChangeEvent } from 'react';
 import { Socket } from 'socket.io-client';
-import { MessageCircle, Send, Loader2, Paperclip, X, FileIcon, Download } from 'lucide-react';
+import { MessageCircle, Send, Loader2, Paperclip, X, FileIcon, Download, Reply } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface FileData {
@@ -21,13 +21,18 @@ interface Message {
   isSystem?: boolean;
   isSending?: boolean;
   file?: FileData;
+  replyTo?: {
+    id: string;
+    userName: string;
+    message: string;
+  };
 }
 
 interface ChatBoxProps {
   socket: Socket | null;
   roomId: string;
   userName: string;
-  onNewMessage?: () => void;
+  onNewMessage?: (senderName: string) => void;
 }
 
 export default function ChatBox({ socket, roomId, userName, onNewMessage }: ChatBoxProps) {
@@ -35,6 +40,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,7 +49,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
   useEffect(() => {
     if (!socket) return;
 
-    const handleMessage = (data: { id?: string; userName: string; message: string; timestamp?: string; file?: FileData }) => {
+    const handleMessage = (data: { id?: string; userName: string; message: string; timestamp?: string; file?: FileData; replyTo?: Message['replyTo'] }) => {
       setMessages(prev => {
         const messageId = data.id || `${data.userName}-${data.message}-${Date.now()}`;
 
@@ -63,7 +69,7 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
 
         // Notifier qu'il y a un nouveau message
         if (data.userName !== userName && onNewMessage) {
-          onNewMessage();
+          onNewMessage(data.userName);
         }
 
         return [
@@ -74,7 +80,8 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
             message: data.message,
             timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
             isSystem: false,
-            file: data.file
+            file: data.file,
+            replyTo: data.replyTo
           }
         ];
       });
@@ -117,7 +124,8 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
         message: msg.message,
         timestamp: new Date(msg.timestamp),
         isSystem: msg.isSystem || false,
-        file: msg.file
+        file: msg.file,
+        replyTo: msg.replyTo
       })));
     };
 
@@ -206,16 +214,24 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
     }
 
     // Envoyer le message via Socket.IO
-    socket.emit('message', {
+    const payload = {
       roomId,
       message: messageText,
       timestamp: new Date().toISOString(),
-      file: fileData
-    }, (response: { success: boolean; error?: string }) => {
+      file: fileData,
+      replyTo: replyingTo ? {
+        id: replyingTo.id,
+        userName: replyingTo.userName,
+        message: replyingTo.message
+      } : undefined
+    };
+
+    socket.emit('message', payload, (response: { success: boolean; error?: string }) => {
       if (!response?.success) {
         setInputMessage(messageText);
       } else {
         setSelectedFile(null);
+        setReplyingTo(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -277,20 +293,49 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`${msg.isSystem
-                ? 'text-center text-gray-500 dark:text-gray-400 text-xs italic py-1'
+              className={`group flex ${msg.isSystem
+                ? 'justify-center py-1'
                 : msg.userName === userName
-                  ? 'flex justify-end'
-                  : 'flex justify-start'
-                } ${msg.isSending ? 'opacity-50' : 'opacity-100'} transition-opacity`}
+                  ? 'justify-end'
+                  : 'justify-start'
+                } ${msg.isSending ? 'opacity-50' : 'opacity-100'} transition-opacity relative`}
             >
+              {!msg.isSystem && msg.userName !== userName && (
+                <button
+                  onClick={() => {
+                    setReplyingTo(msg);
+                    setTimeout(() => inputRef.current?.focus(), 0);
+                  }}
+                  className="absolute right-full mr-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 shadow-sm z-10 hidden sm:flex"
+                  title={t('chat_box.reply')}
+                >
+                  <Reply size={14} />
+                </button>
+              )}
+
               {!msg.isSystem && (
                 <div
-                  className={`max-w-[75%] rounded-lg px-3 py-2 ${msg.userName === userName
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 shadow-sm'
-                    }`}
+                  className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-3 sm:px-4 py-2 relative ${msg.userName === userName
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 shadow-sm'
+                    } ${msg.userName === userName ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
                 >
+                  {/* Message de réponse coté bulle WhatsApp */}
+                  {msg.replyTo && (
+                    <div className={`mb-2 p-2 rounded-lg border-l-4 text-xs sm:text-sm ${msg.userName === userName
+                      ? 'bg-blue-700/50 border-blue-300 shadow-inner'
+                      : 'bg-gray-50 dark:bg-gray-900/50 border-blue-500'
+                      }`}
+                    >
+                      <p className={`font-semibold mb-0.5 ${msg.userName === userName ? 'text-blue-200' : 'text-blue-600 dark:text-blue-400'}`}>
+                        {msg.replyTo.userName}
+                      </p>
+                      <p className={`line-clamp-2 ${msg.userName === userName ? 'text-blue-100' : 'text-gray-600 dark:text-gray-300'}`}>
+                        {msg.replyTo.message}
+                      </p>
+                    </div>
+                  )}
+
                   {msg.userName !== userName && (
                     <p className="text-xs font-semibold mb-0.5 text-blue-600 dark:text-blue-400">
                       {msg.userName}
@@ -340,7 +385,20 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
                   </div>
                 </div>
               )}
-              {msg.isSystem && <p>{msg.message}</p>}
+              {msg.isSystem && <p className="text-center text-gray-500 dark:text-gray-400 text-xs italic">{msg.message}</p>}
+
+              {!msg.isSystem && msg.userName === userName && (
+                <button
+                  onClick={() => {
+                    setReplyingTo(msg);
+                    setTimeout(() => inputRef.current?.focus(), 0);
+                  }}
+                  className="absolute left-full ml-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 shadow-sm z-10 hidden sm:flex"
+                  title={t('chat_box.reply')}
+                >
+                  <Reply size={14} className="transform -scale-x-100" />
+                </button>
+              )}
             </div>
           ))
         )}
@@ -348,79 +406,104 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
       </div>
 
       {/* Input - Optimisé pour mobile */}
-      <div className="p-2 sm:p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0 safe-area-bottom">
-        {/* Prévisualisation du fichier sélectionné */}
-        {selectedFile && (
-          <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center gap-2">
-              <FileIcon size={16} className="text-blue-600 dark:text-blue-400 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{selectedFile.name}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{formatFileSize(selectedFile.size)}</p>
-              </div>
-              <button
-                onClick={handleRemoveFile}
-                className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800 rounded transition-colors flex-shrink-0"
-                title={t('chat_box.remove_file')}
-              >
-                <X size={16} className="text-gray-600 dark:text-gray-400" />
-              </button>
+      <div className="flex flex-col border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex-shrink-0 safe-area-bottom">
+
+        {/* Bannière de réponse */}
+        {replyingTo && (
+          <div className="flex items-center gap-2 p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/50">
+            <div className="w-1 h-full min-h-[32px] bg-blue-500 rounded-full flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                <Reply size={12} className="transform -scale-x-100" />
+                {t('chat_box.replying_to')} {replyingTo.userName}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-300 truncate">
+                {replyingTo.file ? `📎 ${replyingTo.file.originalName}` : replyingTo.message}
+              </p>
             </div>
+            <button
+              onClick={() => setReplyingTo(null)}
+              className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-800/50 rounded-full text-gray-500 dark:text-gray-400 transition-colors flex-shrink-0"
+            >
+              <X size={14} />
+            </button>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex gap-1.5 sm:gap-2 items-end">
-          <input
-            ref={fileInputRef}
-            type="file"
-            onChange={handleFileSelect}
-            className="hidden"
-            accept="*/*"
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="px-2.5 sm:px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0"
-            disabled={isSending}
-            title={t('chat_box.attach_file')}
-            aria-label={t('chat_box.attach_file')}
-          >
-            <Paperclip size={16} className="sm:w-[18px] sm:h-[18px]" />
-          </button>
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            placeholder={t('chat_box.placeholder')}
-            className="flex-1 min-w-0 px-2.5 sm:px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white dark:focus:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 text-sm resize-none"
-            maxLength={500}
-            disabled={isSending}
-            autoComplete="off"
-            enterKeyHint="send"
-            aria-label={t('chat_box.message_label')}
-          />
-          <button
-            type="submit"
-            disabled={(!inputMessage.trim() && !selectedFile) || isSending}
-            className={`px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0 ${(inputMessage.trim() || selectedFile) && !isSending
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-              }`}
-            aria-label={t('chat_box.send_label')}
-          >
-            {isSending ? (
-              <Loader2 size={16} className="sm:w-[18px] sm:h-[18px] animate-spin" />
-            ) : (
-              <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
-            )}
-          </button>
-        </form>
-        {inputMessage.length > 400 && (
-          <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
-            {t('chat_box.chars_limit', { length: inputMessage.length })}
-          </p>
-        )}
+        <div className="p-2 sm:p-3 relative bg-white dark:bg-gray-900 shadow-lg sm:rounded-tl-2xl sm:rounded-tr-2xl sm:-mt-2 sm:-mx-2 px-3 pb-3">
+          {/* Prévisualisation du fichier sélectionné */}
+          {selectedFile && (
+            <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800 animate-fade-in origin-bottom">
+              <div className="flex items-center gap-2">
+                <FileIcon size={16} className="text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{selectedFile.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{formatFileSize(selectedFile.size)}</p>
+                </div>
+                <button
+                  onClick={handleRemoveFile}
+                  className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800 rounded transition-colors flex-shrink-0"
+                  title={t('chat_box.remove_file')}
+                >
+                  <X size={16} className="text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="flex gap-1.5 sm:gap-2 items-end">
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileSelect}
+              className="hidden"
+              accept="*/*"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-2.5 sm:px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0"
+              disabled={isSending}
+              title={t('chat_box.attach_file')}
+              aria-label={t('chat_box.attach_file')}
+            >
+              <Paperclip size={16} className="sm:w-[18px] sm:h-[18px]" />
+            </button>
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              placeholder={t('chat_box.placeholder')}
+              className="flex-1 min-w-0 px-2.5 sm:px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white dark:focus:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 text-sm resize-none"
+              maxLength={500}
+              disabled={isSending}
+              autoComplete="off"
+              enterKeyHint="send"
+              aria-label={t('chat_box.message_label')}
+            />
+            <button
+              type="submit"
+              disabled={(!inputMessage.trim() && !selectedFile) || isSending}
+              className={`px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0 ${(inputMessage.trim() || selectedFile) && !isSending
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                }`}
+              aria-label={t('chat_box.send_label')}
+            >
+              {isSending ? (
+                <Loader2 size={16} className="sm:w-[18px] sm:h-[18px] animate-spin" />
+              ) : (
+                <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
+              )}
+            </button>
+          </form>
+          {inputMessage.length > 400 && (
+            <p className="text-xs text-amber-600 dark:text-amber-500 mt-1 pl-12 position absolute -top-5">
+              {t('chat_box.chars_limit', { length: inputMessage.length })}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -252,12 +252,18 @@ function RoomContent() {
                 <ParticipantsList socket={socket} roomId={roomId} />
               )}
               {activePanel === 'chat' && (
-                <ChatBox
-                  socket={socket}
-                  roomId={roomId}
-                  userName={userName || ''}
-                  onNewMessage={() => activePanel !== 'chat' && setHasNewMessages(true)}
-                />
+                <div className="flex-1 overflow-hidden min-h-0 relative">
+                  <ChatBox
+                    socket={socket}
+                    roomId={roomId}
+                    userName={userName || ''}
+                    onNewMessage={(senderName: string) => {
+                      if (activePanel !== 'chat' && senderName !== userName) {
+                        setHasNewMessages(true);
+                      }
+                    }}
+                  />
+                </div>
               )}
               {activePanel === 'notes' && (
                 <PersonalNotes roomId={roomId} />
