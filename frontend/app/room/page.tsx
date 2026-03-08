@@ -30,6 +30,13 @@ interface Participant {
   disconnected?: boolean;
 }
 
+interface FloatingEmoji {
+  id: string;
+  emoji: string;
+  left: number; // Percentage
+  duration: number; // Seconds
+}
+
 function RoomContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -70,6 +77,7 @@ function RoomContent() {
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [hasNewMessages, setHasNewMessages] = useState(false);
   const [showRoomTour, setShowRoomTour] = useState(false);
+  const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -117,8 +125,32 @@ function RoomContent() {
         socket.emit('getUsers', { roomId });
       });
 
-      socket.on('userLeft', () => {
-        socket.emit('getUsers', { roomId });
+      socket.on('meetingEnded', (data: { message: string }) => {
+        toast.info(data.message);
+        router.push('/');
+      });
+
+      socket.on('kickedByAdmin', () => {
+        toast.error(t('room.kicked_toast', 'You have been removed from the meeting by the administrator.'));
+        router.push('/');
+      });
+
+      socket.on('reaction', (data: { emoji: string }) => {
+        // Spawn multiple emojis
+        const idBase = Date.now();
+        const newEmojis = Array.from({ length: Math.floor(Math.random() * 5) + 5 }).map((_, i) => ({
+          id: `${idBase}-${i}`,
+          emoji: data.emoji,
+          left: Math.random() * 80 + 10, // 10% to 90% across the screen
+          duration: Math.random() * 2 + 2, // 2s to 4s
+        }));
+
+        setFloatingEmojis((prev) => [...prev, ...newEmojis]);
+
+        // Auto-remove emojis after their animation finishes (max 4.5s buffer)
+        setTimeout(() => {
+          setFloatingEmojis((prev) => prev.filter(e => !newEmojis.some(n => n.id === e.id)));
+        }, 4500);
       });
 
       socket.emit('getUsers', { roomId });
@@ -129,6 +161,9 @@ function RoomContent() {
         socket.off('getUsers');
         socket.off('userJoined');
         socket.off('userLeft');
+        socket.off('meetingEnded');
+        socket.off('kickedByAdmin');
+        socket.off('reaction');
         socket.emit('leaveRoom', { roomId, userName });
       }
     };
@@ -315,7 +350,7 @@ function RoomContent() {
 
             <div key={activePanel} className="flex-1 overflow-hidden min-h-0 animate-fade-in flex flex-col">
               {activePanel === 'participants' && (
-                <ParticipantsList socket={socket} roomId={roomId} />
+                <ParticipantsList socket={socket} roomId={roomId} isAdmin={isAdmin} currentUserId={currentUserId} />
               )}
               {activePanel === 'chat' && (
                 <div className="flex-1 overflow-hidden min-h-0 relative">
@@ -358,6 +393,21 @@ function RoomContent() {
           userName={userName || ''}
         />
       </footer>
+      {/* ─── FLOATING EMOJIS OVERLAY ─── */}
+      <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+        {floatingEmojis.map((emoji) => (
+          <div
+            key={emoji.id}
+            className="absolute bottom-0 text-4xl animate-float-up opacity-0"
+            style={{
+              left: `${emoji.left}%`,
+              '--duration': `${emoji.duration}s`,
+            } as React.CSSProperties}
+          >
+            {emoji.emoji}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

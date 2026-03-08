@@ -31,11 +31,18 @@ const config: Config = {
       animation: {
         'fade-in': 'fadeIn 0.3s ease-in-out',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'float-up': 'floatUp var(--duration, 2s) ease-in-out forwards',
       },
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        floatUp: {
+          '0%': { opacity: '0', transform: 'translateY(0) scale(0.5)' },
+          '20%': { opacity: '1', transform: 'translateY(-20vh) scale(1.2)' },
+          '80%': { opacity: '1', transform: 'translateY(-80vh) scale(1)' },
+          '100%': { opacity: '0', transform: 'translateY(-100vh) scale(0.8)' },
         },
       },
     },

@@ -205,7 +205,8 @@
             "camera": "Impossible d'accéder à la caméra",
             "share": "Impossible de partager l'écran. Veuillez réessayer.",
             "admin_only": "Seul l'administrateur peut terminer la réunion"
-        }
+        },
+        "kicked_toast": "Vous avez été retiré de la réunion par l'administrateur."
     },
     "participants_list": {
         "title": "Participants",
@@ -213,7 +214,12 @@
         "admin": "Administrateur",
         "camera": "Caméra",
         "screen": "Écran",
-        "no_video": "Pas de vidéo"
+        "no_video": "Pas de vidéo",
+        "you": "Vous",
+        "kick": "Éjecter le participant",
+        "kick_confirm_title": "Éjecter le participant",
+        "kick_confirm_desc": "Êtes-vous sûr de vouloir retirer {{name}} de la réunion ?",
+        "kick_confirm_btn": "Éjecter"
     },
     "chat_box": {
         "title": "Chat de la réunion",

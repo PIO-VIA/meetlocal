@@ -489,6 +489,39 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('kickUser', ({ roomId, targetUserId }) => {
+        const room = roomManager.getRoom(roomId);
+        if (room) {
+            const admin = room.users.find(u => u.id === socket.id);
+            if (admin && admin.isCreator) {
+                const targetUserIndex = room.users.findIndex(u => u.id === targetUserId);
+                if (targetUserIndex !== -1) {
+                    const targetUser = room.users[targetUserIndex];
+
+                    // Notifier l'utilisateur ciblé qu'il a été éjecté
+                    io.to(targetUserId).emit('kickedByAdmin');
+
+                    // Nettoyer les ressources de l'utilisateur
+                    cleanupUserMedia(targetUserId, room);
+
+                    if (targetUser.isScreenSharing) {
+                        io.to(roomId).emit('screenStopped', { userName: targetUser.name, userId: targetUserId });
+                    }
+
+                    // Retirer l'utilisateur de la room
+                    room.users.splice(targetUserIndex, 1);
+
+                    // On fait quitter sa socket de la room côté Socket.IO via l'instance server global si on peut,
+                    // mais comme on émet 'kickedByAdmin', le client s'en chargera aussi.
+                    // On émet que l'utilisateur est parti pour mettre à jour les listes
+                    io.to(roomId).emit('userLeft', { userName: targetUser.name, userId: targetUserId });
+
+                    broadcastRoomsList();
+                }
+            }
+        }
+    });
+
     socket.on('message', ({ roomId, message, timestamp, file, replyTo }, callback) => {
         const room = roomManager.getRoom(roomId);
         if (room) {
