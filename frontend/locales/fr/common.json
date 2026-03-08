@@ -66,6 +66,12 @@
         "live": "En direct",
         "screen": "Écran"
     },
+    "notes": {
+        "title": "Notes personnelles",
+        "placeholder": "Prenez vos notes personnelles ici... Elles ne seront pas partagées avec les autres et sont sauvegardées temporairement.",
+        "export": "Exporter les notes",
+        "empty_export": "Rien à exporter"
+    },
     "create_meeting": {
         "title": "Créer une nouvelle réunion",
         "labels": {
@@ -167,10 +173,13 @@
             "show_participants": "Afficher les participants",
             "hide_chat": "Masquer le chat",
             "show_chat": "Afficher le chat",
+            "hide_notes": "Masquer les notes",
+            "show_notes": "Afficher les notes",
             "close_sidebar": "Fermer la sidebar"
         },
         "toast_error_join": "Impossible de rejoindre la réunion",
-        "chat": "Chat"
+        "chat": "Chat",
+        "notes": "Notes"
     },
     "controls": {
         "mic_on": "Activer le micro",

@@ -8,11 +8,12 @@ import ParticipantGrid from '@/components/Meeting/ParticipantGrid';
 import ControlButtons from '@/components/Meeting/ControlButtons';
 import ParticipantsList from '@/components/Meeting/ParticipantsList';
 import ChatBox from '@/components/Meeting/ChatBox';
+import PersonalNotes from '@/components/Meeting/PersonalNotes';
 import ServerConnectionPopup from '@/components/Meeting/ServerConnectionPopup';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import Tooltip from '@/components/shared/Tooltip';
 import LanguageSwitcher from '@/components/shared/LanguageSwitcher';
-import { MessageCircle, Users, Crown, Monitor } from 'lucide-react';
+import { MessageCircle, Users, Crown, Monitor, StickyNote } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import '@/lib/i18n'; // Initialize i18n
 import { useTranslation } from 'react-i18next';
@@ -63,11 +64,20 @@ function RoomContent() {
   } = useMediasoup(socket, roomId || '');
 
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showParticipants, setShowParticipants] = useState(false);
-  const [showChat, setShowChat] = useState(false);
+  const [activePanel, setActivePanel] = useState<'participants' | 'chat' | 'notes' | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [hasNewMessages, setHasNewMessages] = useState(false);
+
+  const togglePanel = (panel: 'participants' | 'chat' | 'notes') => {
+    setActivePanel(prev => {
+      const next = prev === panel ? null : panel;
+      if (next === 'chat') {
+        setHasNewMessages(false);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!roomId || !userName) {
@@ -161,10 +171,10 @@ function RoomContent() {
         <div className="flex gap-1 sm:gap-2 flex-shrink-0">
           <LanguageSwitcher />
           <ThemeToggle />
-          <Tooltip content={showParticipants ? t('room.tooltips.hide_participants') : t('room.tooltips.show_participants')} position="bottom">
+          <Tooltip content={activePanel === 'participants' ? t('room.tooltips.hide_participants') : t('room.tooltips.show_participants')} position="bottom">
             <button
-              onClick={() => setShowParticipants(!showParticipants)}
-              className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 ${showParticipants
+              onClick={() => togglePanel('participants')}
+              className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 ${activePanel === 'participants'
                 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
@@ -174,15 +184,10 @@ function RoomContent() {
               <span className="hidden md:inline">Participants</span>
             </button>
           </Tooltip>
-          <Tooltip content={showChat ? t('room.tooltips.hide_chat') : t('room.tooltips.show_chat')} position="bottom">
+          <Tooltip content={activePanel === 'chat' ? t('room.tooltips.hide_chat') : t('room.tooltips.show_chat')} position="bottom">
             <button
-              onClick={() => {
-                setShowChat(!showChat);
-                if (!showChat) {
-                  setHasNewMessages(false);
-                }
-              }}
-              className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 relative ${showChat
+              onClick={() => togglePanel('chat')}
+              className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 relative ${activePanel === 'chat'
                 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
@@ -190,9 +195,22 @@ function RoomContent() {
             >
               <MessageCircle size={14} className="sm:w-4 sm:h-4" />
               <span className="hidden md:inline">{t('room.chat')}</span>
-              {hasNewMessages && !showChat && (
+              {hasNewMessages && activePanel !== 'chat' && (
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse"></span>
               )}
+            </button>
+          </Tooltip>
+          <Tooltip content={activePanel === 'notes' ? t('room.tooltips.hide_notes') : t('room.tooltips.show_notes')} position="bottom">
+            <button
+              onClick={() => togglePanel('notes')}
+              className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 relative ${activePanel === 'notes'
+                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              aria-label="Afficher/Masquer les notes"
+            >
+              <StickyNote size={14} className="sm:w-4 sm:h-4" />
+              <span className="hidden md:inline">{t('room.notes')}</span>
             </button>
           </Tooltip>
         </div>
@@ -214,15 +232,12 @@ function RoomContent() {
         </div>
 
         {/* Sidebar avec couleurs douces - Responsive */}
-        {(showParticipants || showChat) && (
+        {activePanel !== null && (
           <aside className="fixed md:relative inset-0 md:inset-auto z-40 md:z-auto w-full md:w-80 lg:w-96 bg-white dark:bg-gray-800 md:border-l border-gray-200 dark:border-gray-700 flex flex-col shadow-lg md:animate-slide-in-right max-h-screen md:max-h-none">
             {/* Bouton fermer sur mobile */}
             <div className="md:hidden flex justify-end p-2 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
               <button
-                onClick={() => {
-                  setShowChat(false);
-                  setShowParticipants(false);
-                }}
+                onClick={() => setActivePanel(null)}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-900 dark:text-white"
                 aria-label={t('room.tooltips.close_sidebar')}
               >
@@ -232,21 +247,22 @@ function RoomContent() {
               </button>
             </div>
 
-            {showParticipants && (
-              <div className={showChat ? 'flex-1 border-b border-gray-200 dark:border-gray-700 overflow-hidden' : 'flex-1 overflow-hidden'}>
+            <div key={activePanel} className="flex-1 overflow-hidden min-h-0 animate-fade-in flex flex-col">
+              {activePanel === 'participants' && (
                 <ParticipantsList socket={socket} roomId={roomId} />
-              </div>
-            )}
-            {showChat && (
-              <div className={showParticipants ? 'flex-1 overflow-hidden min-h-0' : 'flex-1 overflow-hidden min-h-0'}>
+              )}
+              {activePanel === 'chat' && (
                 <ChatBox
                   socket={socket}
                   roomId={roomId}
                   userName={userName || ''}
-                  onNewMessage={() => !showChat && setHasNewMessages(true)}
+                  onNewMessage={() => activePanel !== 'chat' && setHasNewMessages(true)}
                 />
-              </div>
-            )}
+              )}
+              {activePanel === 'notes' && (
+                <PersonalNotes roomId={roomId} />
+              )}
+            </div>
           </aside>
         )}
       </div>

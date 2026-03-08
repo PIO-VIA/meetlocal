@@ -66,6 +66,12 @@
         "live": "Live",
         "screen": "Screen"
     },
+    "notes": {
+        "title": "Personal Notes",
+        "placeholder": "Write your personal notes here... They will not be shared with others. They are saved temporarily during this session.",
+        "export": "Export notes",
+        "empty_export": "Nothing to export"
+    },
     "create_meeting": {
         "title": "Create a new meeting",
         "labels": {
@@ -167,10 +173,13 @@
             "show_participants": "Show participants",
             "hide_chat": "Hide chat",
             "show_chat": "Show chat",
+            "hide_notes": "Hide notes",
+            "show_notes": "Show notes",
             "close_sidebar": "Close sidebar"
         },
         "toast_error_join": "Unable to join the meeting",
-        "chat": "Chat"
+        "chat": "Chat",
+        "notes": "Notes"
     },
     "controls": {
         "mic_on": "Enable microphone",
