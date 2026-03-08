@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Monitor, User } from 'lucide-react';
 
 interface VideoContainerProps {
@@ -9,11 +10,12 @@ interface VideoContainerProps {
   screenStream?: MediaStream | null;
 }
 
-export default function VideoContainer({ 
-  localStream, 
+export default function VideoContainer({
+  localStream,
   remoteStreams,
-  screenStream 
+  screenStream
 }: VideoContainerProps) {
+  const { t } = useTranslation();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);
 
@@ -43,7 +45,7 @@ export default function VideoContainer({
           />
           <div className="absolute top-2 left-2 bg-black/70 px-3 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2">
             <Monitor size={18} />
-            <span>Votre partage d'écran</span>
+            <span>{t('video_container.your_screen')}</span>
           </div>
         </div>
 
@@ -61,7 +63,7 @@ export default function VideoContainer({
               />
               <div className="absolute bottom-1 left-1 bg-black/60 px-2 py-1 rounded text-white text-xs flex items-center gap-1">
                 <User size={12} />
-                Vous
+                {t('participant.you')}
               </div>
             </div>
           )}
@@ -90,7 +92,7 @@ export default function VideoContainer({
           />
           <div className="absolute bottom-2 left-2 bg-black/50 px-3 py-1 rounded text-white text-sm flex items-center gap-1">
             <User size={14} />
-            Vous
+            {t('participant.you')}
           </div>
         </div>
       )}
@@ -104,6 +106,7 @@ export default function VideoContainer({
 }
 
 function RemoteVideo({ userId, stream }: { userId: string; stream: MediaStream }) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -122,7 +125,7 @@ function RemoteVideo({ userId, stream }: { userId: string; stream: MediaStream }
       />
       <div className="absolute bottom-2 left-2 bg-black/50 px-3 py-1 rounded text-white text-sm flex items-center gap-1">
         <User size={14} />
-        Participant {userId.slice(0, 6)}
+        {t('video_container.participant')} {userId.slice(0, 6)}
       </div>
     </div>
   );

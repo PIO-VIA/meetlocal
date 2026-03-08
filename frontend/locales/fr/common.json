@@ -29,8 +29,42 @@
         },
         "status": {
             "connected": "Connecté",
+            "connecting": "Connexion en cours...",
+            "reconnecting": "Reconnexion... ({{attempt}}/10)",
+            "error": "Erreur de connexion",
             "disconnected": "Déconnecté"
         }
+    },
+    "connection_status": {
+        "quality": {
+            "excellent": "Excellent",
+            "good": "Bon",
+            "fair": "Moyen",
+            "poor": "Faible"
+        },
+        "reconnect": "Reconnecter",
+        "actions_title": "📋 Actions possibles:",
+        "action_backend": "Vérifiez que le backend est démarré",
+        "action_health": "Vérifiez l'accès à"
+    },
+    "reactions": {
+        "title": "Réactions",
+        "lower_hand": "Baisser la main",
+        "raise_hand": "Lever la main"
+    },
+    "participant": {
+        "you": "Vous"
+    },
+    "video_container": {
+        "your_screen": "Votre partage d'écran",
+        "participant": "Participant"
+    },
+    "participant_grid": {
+        "user": "Utilisateur",
+        "fullscreen": "Plein écran",
+        "exit_fullscreen": "Quitter le plein écran (Échap)",
+        "live": "En direct",
+        "screen": "Écran"
     },
     "create_meeting": {
         "title": "Créer une nouvelle réunion",
@@ -137,6 +171,32 @@
         },
         "toast_error_join": "Impossible de rejoindre la réunion",
         "chat": "Chat"
+    },
+    "controls": {
+        "mic_on": "Activer le micro",
+        "mic_off": "Désactiver le micro",
+        "camera_on": "Démarrer la caméra",
+        "camera_off": "Arrêter la caméra",
+        "share_on": "Partager l'écran",
+        "share_off": "Arrêter le partage",
+        "leave": "Quitter la réunion",
+        "end_all": "Terminer la réunion pour tous",
+        "end": "Terminer",
+        "modal": {
+            "leave_title": "Quitter la réunion",
+            "leave_desc": "Êtes-vous sûr de vouloir quitter cette réunion ? Votre caméra et votre micro seront immédiatement désactivés.",
+            "leave_confirm": "Quitter",
+            "end_title": "Terminer la réunion",
+            "end_desc": "Êtes-vous sûr de vouloir arrêter définitivement cette réunion ? Tous les participants seront déconnectés.",
+            "end_confirm": "Terminer pour tous",
+            "cancel": "Annuler"
+        },
+        "errors": {
+            "mic": "Impossible d'accéder au microphone",
+            "camera": "Impossible d'accéder à la caméra",
+            "share": "Impossible de partager l'écran. Veuillez réessayer.",
+            "admin_only": "Seul l'administrateur peut terminer la réunion"
+        }
     },
     "participants_list": {
         "title": "Participants",

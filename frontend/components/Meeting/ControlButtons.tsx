@@ -5,6 +5,7 @@ import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
 import { MicOff, Mic, ScreenShare, ScreenShareOff, Video, VideoOff, PhoneOff, XSquare, MoreVertical, Hand } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
+import { useTranslation } from 'react-i18next';
 import Tooltip from '@/components/shared/Tooltip';
 import Reactions from './Reactions';
 import ConfirmationModal from './ConfirmationModal';
@@ -40,6 +41,7 @@ export default function ControlButtons({
   roomId,
   userName
 }: ControlButtonsProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const toast = useToast();
   const [isCameraOn, setIsCameraOn] = useState(false);
@@ -69,7 +71,7 @@ export default function ControlButtons({
           setIsAudioOnly(true);
           socket?.emit('startStream', { roomId });
         } catch (error) {
-          toast.error('Impossible d\'accéder au microphone');
+          toast.error(t('controls.errors.mic'));
         }
       }
     }
@@ -87,7 +89,7 @@ export default function ControlButtons({
         setIsCameraOn(true);
         socket?.emit('startStream', { roomId });
       } catch (error) {
-        toast.error('Impossible d\'accéder à la caméra');
+        toast.error(t('controls.errors.camera'));
       }
     }
   };
@@ -118,7 +120,7 @@ export default function ControlButtons({
           socket?.emit('startScreen', { roomId });
         } catch (error) {
           console.error('Erreur partage d\'écran:', error);
-          toast.error('Impossible de partager l\'écran. Veuillez réessayer.');
+          toast.error(t('controls.errors.share'));
         }
       }
     }
@@ -148,7 +150,7 @@ export default function ControlButtons({
   // End Meeting (Admin only)
   const handleEndMeeting = () => {
     if (!isAdmin) {
-      toast.warning('Seul l\'administrateur peut terminer la réunion');
+      toast.warning(t('controls.errors.admin_only'));
       return;
     }
     setModalType('end');
@@ -189,7 +191,7 @@ export default function ControlButtons({
           setIsAudioOnly(true);
           socket?.emit('startStream', { roomId });
         } catch (error) {
-          toast.error('Impossible d\'accéder au microphone');
+          toast.error(t('controls.errors.mic'));
         }
       }
     }
@@ -221,7 +223,7 @@ export default function ControlButtons({
   return (
     <div className="flex justify-center items-center gap-2 sm:gap-3 flex-wrap relative">
       {/* Microphone */}
-      <Tooltip content={isMicActive ? 'Désactiver le micro' : 'Activer le micro'} position="top">
+      <Tooltip content={isMicActive ? t('controls.mic_off') : t('controls.mic_on')} position="top">
         <button
           onClick={isMicActive ? handleStopMicrophone : handleToggleMicrophone}
           className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${isMicActive
@@ -234,7 +236,7 @@ export default function ControlButtons({
       </Tooltip>
 
       {/* Camera */}
-      <Tooltip content={isCameraOn ? 'Arrêter la caméra' : 'Démarrer la caméra'} position="top">
+      <Tooltip content={isCameraOn ? t('controls.camera_off') : t('controls.camera_on')} position="top">
         <button
           onClick={handleToggleCamera}
           className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${isCameraOn
@@ -254,7 +256,7 @@ export default function ControlButtons({
       />
 
       {/* Screen Share */}
-      <Tooltip content={isScreenSharing ? 'Arrêter le partage' : 'Partager l\'écran'} position="top">
+      <Tooltip content={isScreenSharing ? t('controls.share_off') : t('controls.share_on')} position="top">
         <button
           onClick={handleToggleScreenShare}
           className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white ${isScreenSharing
@@ -272,7 +274,7 @@ export default function ControlButtons({
       <div className="hidden sm:block w-px h-10 bg-gray-300 dark:bg-gray-600 mx-2"></div>
 
       {/* Leave Meeting */}
-      <Tooltip content="Quitter la réunion" position="top">
+      <Tooltip content={t('controls.leave')} position="top">
         <button
           onClick={handleLeaveMeeting}
           className="p-2.5 sm:p-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-all text-white"
@@ -283,14 +285,14 @@ export default function ControlButtons({
 
       {/* End Meeting (Admin only) */}
       {isAdmin && (
-        <Tooltip content="Terminer la réunion pour tous" position="top">
+        <Tooltip content={t('controls.end_all')} position="top">
           <button
             onClick={handleEndMeeting}
             className="px-3 py-2 sm:px-5 sm:py-3 rounded-full bg-red-600 hover:bg-red-700 transition-all font-medium text-white text-xs sm:text-sm"
           >
             <span className="flex items-center gap-1.5 sm:gap-2">
               <XSquare size={16} className="sm:w-5 sm:h-5" />
-              <span className="hidden xs:inline">Terminer</span>
+              <span className="hidden xs:inline">{t('controls.end')}</span>
             </span>
           </button>
         </Tooltip>
@@ -301,10 +303,10 @@ export default function ControlButtons({
         isOpen={modalType === 'leave'}
         onClose={() => setModalType(null)}
         onConfirm={confirmLeaveMeeting}
-        title="Quitter la réunion"
-        message="Êtes-vous sûr de vouloir quitter cette réunion ? Votre caméra et votre micro seront immédiatement désactivés."
-        confirmLabel="Quitter"
-        cancelLabel="Annuler"
+        title={t('controls.modal.leave_title')}
+        message={t('controls.modal.leave_desc')}
+        confirmLabel={t('controls.modal.leave_confirm')}
+        cancelLabel={t('controls.modal.cancel')}
         isDestructive={true}
       />
 
@@ -313,10 +315,10 @@ export default function ControlButtons({
         isOpen={modalType === 'end'}
         onClose={() => setModalType(null)}
         onConfirm={confirmEndMeeting}
-        title="Terminer la réunion"
-        message="Êtes-vous sûr de vouloir arrêter définitivement cette réunion ? Tous les participants seront déconnectés."
-        confirmLabel="Terminer pour tous"
-        cancelLabel="Annuler"
+        title={t('controls.modal.end_title')}
+        message={t('controls.modal.end_desc')}
+        confirmLabel={t('controls.modal.end_confirm')}
+        cancelLabel={t('controls.modal.cancel')}
         isDestructive={true}
       />
     </div>

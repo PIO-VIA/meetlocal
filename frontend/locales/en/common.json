@@ -29,8 +29,42 @@
         },
         "status": {
             "connected": "Connected",
+            "connecting": "Connecting...",
+            "reconnecting": "Reconnecting... ({{attempt}}/10)",
+            "error": "Connection Error",
             "disconnected": "Disconnected"
         }
+    },
+    "connection_status": {
+        "quality": {
+            "excellent": "Excellent",
+            "good": "Good",
+            "fair": "Fair",
+            "poor": "Poor"
+        },
+        "reconnect": "Reconnect",
+        "actions_title": "📋 Possible actions:",
+        "action_backend": "Check that the backend is running",
+        "action_health": "Check access to"
+    },
+    "reactions": {
+        "title": "Reactions",
+        "lower_hand": "Lower hand",
+        "raise_hand": "Raise hand"
+    },
+    "participant": {
+        "you": "You"
+    },
+    "video_container": {
+        "your_screen": "Your screen share",
+        "participant": "Participant"
+    },
+    "participant_grid": {
+        "user": "User",
+        "fullscreen": "Fullscreen",
+        "exit_fullscreen": "Exit fullscreen (Esc)",
+        "live": "Live",
+        "screen": "Screen"
     },
     "create_meeting": {
         "title": "Create a new meeting",
@@ -137,6 +171,32 @@
         },
         "toast_error_join": "Unable to join the meeting",
         "chat": "Chat"
+    },
+    "controls": {
+        "mic_on": "Enable microphone",
+        "mic_off": "Mute microphone",
+        "camera_on": "Start camera",
+        "camera_off": "Stop camera",
+        "share_on": "Share screen",
+        "share_off": "Stop sharing",
+        "leave": "Leave meeting",
+        "end_all": "End meeting for all",
+        "end": "End",
+        "modal": {
+            "leave_title": "Leave meeting",
+            "leave_desc": "Are you sure you want to leave this meeting? Your camera and microphone will be disabled immediately.",
+            "leave_confirm": "Leave",
+            "end_title": "End meeting",
+            "end_desc": "Are you sure you want to permanently end this meeting? All participants will be disconnected.",
+            "end_confirm": "End for all",
+            "cancel": "Cancel"
+        },
+        "errors": {
+            "mic": "Unable to access microphone",
+            "camera": "Unable to access camera",
+            "share": "Unable to share screen. Please try again.",
+            "admin_only": "Only the administrator can end the meeting"
+        }
     },
     "participants_list": {
         "title": "Participants",

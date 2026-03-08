@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
 import { AlertCircle, CheckCircle, Loader, WifiOff, Zap, RefreshCw } from 'lucide-react';
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'reconnecting';
@@ -19,12 +20,14 @@ export default function ConnectionStatus({
   latency = 0,
   onReconnect
 }: ConnectionStatusProps) {
+  const { t } = useTranslation();
+
   const getStatusConfig = () => {
     switch (status) {
       case 'connected':
         return {
           icon: CheckCircle,
-          text: 'Connecté',
+          text: t('app.status.connected'),
           bgColor: 'bg-green-100',
           textColor: 'text-green-800',
           borderColor: 'border-green-300',
@@ -33,7 +36,7 @@ export default function ConnectionStatus({
       case 'connecting':
         return {
           icon: Loader,
-          text: 'Connexion en cours...',
+          text: t('app.status.connecting'),
           bgColor: 'bg-blue-100',
           textColor: 'text-blue-800',
           borderColor: 'border-blue-300',
@@ -42,7 +45,7 @@ export default function ConnectionStatus({
       case 'reconnecting':
         return {
           icon: RefreshCw,
-          text: `Reconnexion... (${reconnectAttempts}/10)`,
+          text: t('app.status.reconnecting', { attempt: reconnectAttempts }),
           bgColor: 'bg-yellow-100',
           textColor: 'text-yellow-800',
           borderColor: 'border-yellow-300',
@@ -52,7 +55,7 @@ export default function ConnectionStatus({
       case 'error':
         return {
           icon: AlertCircle,
-          text: 'Erreur de connexion',
+          text: t('app.status.error'),
           bgColor: 'bg-red-100',
           textColor: 'text-red-800',
           borderColor: 'border-red-300',
@@ -62,7 +65,7 @@ export default function ConnectionStatus({
       default:
         return {
           icon: WifiOff,
-          text: 'Déconnecté',
+          text: t('app.status.disconnected'),
           bgColor: 'bg-gray-100',
           textColor: 'text-gray-800',
           borderColor: 'border-gray-300',
@@ -82,10 +85,10 @@ export default function ConnectionStatus({
   };
 
   const getLatencyQuality = () => {
-    if (latency < 50) return 'Excellent';
-    if (latency < 100) return 'Bon';
-    if (latency < 200) return 'Moyen';
-    return 'Faible';
+    if (latency < 50) return t('connection_status.quality.excellent');
+    if (latency < 100) return t('connection_status.quality.good');
+    if (latency < 200) return t('connection_status.quality.fair');
+    return t('connection_status.quality.poor');
   };
 
   return (
@@ -123,7 +126,7 @@ export default function ConnectionStatus({
               onClick={onReconnect}
               className="px-3 py-1 bg-white rounded text-xs font-semibold hover:bg-gray-50 transition-colors"
             >
-              Reconnecter
+              {t('connection_status.reconnect')}
             </button>
           )}
         </div>
@@ -132,11 +135,11 @@ export default function ConnectionStatus({
         {(status === 'error' || status === 'disconnected') && (
           <div className="mt-3 pt-3 border-t border-gray-200">
             <p className="text-xs text-gray-700 font-semibold mb-1">
-              📋 Actions possibles:
+              {t('connection_status.actions_title')}
             </p>
             <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
-              <li>Vérifiez que le backend est démarré</li>
-              <li>Vérifiez l'accès à {process.env.NEXT_PUBLIC_BACKEND_URL || '/api'}/health</li>
+              <li>{t('connection_status.action_backend')}</li>
+              <li>{t('connection_status.action_health')} {process.env.NEXT_PUBLIC_BACKEND_URL || '/api'}/health</li>
             </ol>
           </div>
         )}

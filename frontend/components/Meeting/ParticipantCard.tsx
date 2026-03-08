@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Mic, MicOff } from 'lucide-react';
 
 interface ParticipantCardProps {
@@ -18,6 +19,7 @@ export default function ParticipantCard({
   isMuted = false,
   className = ''
 }: ParticipantCardProps) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -122,13 +124,12 @@ export default function ParticipantCard({
           </span>
 
           {/* Indicateur micro */}
-          <div className={`p-1.5 rounded-full ${
-            isMuted
+          <div className={`p-1.5 rounded-full ${isMuted
               ? 'bg-red-500/90'
               : isSpeaking
                 ? 'bg-green-500/90 animate-pulse'
                 : 'bg-gray-600/90'
-          }`}>
+            }`}>
             {isMuted ? (
               <MicOff size={14} className="text-white" />
             ) : (
@@ -141,7 +142,7 @@ export default function ParticipantCard({
       {/* Badge "Vous" pour la vidéo locale */}
       {isLocal && (
         <div className="absolute top-3 right-3 bg-blue-500/90 px-3 py-1 rounded-full text-white text-xs font-medium">
-          Vous
+          {t('participant.you')}
         </div>
       )}
     </div>

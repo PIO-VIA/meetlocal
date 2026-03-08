@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Mic, MicOff, Crown, User, Monitor, Maximize2, Minimize2, X, Hand } from 'lucide-react';
 import { getParticipantColor, hexToRgb } from '@/lib/utils';
 import { Socket } from 'socket.io-client';
@@ -39,6 +40,7 @@ export default function ParticipantGrid({
   currentUserId,
   socket
 }: ParticipantGridProps) {
+  const { t } = useTranslation();
   const [fullscreenVideo, setFullscreenVideo] = useState<{ stream: MediaStream; participant: Participant } | null>(null);
   const [participantReactions, setParticipantReactions] = useState<Map<string, Reaction[]>>(new Map());
 
@@ -161,7 +163,7 @@ export default function ParticipantGrid({
                   <ScreenShareDisplay
                     stream={screenData.stream}
                     isLocal={screenData.isLocal}
-                    userName={participant?.name || 'Utilisateur'}
+                    userName={participant?.name || t('participant_grid.user')}
                     screenNumber={hasMultipleScreens ? index + 1 : undefined}
                     totalScreens={hasMultipleScreens ? allScreenStreams.length : undefined}
                     onFullscreen={() => participant && setFullscreenVideo({ stream: screenData.stream, participant })}
@@ -177,7 +179,7 @@ export default function ParticipantGrid({
           {localStream && (
             <div className="flex-shrink-0 w-32 h-24 md:w-full md:h-32 lg:h-36">
               <ParticipantCard
-                participant={participants.find(p => p.id === currentUserId) || { id: currentUserId || '', name: 'Vous' }}
+                participant={participants.find(p => p.id === currentUserId) || { id: currentUserId || '', name: t('participant.you') }}
                 stream={localStream}
                 isLocal={true}
                 isMiniature={true}
@@ -256,6 +258,7 @@ interface FullscreenVideoDisplayProps {
 }
 
 function FullscreenVideoDisplay({ stream, participant, onClose }: FullscreenVideoDisplayProps) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -288,7 +291,7 @@ function FullscreenVideoDisplay({ stream, participant, onClose }: FullscreenVide
         <button
           onClick={onClose}
           className="w-10 h-10 bg-gray-800/80 hover:bg-gray-700 rounded-full flex items-center justify-center transition backdrop-blur-sm"
-          title="Quitter le plein écran (Échap)"
+          title={t('participant_grid.exit_fullscreen')}
         >
           <X size={20} className="text-white" />
         </button>
@@ -312,6 +315,7 @@ interface ScreenShareDisplayProps {
 }
 
 function ScreenShareDisplay({ stream, isLocal, userName, screenNumber, totalScreens, onFullscreen }: ScreenShareDisplayProps) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -345,13 +349,13 @@ function ScreenShareDisplay({ stream, isLocal, userName, screenNumber, totalScre
 
           <div>
             <p className="text-white font-semibold text-xs sm:text-sm leading-tight">
-              {isLocal ? 'Votre partage d\'écran' : `${userName}`}
+              {isLocal ? t('video_container.your_screen') : `${userName}`}
             </p>
             <p className="text-white/80 text-[10px] sm:text-xs flex items-center gap-1">
               <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
-              En direct
+              {t('participant_grid.live')}
               {screenNumber && totalScreens && (
-                <span className="ml-1">• Écran {screenNumber}/{totalScreens}</span>
+                <span className="ml-1">• {t('participant_grid.screen')} {screenNumber}/{totalScreens}</span>
               )}
             </p>
           </div>
@@ -364,7 +368,7 @@ function ScreenShareDisplay({ stream, isLocal, userName, screenNumber, totalScre
           <button
             onClick={onFullscreen}
             className="group w-9 h-9 sm:w-11 sm:h-11 bg-black/70 hover:bg-black/90 backdrop-blur-md rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg border border-white/10"
-            title="Plein écran"
+            title={t('participant_grid.fullscreen')}
           >
             <Maximize2 size={16} className="sm:w-5 sm:h-5 text-white group-hover:text-blue-400 transition-colors" />
           </button>
@@ -396,6 +400,7 @@ interface ParticipantCardProps {
 }
 
 function ParticipantCard({ participant, stream, isLocal, isMiniature = false, onFullscreen, className = '', reactions = [] }: ParticipantCardProps) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -479,7 +484,7 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
           <button
             onClick={() => onFullscreen(stream, participant)}
             className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-lg flex items-center justify-center transition"
-            title="Plein écran"
+            title={t('participant_grid.fullscreen')}
           >
             <Maximize2 size={18} className="text-white" />
           </button>
@@ -612,7 +617,7 @@ function ParticipantCard({ participant, stream, isLocal, isMiniature = false, on
             <div>
               <p className={`text-white font-semibold ${isMiniature ? 'text-xs' : 'text-sm'} flex items-center gap-2 shadow-sm`}>
                 {participant.name}
-                {isLocal && <span className="text-xs text-gray-300">(Vous)</span>}
+                {isLocal && <span className="text-xs text-gray-300">({t('participant.you')})</span>}
                 {participant.isCreator && (
                   <Crown size={isMiniature ? 12 : 14} className="text-yellow-400" />
                 )}
