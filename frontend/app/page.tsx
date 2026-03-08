@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 import CreateMeetingForm from '@/components/Home/CreateMeetingForm';
 import JoinMeetingForm from '@/components/Home/JoinMeetingForm';
@@ -9,7 +9,9 @@ import ServerConnectionPopup from '@/components/Meeting/ServerConnectionPopup';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import LanguageSwitcher from '@/components/shared/LanguageSwitcher';
 import Footer from '@/components/shared/Footer';
-import { CircleDot, CircleOff, Shield, Zap, Video } from 'lucide-react';
+import OnboardingModal from '@/components/shared/OnboardingModal';
+import GuidedTour from '@/components/shared/GuidedTour';
+import { CircleDot, CircleOff, Shield, Zap, Video, HelpCircle } from 'lucide-react';
 import '@/lib/i18n'; // Initialize i18n
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
@@ -17,12 +19,68 @@ import { useTranslation } from 'react-i18next';
 export default function Home() {
   const { socket, isConnected, status, error } = useSocket();
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const done = localStorage.getItem('meetlocal_onboarding_done');
+      if (!done) {
+        setShowOnboarding(true);
+      }
+    }
+  }, []);
 
   return (
     <main className="min-h-screen bg-white dark:bg-gray-900 relative overflow-hidden transition-colors">
       {/* Popup de connexion au serveur */}
       <ServerConnectionPopup status={status} error={error} />
+
+      {/* ─── INTERACTIVE GUIDED TOUR ─── */}
+      {showOnboarding && (
+        <GuidedTour
+          onClose={() => setShowOnboarding(false)}
+          labels={{
+            next: t('onboarding.next'),
+            prev: t('onboarding.prev'),
+            finish: t('onboarding.finish'),
+            skip: t('onboarding.skip'),
+            of: t('onboarding.of'),
+          }}
+          steps={[
+            {
+              targetId: 'home-logo',
+              title: t('onboarding.step1.title'),
+              description: t('onboarding.step1.subtitle'),
+              placement: 'bottom',
+            },
+            {
+              targetId: 'create-tab',
+              title: t('onboarding.step1.create.title'),
+              description: t('onboarding.step1.create.desc'),
+              placement: 'bottom',
+            },
+            {
+              targetId: 'create-form',
+              title: t('onboarding.step1.create.form_title'),
+              description: t('onboarding.step1.create.form_desc'),
+              placement: 'left',
+            },
+            {
+              targetId: 'meeting-code',
+              title: t('onboarding.step1.code.title'),
+              description: t('onboarding.step1.code.desc'),
+              placement: 'top',
+            },
+            {
+              targetId: 'join-tab',
+              title: t('onboarding.step1.join.title'),
+              description: t('onboarding.step1.join.desc'),
+              placement: 'bottom',
+            },
+          ]}
+        />
+      )}
 
       {/* Background style Google Meet */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -32,7 +90,7 @@ export default function Home() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 relative z-10">
         {/* Header avec logo et statut - Responsive */}
         <div className="flex justify-between items-center mb-6 sm:mb-8">
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3" data-tour="home-logo">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700">
               <Image
                 src="/logo.png"
@@ -50,6 +108,14 @@ export default function Home() {
           <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSwitcher />
             <ThemeToggle />
+            <button
+              onClick={() => setShowOnboarding(true)}
+              className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-700 transition-colors"
+              title={t('onboarding.trigger')}
+            >
+              <HelpCircle size={14} />
+              <span className="hidden sm:inline">{t('onboarding.trigger')}</span>
+            </button>
             <span className={`inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium animate-fade-in ${isConnected
               ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
               : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
@@ -82,6 +148,7 @@ export default function Home() {
           {/* Tabs style Google Meet - Responsive */}
           <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 mb-6 sm:mb-8 w-full max-w-md sm:w-auto">
             <button
+              data-tour="create-tab"
               onClick={() => setActiveTab('create')}
               className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 rounded-md font-medium text-xs sm:text-sm transition-all ${activeTab === 'create'
                 ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
@@ -95,6 +162,7 @@ export default function Home() {
               <span className="sm:hidden">{t('app.tabs.create')}</span>
             </button>
             <button
+              data-tour="join-tab"
               onClick={() => setActiveTab('join')}
               className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 rounded-md font-medium text-xs sm:text-sm transition-all ${activeTab === 'join'
                 ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
@@ -110,7 +178,7 @@ export default function Home() {
           </div>
 
           {/* Forms container */}
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto" data-tour="create-form">
             <div className="animate-fade-in">
               {activeTab === 'create' ? (
                 <CreateMeetingForm socket={socket} />

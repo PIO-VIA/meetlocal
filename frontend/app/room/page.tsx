@@ -18,6 +18,7 @@ import { useToast } from '@/contexts/ToastContext';
 import '@/lib/i18n'; // Initialize i18n
 import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
+import GuidedTour from '@/components/shared/GuidedTour';
 
 
 interface Participant {
@@ -68,6 +69,18 @@ function RoomContent() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [hasNewMessages, setHasNewMessages] = useState(false);
+  const [showRoomTour, setShowRoomTour] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const done = localStorage.getItem('meetlocal_room_tour_done');
+      if (!done) {
+        // Small delay so the room UI has time to render
+        const timer = setTimeout(() => setShowRoomTour(true), 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
 
   const togglePanel = (panel: 'participants' | 'chat' | 'notes') => {
     setActivePanel(prev => {
@@ -131,9 +144,59 @@ function RoomContent() {
       {/* Popup de connexion au serveur */}
       <ServerConnectionPopup status={status} error={error} />
 
+      {/* ─── ROOM GUIDED TOUR ─── */}
+      {showRoomTour && (
+        <GuidedTour
+          onClose={() => {
+            setShowRoomTour(false);
+            localStorage.setItem('meetlocal_room_tour_done', '1');
+          }}
+          onFinish={() => localStorage.setItem('meetlocal_room_tour_done', '1')}
+          labels={{
+            next: t('onboarding.next'),
+            prev: t('onboarding.prev'),
+            finish: t('onboarding.finish'),
+            skip: t('onboarding.skip'),
+            of: t('onboarding.of'),
+          }}
+          steps={[
+            {
+              targetId: 'room-header',
+              title: t('onboarding.room.header.title'),
+              description: t('onboarding.room.header.desc'),
+              placement: 'bottom',
+            },
+            {
+              targetId: 'tour-participants-btn',
+              title: t('onboarding.room.participants.title'),
+              description: t('onboarding.room.participants.desc'),
+              placement: 'bottom',
+            },
+            {
+              targetId: 'tour-chat-btn',
+              title: t('onboarding.room.chat.title'),
+              description: t('onboarding.room.chat.desc'),
+              placement: 'bottom',
+            },
+            {
+              targetId: 'tour-notes-btn',
+              title: t('onboarding.room.notes.title'),
+              description: t('onboarding.room.notes.desc'),
+              placement: 'bottom',
+            },
+            {
+              targetId: 'tour-controls',
+              title: t('onboarding.room.controls.title'),
+              description: t('onboarding.room.controls.desc'),
+              placement: 'top',
+            },
+          ]}
+        />
+      )}
+
       {/* Header plus doux avec couleurs subtiles */}
       <header className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 sm:px-6 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1" data-tour="room-header">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden border border-gray-100 dark:border-gray-700">
               <Image
@@ -173,6 +236,7 @@ function RoomContent() {
           <ThemeToggle />
           <Tooltip content={activePanel === 'participants' ? t('room.tooltips.hide_participants') : t('room.tooltips.show_participants')} position="bottom">
             <button
+              data-tour="tour-participants-btn"
               onClick={() => togglePanel('participants')}
               className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 ${activePanel === 'participants'
                 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
@@ -186,6 +250,7 @@ function RoomContent() {
           </Tooltip>
           <Tooltip content={activePanel === 'chat' ? t('room.tooltips.hide_chat') : t('room.tooltips.show_chat')} position="bottom">
             <button
+              data-tour="tour-chat-btn"
               onClick={() => togglePanel('chat')}
               className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 relative ${activePanel === 'chat'
                 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
@@ -202,6 +267,7 @@ function RoomContent() {
           </Tooltip>
           <Tooltip content={activePanel === 'notes' ? t('room.tooltips.hide_notes') : t('room.tooltips.show_notes')} position="bottom">
             <button
+              data-tour="tour-notes-btn"
               onClick={() => togglePanel('notes')}
               className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 relative ${activePanel === 'notes'
                 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
@@ -275,7 +341,7 @@ function RoomContent() {
 
       {/* Controls avec design plus doux - MODIFIÉ pour responsive */}
       {/* ANCIEN: <footer className="bg-white p-4 border-t border-gray-200 shadow-sm"> */}
-      <footer className="bg-white dark:bg-gray-800 p-3 pb-4 sm:p-4 sm:pb-4 border-t border-gray-200 dark:border-gray-700 shadow-sm">
+      <footer className="bg-white dark:bg-gray-800 p-3 pb-4 sm:p-4 sm:pb-4 border-t border-gray-200 dark:border-gray-700 shadow-sm" data-tour="tour-controls">
         <ControlButtons
           localStream={localStream}
           audioStream={audioStream}

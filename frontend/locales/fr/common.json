@@ -239,5 +239,53 @@
         "made_with": "Fait avec",
         "by": "par PIO",
         "website": "Site Web"
+    },
+    "onboarding": {
+        "trigger": "Guide de démarrage",
+        "next": "Suivant",
+        "prev": "Retour",
+        "finish": "C'est parti !",
+        "skip": "Passer le tour",
+        "of": "sur",
+        "step1": {
+            "title": "Bienvenue sur LOCAL MEET 👋",
+            "subtitle": "Laissez-moi vous montrer la page d'accueil !",
+            "create": {
+                "title": "Créer une réunion",
+                "desc": "Cliquez sur cet onglet pour créer une nouvelle salle de réunion.",
+                "form_title": "Formulaire de création",
+                "form_desc": "Renseignez votre nom, le nom de la réunion, puis cliquez sur \"Démarrer la réunion\" pour lancer votre salle instantanément."
+            },
+            "code": {
+                "title": "Code de réunion",
+                "desc": "Générez un code aléatoire ou choisissez-en un personnalisé. Partagez-le pour que les participants puissent rejoindre directement."
+            },
+            "join": {
+                "title": "Rejoindre une réunion",
+                "desc": "Cliquez ici pour basculer sur \"Rejoindre\", puis entrez le code de la réunion pour accéder instantanément à une salle existante."
+            }
+        },
+        "room": {
+            "header": {
+                "title": "Salle de réunion 🎥",
+                "desc": "Voici votre salle de réunion. Le nom de la salle, le nombre de participants et le statut de connexion sont affichés ici."
+            },
+            "participants": {
+                "title": "Panneau participants",
+                "desc": "Cliquez sur ce bouton pour ouvrir la liste des participants et voir qui est connecté à la réunion."
+            },
+            "chat": {
+                "title": "Chat de la réunion",
+                "desc": "Ouvrez le chat pour envoyer des messages et des fichiers. Vous pouvez aussi répondre à des messages spécifiques, comme sur WhatsApp !"
+            },
+            "notes": {
+                "title": "Notes personnelles",
+                "desc": "Un bloc-notes privé visible uniquement par vous. Exportez vos notes en .txt avant la fin de la réunion."
+            },
+            "controls": {
+                "title": "Contrôles médias",
+                "desc": "Activez ou désactivez votre micro, caméra et partage d'écran. Le bouton rouge vous permet de quitter (ou terminer) la réunion."
+            }
+        }
     }
 }

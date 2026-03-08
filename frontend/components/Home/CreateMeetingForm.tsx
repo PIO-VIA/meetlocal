@@ -162,7 +162,7 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
         </div>
 
         {/* Option pour code personnalisé */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4" data-tour="meeting-code">
           <div className="flex items-center justify-between mb-3">
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
               <Key size={18} className="text-blue-600 dark:text-blue-400" />
@@ -175,8 +175,8 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
                 if (useCustomCode) setCustomCode('');
               }}
               className={`px-3 py-1 rounded-full text-xs font-medium transition ${useCustomCode
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
             >
               {useCustomCode ? t('create_meeting.labels.activated') : t('create_meeting.labels.deactivated')}
@@ -240,8 +240,8 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
           type="submit"
           disabled={loading || !socket}
           className={`w-full py-3 sm:py-4 px-4 sm:px-6 rounded-lg font-semibold text-white transition-all duration-200 transform text-sm sm:text-base ${loading || !socket
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-2xl hover:scale-[1.02] active:scale-95'
+            ? 'bg-gray-400 cursor-not-allowed'
+            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-2xl hover:scale-[1.02] active:scale-95'
             }`}
         >
           {loading ? (

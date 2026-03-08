@@ -239,5 +239,53 @@
         "made_with": "Made with",
         "by": "by PIO",
         "website": "Website"
+    },
+    "onboarding": {
+        "trigger": "Tour guide",
+        "next": "Next",
+        "prev": "Back",
+        "finish": "Get started!",
+        "skip": "Skip tour",
+        "of": "of",
+        "step1": {
+            "title": "Welcome to LOCAL MEET 👋",
+            "subtitle": "Let me show you around the home page!",
+            "create": {
+                "title": "Create a meeting",
+                "desc": "Click this tab to create a new meeting room.",
+                "form_title": "Meeting creation form",
+                "form_desc": "Fill in your name, the meeting name, then click \"Start meeting\" to instantly launch your room."
+            },
+            "code": {
+                "title": "Meeting code",
+                "desc": "Generate a random code or set a custom one. Share it with participants so they can join directly."
+            },
+            "join": {
+                "title": "Join a meeting",
+                "desc": "Click here to switch to \"Join\", then enter the meeting code to instantly join an existing room."
+            }
+        },
+        "room": {
+            "header": {
+                "title": "Meeting room 🎥",
+                "desc": "This is your meeting room. The room name, number of participants, and connection status are displayed here."
+            },
+            "participants": {
+                "title": "Participants panel",
+                "desc": "Click this button to open the participants list and see who is connected to the meeting."
+            },
+            "chat": {
+                "title": "Meeting chat",
+                "desc": "Open the chat to send messages and files. You can also reply to specific messages, like on WhatsApp!"
+            },
+            "notes": {
+                "title": "Personal notes",
+                "desc": "A private notepad visible only to you. You can export your notes as a .txt file before the meeting ends."
+            },
+            "controls": {
+                "title": "Media controls",
+                "desc": "Turn your microphone, camera, and screen sharing on/off. The red button lets you leave (or end) the meeting."
+            }
+        }
     }
 }
