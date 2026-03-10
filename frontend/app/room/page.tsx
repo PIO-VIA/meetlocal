@@ -13,7 +13,8 @@ import ServerConnectionPopup from '@/components/Meeting/ServerConnectionPopup';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import Tooltip from '@/components/shared/Tooltip';
 import LanguageSwitcher from '@/components/shared/LanguageSwitcher';
-import { MessageCircle, Users, Crown, Monitor, StickyNote } from 'lucide-react';
+import { MessageCircle, Users, Crown, Monitor, StickyNote, ClipboardList } from 'lucide-react';
+import Tableau from '@/components/Meeting/Tableau';
 import { useToast } from '@/contexts/ToastContext';
 import '@/lib/i18n'; // Initialize i18n
 import { useTranslation } from 'react-i18next';
@@ -72,7 +73,7 @@ function RoomContent() {
   } = useMediasoup(socket, roomId || '');
 
   const [isAdmin, setIsAdmin] = useState(false);
-  const [activePanel, setActivePanel] = useState<'participants' | 'chat' | 'notes' | null>(null);
+  const [activePanel, setActivePanel] = useState<'participants' | 'chat' | 'notes' | 'tableau' | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [hasNewMessages, setHasNewMessages] = useState(false);
@@ -90,7 +91,7 @@ function RoomContent() {
     }
   }, []);
 
-  const togglePanel = (panel: 'participants' | 'chat' | 'notes') => {
+  const togglePanel = (panel: 'participants' | 'chat' | 'notes' | 'tableau') => {
     setActivePanel(prev => {
       const next = prev === panel ? null : panel;
       if (next === 'chat') {
@@ -220,6 +221,12 @@ function RoomContent() {
               placement: 'bottom',
             },
             {
+              targetId: 'tour-tableau-btn',
+              title: t('onboarding.room.tableau.title'),
+              description: t('onboarding.room.tableau.desc'),
+              placement: 'bottom',
+            },
+            {
               targetId: 'tour-controls',
               title: t('onboarding.room.controls.title'),
               description: t('onboarding.room.controls.desc'),
@@ -314,6 +321,20 @@ function RoomContent() {
               <span className="hidden md:inline">{t('room.notes')}</span>
             </button>
           </Tooltip>
+          <Tooltip content={activePanel === 'tableau' ? t('tableau.tooltips.hide') : t('tableau.tooltips.show')} position="bottom">
+            <button
+              id="tour-tableau-btn"
+              onClick={() => togglePanel('tableau')}
+              className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 relative ${activePanel === 'tableau'
+                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              aria-label={activePanel === 'tableau' ? t('tableau.tooltips.hide') : t('tableau.tooltips.show')}
+            >
+              <ClipboardList size={14} className="sm:w-4 sm:h-4" />
+              <span className="hidden md:inline">{t('tableau.title')}</span>
+            </button>
+          </Tooltip>
         </div>
       </header>
 
@@ -368,6 +389,9 @@ function RoomContent() {
               )}
               {activePanel === 'notes' && (
                 <PersonalNotes roomId={roomId} />
+              )}
+              {activePanel === 'tableau' && (
+                <Tableau socket={socket} roomId={roomId} isAdmin={isAdmin} />
               )}
             </div>
           </aside>

@@ -72,6 +72,20 @@
         "export": "Export notes",
         "empty_export": "Nothing to export"
     },
+    "tableau": {
+        "title": "Tableau",
+        "read_only": "Read only",
+        "export": "Export (.txt)",
+        "clear": "Clear tableau",
+        "placeholder_admin": "Write the tableau content here...",
+        "placeholder_viewer": "Waiting for administrator content...",
+        "admin_hint": "Participants see your changes in real time.",
+        "empty_export": "The tableau is empty.",
+        "tooltips": {
+            "show": "Show tableau",
+            "hide": "Hide tableau"
+        }
+    },
     "create_meeting": {
         "title": "Create a new meeting",
         "labels": {
@@ -287,6 +301,10 @@
             "notes": {
                 "title": "Personal notes",
                 "desc": "A private notepad visible only to you. You can export your notes as a .txt file before the meeting ends."
+            },
+            "tableau": {
+                "title": "Meeting tableau 📋",
+                "desc": "A shared writing space. Only the administrator can write, and everyone can see and export the content."
             },
             "controls": {
                 "title": "Media controls",

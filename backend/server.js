@@ -656,6 +656,38 @@ io.on('connection', (socket) => {
         }
     });
 
+    // ==================== TABLEAU EVENTS ====================
+
+    socket.on('tableau:getState', ({ roomId }) => {
+        const room = roomManager.getRoom(roomId);
+        if (room) {
+            socket.emit('tableau:state', { content: room.tableauContent || '' });
+        }
+    });
+
+    socket.on('tableau:update', ({ roomId, content }) => {
+        const room = roomManager.getRoom(roomId);
+        if (room) {
+            const user = room.users.find(u => u.id === socket.id);
+            if (user && user.isCreator) {
+                room.tableauContent = content;
+                // Broadcast to all OTHER users in the room
+                socket.to(roomId).emit('tableau:update', { content });
+            }
+        }
+    });
+
+    socket.on('tableau:clear', ({ roomId }) => {
+        const room = roomManager.getRoom(roomId);
+        if (room) {
+            const user = room.users.find(u => u.id === socket.id);
+            if (user && user.isCreator) {
+                room.tableauContent = '';
+                io.to(roomId).emit('tableau:update', { content: '' });
+            }
+        }
+    });
+
     socket.on('disconnect', () => {
         console.log('❌ Client déconnecté:', socket.id);
 

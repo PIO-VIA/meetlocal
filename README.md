@@ -32,6 +32,7 @@
 - **🌍 Multilingue** : Support Français / Anglais (détection automatique)
 - **🎨 Interface moderne** : Design inspiré de Google Meet avec animations fluides
 - **🚀 Onboarding Interactif** : Guide de démarrage pas-à-pas (Spotlight tour)
+- **📋 Tableau de Réunion** : Espace de rédaction partagé (Admin) avec export `.txt`
 - **📝 Notes Personnelles** : Bloc-notes privé avec export `.txt`
 - **💬 Chat Avancé** : Système de réponses aux messages (style WhatsApp)
 - **📱 Multi-plateforme** : Fonctionne sur ordinateur, tablette et smartphone
@@ -95,13 +96,13 @@ Pour plus de détails, voir le [Guide d'installation](docs/installation.md).
 - [x] **Réponses aux messages** (Chat Threading)
 - [x] **Animations de panneaux** (Transition Participants/Chat/Notes)
 - [x] **Reactions emoji** en temps réel
+- [x] **Tableau de réunion collaboratif** (Admin write / Participant read)
 - [x] **Optimisation de la Grid** (Grid dynamique intelligente)
 
 ### Version 1.3 (En cours)
 - [ ] Enregistrement des réunions
 - [ ] Transcription automatique (Speech-to-Text)
 - [ ] Fond virtuel (Background blur/replace)
-- [ ] Tableau blanc collaboratif
 - [ ] Mode grille personnalisable
 - [ ] Statistiques de qualité réseau
 - [ ] Logs serveur améliorés (Winston)

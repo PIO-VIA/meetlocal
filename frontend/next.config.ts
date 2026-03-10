@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   // Webpack config pour Socket.IO
   webpack: (config, { isServer }) => {
     if (!isServer) {

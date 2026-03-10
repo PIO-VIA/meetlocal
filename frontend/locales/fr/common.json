@@ -72,6 +72,20 @@
         "export": "Exporter les notes",
         "empty_export": "Rien à exporter"
     },
+    "tableau": {
+        "title": "Tableau",
+        "read_only": "Lecture seule",
+        "export": "Exporter (.txt)",
+        "clear": "Effacer le tableau",
+        "placeholder_admin": "Rédigez le contenu du tableau ici...",
+        "placeholder_viewer": "En attente de contenu de l'administrateur...",
+        "admin_hint": "Les participants voient vos modifications en temps réel.",
+        "empty_export": "Le tableau est vide.",
+        "tooltips": {
+            "show": "Afficher le tableau",
+            "hide": "Masquer le tableau"
+        }
+    },
     "create_meeting": {
         "title": "Créer une nouvelle réunion",
         "labels": {
@@ -287,6 +301,10 @@
             "notes": {
                 "title": "Notes personnelles",
                 "desc": "Un bloc-notes privé visible uniquement par vous. Exportez vos notes en .txt avant la fin de la réunion."
+            },
+            "tableau": {
+                "title": "Tableau de réunion 📋",
+                "desc": "Un espace de rédaction partagé. Seul l'administrateur peut écrire, et tout le monde peut voir et exporter le contenu."
             },
             "controls": {
                 "title": "Contrôles médias",
