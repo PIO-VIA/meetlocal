@@ -4,23 +4,16 @@
  */
 
 import { io } from "socket.io-client";
-import https from "https";
 
-// ⚠️ METS ICI L'IP LOCALE DE TON SERVEUR
-const SERVER_URL = "https://localhost:3001";
-
-const ROOM_ID = "load-test-room";
-const ROOM_NAME = "LocalMeet Load Test";
+// CONFIGURATION VIA VARIABLES D'ENVIRONNEMENT OU DEFAUT
+const SERVER_URL = process.env.SERVER_URL || "http://localhost:3001";
+const ROOM_ID = process.env.ROOM_ID || "load-test-room";
+const ROOM_NAME = process.env.ROOM_NAME || "LocalMeet Load Test";
 
 // CONFIG TEST
-const TOTAL_USERS = 1000;     // nombre total simulé
-const STEP_USERS = 50;        // utilisateurs ajoutés par vague
-const STEP_DELAY = 5000;      // pause entre vagues (ms)
-
-// SSL local (certificat auto-signé)
-const httpsAgent = new https.Agent({
-  rejectUnauthorized: false
-});
+const TOTAL_USERS = parseInt(process.env.TOTAL_USERS) || 1000;    // nombre total simulé
+const STEP_USERS = parseInt(process.env.STEP_USERS) || 10;       // utilisateurs ajoutés par vague
+const STEP_DELAY = parseInt(process.env.STEP_DELAY) || 2000;     // pause entre vagues (ms)
 
 // STATS
 let connected = 0;
@@ -28,14 +21,15 @@ let joined = 0;
 let transports = 0;
 let errors = 0;
 
+console.log(`🚀 Démarrage du test de charge sur ${SERVER_URL}`);
+console.log(`👥 Cible : ${TOTAL_USERS} utilisateurs (${STEP_USERS} par vague toutes les ${STEP_DELAY}ms)`);
+
 function createClient(index) {
   const userName = `user_${index}`;
 
   const socket = io(SERVER_URL, {
     transports: ["websocket"],
-    secure: true,
-    reconnection: false,
-    agent: httpsAgent
+    reconnection: false
   });
 
   socket.on("connect", () => {
@@ -49,8 +43,8 @@ function createClient(index) {
         customRoomId: ROOM_ID
       });
     } else {
-      socket.emit("joinRoom", { roomId: ROOM_ID, userName }, () => {
-        joined++;
+      socket.emit("joinRoom", { roomId: ROOM_ID, userName }, (success) => {
+        if (success) joined++;
       });
     }
 
@@ -66,23 +60,33 @@ function createClient(index) {
     );
 
     // Ping périodique
-    setInterval(() => {
-      socket.emit("ping", () => { });
+    const pingInterval = setInterval(() => {
+      if (socket.connected) {
+        socket.emit("ping", () => { });
+      } else {
+        clearInterval(pingInterval);
+      }
     }, 10000);
 
     // Message chat
-    setInterval(() => {
-      socket.emit("message", {
-        roomId: ROOM_ID,
-        message: `hello from ${userName}`,
-        timestamp: new Date().toISOString()
-      });
+    const msgInterval = setInterval(() => {
+      if (socket.connected) {
+        socket.emit("message", {
+          roomId: ROOM_ID,
+          message: `hello from ${userName}`,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        clearInterval(msgInterval);
+      }
     }, 20000);
   });
 
   socket.on("connect_error", (err) => {
     errors++;
-    console.error("❌ Connexion error:", err.message);
+    if (errors % 10 === 0) {
+      console.error(`❌ Erreurs cumulées : ${errors}. Dernière erreur: ${err.message}`);
+    }
   });
 
   socket.on("disconnect", () => {
@@ -103,18 +107,13 @@ async function startLoadTest() {
 
     created += batch;
 
-    console.log(`
-🚀 LOAD STEP
-Clients créés     : ${created}
-Connectés         : ${connected}
-Rejoints room     : ${joined}
-Transports WebRTC : ${transports}
-Erreurs           : ${errors}
-Mémoire testeur   : ${(process.memoryUsage().rss / 1024 / 1024).toFixed(2)} MB
-    `);
+    process.stdout.write(`\r🚀 Créés: ${created} | Connectés: ${connected} | Rooms: ${joined} | WebRTC: ${transports} | Erreurs: ${errors} | Mémoire: ${(process.memoryUsage().rss / 1024 / 1024).toFixed(1)}MB`);
 
-    await new Promise(r => setTimeout(r, STEP_DELAY));
+    if (created < TOTAL_USERS) {
+      await new Promise(r => setTimeout(r, STEP_DELAY));
+    }
   }
+  console.log("\n✅ Tous les clients ont été lancés.");
 }
 
-startLoadTest();
+startLoadTest().catch(console.error);
