@@ -172,8 +172,6 @@ function broadcastUserList(roomId) {
 
 io.on('connection', (socket) => {
     console.log("SOCKET CONNECTED", socket.id);
-    console.log('🔌 NEW SOCKET CONNECTED:', socket.id);
-    console.log('✅ Client connecté logic start:', socket.id);
     socket.data.connectedAt = Date.now();
 
     // Initial Rooms List

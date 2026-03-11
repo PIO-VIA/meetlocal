@@ -27,21 +27,9 @@ module.exports = {
     // Mediasoup Worker settings
     worker: {
         rtcMinPort: Number(process.env.MEDIASOUP_MIN_PORT || 10000),
-        rtcMaxPort: Number(process.env.MEDIASOUP_MAX_PORT || 10100),
+        rtcMaxPort: Number(process.env.MEDIASOUP_MAX_PORT || 60000),
         logLevel: 'warn',
-        logTags: [
-            'info',
-            'ice',
-            'dtls',
-            'rtp',
-            'srtp',
-            'rtcp'
-            // 'rtx',
-            // 'bwe',
-            // 'score',
-            // 'simulcast',
-            // 'svc'
-        ]
+        logTags: []
     },
 
     // Mediasoup Router settings

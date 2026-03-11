@@ -1,12 +1,14 @@
 # 🚀 Installation
 
-## Prérequis
+## Prérequis logiciele
 
 - **Node.js** 20+ ([Télécharger](https://nodejs.org/))
 - **npm** 9+ (inclus avec Node.js)
 - **OpenSSL** (pour certificats SSL)
 - **Git** ([Télécharger](https://git-scm.com/))
 
+##  Prerequis materiel
+ - Essentiel : Augmente l' ulimit -n 65535 sur la machine qui fait tourner le serveur.
 ## Installation Rapide (Script Automatique)
 
 ### Installation en 3 étapes
