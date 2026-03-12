@@ -28,6 +28,171 @@ interface Message {
   };
 }
 
+// Composant interne pour chaque message afin de gérer les gestes et le swipe
+function MessageItem({ msg, userName, t, onReply, onDownload, formatTime, formatFileSize }: {
+  msg: Message,
+  userName: string,
+  t: any,
+  onReply: (m: Message) => void,
+  onDownload: (f: FileData) => void,
+  formatTime: (d: Date) => string,
+  formatFileSize: (b: number) => string
+}) {
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startX = useRef(0);
+  const SWIPE_THRESHOLD = 60;
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Ne pas capturer si on est sur un bouton ou un lien
+    if ((e.target as HTMLElement).closest('button')) return;
+
+    startX.current = e.clientX;
+    setIsDragging(true);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+
+    const diff = e.clientX - startX.current;
+    // On ne permet de swiper que vers la droite
+    if (diff > 0) {
+      // Résistance élastique progressive
+      const newX = diff > 100 ? 80 + (diff - 100) * 0.2 : diff * 0.8;
+      setDragX(Math.min(newX, 120));
+
+      // Petit feedback haptique si possible quand on dépasse le seuil
+      if (diff >= SWIPE_THRESHOLD && dragX < SWIPE_THRESHOLD && window.navigator.vibrate) {
+        window.navigator.vibrate(10);
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+
+    if (dragX >= SWIPE_THRESHOLD) {
+      onReply(msg);
+    }
+
+    setIsDragging(false);
+    setDragX(0);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  };
+
+  return (
+    <div
+      className={`group flex ${msg.isSystem
+        ? 'justify-center py-1'
+        : msg.userName === userName
+          ? 'justify-end'
+          : 'justify-start'
+        } ${msg.isSending ? 'opacity-50' : 'opacity-100'} transition-opacity relative touch-none`}
+      onPointerDown={msg.isSystem ? undefined : handlePointerDown}
+      onPointerMove={msg.isSystem ? undefined : handlePointerMove}
+      onPointerUp={msg.isSystem ? undefined : handlePointerUp}
+      onPointerCancel={msg.isSystem ? undefined : handlePointerUp}
+    >
+      {!msg.isSystem && (
+        <div
+          style={{ transform: `translateX(${dragX}px)` }}
+          className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-3 sm:px-4 py-2 relative group-hover:ring-1 group-hover:ring-blue-100 dark:group-hover:ring-gray-700 transition-all shadow-sm ${msg.userName === userName
+            ? 'bg-blue-600 text-white shadow-md'
+            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 shadow-sm'
+            } ${msg.userName === userName ? 'rounded-tr-sm' : 'rounded-tl-sm'} ${isDragging ? 'transition-none cursor-grabbing' : 'transition-transform duration-300'}`}
+        >
+          {/* Indicateur de réponse en arrière-plan (apparaît lors du swipe) */}
+          <div
+            className={`absolute right-full mr-3 top-1/2 -translate-y-1/2 transition-opacity duration-200 ${dragX > 20 ? 'opacity-100' : 'opacity-0'}`}
+          >
+            <div className={`p-1.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 shadow-sm transition-transform ${dragX >= SWIPE_THRESHOLD ? 'scale-125' : 'scale-100'}`}>
+              <Reply size={16} />
+            </div>
+          </div>
+
+          {/* Bouton de réponse flottant (Desktop hover) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onReply(msg);
+            }}
+            className={`absolute -right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all p-2 bg-white dark:bg-gray-700 rounded-full shadow-lg z-20 hidden sm:flex items-center justify-center border border-gray-100 dark:border-gray-600 hover:scale-110 active:scale-95 ${msg.userName === userName ? 'text-blue-600' : 'text-blue-500'}`}
+            title={t('chat_box.reply')}
+          >
+            <Reply size={16} className={msg.userName === userName ? 'transform -scale-x-100' : ''} />
+          </button>
+
+          {/* Message de réponse coté bulle WhatsApp */}
+          {msg.replyTo && (
+            <div className={`mb-2 p-2 rounded-lg border-l-4 text-xs sm:text-sm ${msg.userName === userName
+              ? 'bg-blue-700/50 border-blue-300 shadow-inner'
+              : 'bg-gray-50 dark:bg-gray-900/50 border-blue-500'
+              }`}
+            >
+              <p className={`font-semibold mb-0.5 ${msg.userName === userName ? 'text-blue-200' : 'text-blue-600 dark:text-blue-400'}`}>
+                {msg.replyTo.userName}
+              </p>
+              <p className={`line-clamp-2 ${msg.userName === userName ? 'text-blue-100' : 'text-gray-600 dark:text-gray-300'}`}>
+                {msg.replyTo.message}
+              </p>
+            </div>
+          )}
+
+          {msg.userName !== userName && (
+            <p className="text-xs font-semibold mb-0.5 text-blue-600 dark:text-blue-400">
+              {msg.userName}
+            </p>
+          )}
+          <p className="text-sm break-words select-none">{msg.message}</p>
+
+          {/* Affichage du fichier si présent */}
+          {msg.file && (
+            <div className={`mt-2 p-2.5 rounded-lg border ${msg.userName === userName
+              ? 'bg-blue-500 bg-opacity-30 border-blue-300'
+              : 'bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600'
+              }`}>
+              <div className="flex items-center gap-2">
+                <div className={`p-1.5 rounded ${msg.userName === userName ? 'bg-white bg-opacity-20' : 'bg-blue-50 dark:bg-blue-900/30'
+                  }`}>
+                  <FileIcon size={18} className={msg.userName === userName ? 'text-white' : 'text-blue-600 dark:text-blue-400'} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{msg.file.originalName}</p>
+                  <p className={`text-xs ${msg.userName === userName ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {formatFileSize(msg.file.size)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => onDownload(msg.file!)}
+                  className={`p-2 rounded-lg font-medium transition-all shadow-sm flex items-center gap-1.5 ${msg.userName === userName
+                    ? 'bg-white text-blue-600 hover:bg-blue-50'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                  title={t('chat_box.download')}
+                >
+                  <Download size={16} />
+                  <span className="text-xs hidden sm:inline">{t('chat_box.download')}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-1 mt-1">
+            <p className={`text-xs ${msg.userName === userName ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
+              {formatTime(msg.timestamp)}
+            </p>
+            {msg.isSending && (
+              <Loader2 size={10} className="animate-spin" />
+            )}
+          </div>
+        </div>
+      )}
+      {msg.isSystem && <p className="text-center text-gray-500 dark:text-gray-400 text-xs italic">{msg.message}</p>}
+    </div>
+  );
+}
+
 interface ChatBoxProps {
   socket: Socket | null;
   roomId: string;
@@ -290,116 +455,20 @@ export default function ChatBox({ socket, roomId, userName, onNewMessage }: Chat
             <p className="text-xs mt-1 text-gray-400 dark:text-gray-500">{t('chat_box.start_conversation')}</p>
           </div>
         ) : (
-          messages.map((msg) => (
-            <div
+          messages.map((msg: Message) => (
+            <MessageItem
               key={msg.id}
-              className={`group flex ${msg.isSystem
-                ? 'justify-center py-1'
-                : msg.userName === userName
-                  ? 'justify-end'
-                  : 'justify-start'
-                } ${msg.isSending ? 'opacity-50' : 'opacity-100'} transition-opacity relative`}
-            >
-              {!msg.isSystem && msg.userName !== userName && (
-                <button
-                  onClick={() => {
-                    setReplyingTo(msg);
-                    setTimeout(() => inputRef.current?.focus(), 0);
-                  }}
-                  className="absolute right-full mr-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 shadow-sm z-10 hidden sm:flex"
-                  title={t('chat_box.reply')}
-                >
-                  <Reply size={14} />
-                </button>
-              )}
-
-              {!msg.isSystem && (
-                <div
-                  className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-3 sm:px-4 py-2 relative ${msg.userName === userName
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 shadow-sm'
-                    } ${msg.userName === userName ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
-                >
-                  {/* Message de réponse coté bulle WhatsApp */}
-                  {msg.replyTo && (
-                    <div className={`mb-2 p-2 rounded-lg border-l-4 text-xs sm:text-sm ${msg.userName === userName
-                      ? 'bg-blue-700/50 border-blue-300 shadow-inner'
-                      : 'bg-gray-50 dark:bg-gray-900/50 border-blue-500'
-                      }`}
-                    >
-                      <p className={`font-semibold mb-0.5 ${msg.userName === userName ? 'text-blue-200' : 'text-blue-600 dark:text-blue-400'}`}>
-                        {msg.replyTo.userName}
-                      </p>
-                      <p className={`line-clamp-2 ${msg.userName === userName ? 'text-blue-100' : 'text-gray-600 dark:text-gray-300'}`}>
-                        {msg.replyTo.message}
-                      </p>
-                    </div>
-                  )}
-
-                  {msg.userName !== userName && (
-                    <p className="text-xs font-semibold mb-0.5 text-blue-600 dark:text-blue-400">
-                      {msg.userName}
-                    </p>
-                  )}
-                  <p className="text-sm break-words">{msg.message}</p>
-
-                  {/* Affichage du fichier si présent */}
-                  {msg.file && (
-                    <div className={`mt-2 p-2.5 rounded-lg border ${msg.userName === userName
-                      ? 'bg-blue-500 bg-opacity-30 border-blue-300'
-                      : 'bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600'
-                      }`}>
-                      <div className="flex items-center gap-2">
-                        <div className={`p-1.5 rounded ${msg.userName === userName ? 'bg-white bg-opacity-20' : 'bg-blue-50 dark:bg-blue-900/30'
-                          }`}>
-                          <FileIcon size={18} className={msg.userName === userName ? 'text-white' : 'text-blue-600 dark:text-blue-400'} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{msg.file.originalName}</p>
-                          <p className={`text-xs ${msg.userName === userName ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
-                            {formatFileSize(msg.file.size)}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleDownloadFile(msg.file!)}
-                          className={`p-2 rounded-lg font-medium transition-all shadow-sm flex items-center gap-1.5 ${msg.userName === userName
-                            ? 'bg-white text-blue-600 hover:bg-blue-50'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                            }`}
-                          title={t('chat_box.download')}
-                        >
-                          <Download size={16} />
-                          <span className="text-xs hidden sm:inline">{t('chat_box.download')}</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-end gap-1 mt-1">
-                    <p className={`text-xs ${msg.userName === userName ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
-                      {formatTime(msg.timestamp)}
-                    </p>
-                    {msg.isSending && (
-                      <Loader2 size={10} className="animate-spin" />
-                    )}
-                  </div>
-                </div>
-              )}
-              {msg.isSystem && <p className="text-center text-gray-500 dark:text-gray-400 text-xs italic">{msg.message}</p>}
-
-              {!msg.isSystem && msg.userName === userName && (
-                <button
-                  onClick={() => {
-                    setReplyingTo(msg);
-                    setTimeout(() => inputRef.current?.focus(), 0);
-                  }}
-                  className="absolute left-full ml-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 shadow-sm z-10 hidden sm:flex"
-                  title={t('chat_box.reply')}
-                >
-                  <Reply size={14} className="transform -scale-x-100" />
-                </button>
-              )}
-            </div>
+              msg={msg}
+              userName={userName}
+              t={t}
+              onReply={(m: Message) => {
+                setReplyingTo(m);
+                setTimeout(() => inputRef.current?.focus(), 0);
+              }}
+              onDownload={handleDownloadFile}
+              formatTime={formatTime}
+              formatFileSize={formatFileSize}
+            />
           ))
         )}
         <div ref={messagesEndRef} />

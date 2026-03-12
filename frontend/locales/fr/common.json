@@ -252,7 +252,9 @@
         "attach_file": "Joindre un fichier",
         "message_label": "Message à envoyer",
         "send_label": "Envoyer le message",
-        "chars_limit": "{{length}}/500 caractères"
+        "chars_limit": "{{length}}/500 caractères",
+        "reply": "Répondre",
+        "replying_to": "Réponse à"
     },
     "footer": {
         "rights": "© {{year}} LOCAL MEET",
