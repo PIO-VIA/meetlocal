@@ -1,12 +1,19 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Roboto_Mono } from 'next/font/google';
 import './globals.css';
 import { ToastProvider } from '@/contexts/ToastContext';
 import ThemeProvider from '@/components/providers/ThemeProvider';
 
 const inter = Inter({
   subsets: ['latin'],
-  preload: false,
+  display: 'swap',
+  variable: '--font-inter', 
+});
+
+const robotoMono = Roboto_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-roboto-mono',
 });
 
 export const metadata: Metadata = {
@@ -24,7 +31,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" suppressHydrationWarning>
+    // On ajoute les variables ici pour qu'elles soient accessibles partout
+    <html lang="fr" className={`${inter.variable} ${robotoMono.variable}`} suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider>
           <ToastProvider>
