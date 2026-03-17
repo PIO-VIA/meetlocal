@@ -78,8 +78,6 @@
         "export": "Exporter (.txt)",
         "clear": "Effacer le tableau",
         "placeholder_admin": "Rédigez le contenu du tableau ici...",
-        "placeholder_viewer": "En attente de contenu de l'administrateur...",
-        "admin_hint": "Les participants voient vos modifications en temps réel.",
         "empty_export": "Le tableau est vide.",
         "tooltips": {
             "show": "Afficher le tableau",

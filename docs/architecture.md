@@ -155,7 +155,7 @@ sequenceDiagram
 
 ### Optimisations Haut Débit
 - **Debounce Broadcasts** : Les listes d'utilisateurs et de salons sont émises avec un léger délai (100-200ms) pour éviter les tempêtes d'événements sous charge.
-- **Limites de Sécurité** : Plafond à 50 utilisateurs par salon et 300 salons simultanés pour protéger la RAM.
+- **Limites de Sécurité** : Pas de limite fixe par salon (optimisé pour >500), et 300 salons simultanés pour protéger la RAM.
 - **WebSocket-only** : Désactivation du polling Socket.IO pour réduire la latence et l'usage mémoire.
 
 ### Benchmarks (Optimisé)

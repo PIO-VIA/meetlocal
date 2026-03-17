@@ -454,13 +454,6 @@ io.on('connection', (socket) => {
         const room = roomManager.getRoom(roomId);
 
         if (room) {
-            // AJOUT : vérification de la capacité maximale
-            const activeCount = room.users.filter(u => !u.disconnected).length;
-            if (activeCount >= 50) { // RoomManager.MAX_USERS_PER_ROOM
-                callback(false, { error: 'ROOM_FULL', message: 'Cette salle est complète (50 participants max).' });
-                return;
-            }
-
             const existingUserIndex = room.users.findIndex(user => user.name === userName && user.disconnected);
             const nameIsTaken = room.users.some(user => user.name === userName && !user.disconnected &&
                 (existingUserIndex === -1 || user.id !== room.users[existingUserIndex].id));

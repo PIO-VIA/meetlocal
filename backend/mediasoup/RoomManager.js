@@ -13,7 +13,6 @@ class RoomManager {
 
     // Limites de sécurité
     static MAX_ROOMS = 300;
-    static MAX_USERS_PER_ROOM = 50;
     static CHAT_HISTORY_LIMIT = 100; // réduit pour économiser la RAM
 
     async createRoom(roomId, roomName, creatorName, socketId) {
