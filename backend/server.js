@@ -54,14 +54,43 @@ const io = new Server(server, {
         methods: ['GET', 'POST'],
         credentials: true
     },
+    // Forcer WebSocket uniquement — le polling crée 2× plus de connexions
+    transports: ['websocket'],
+    allowEIO3: true,
+
+    // Timeouts optimisés pour la charge
     pingTimeout: 60000,
     pingInterval: 25000,
-    transports: ['websocket', 'polling'],
-    allowEIO3: true
+    connectTimeout: 20000,
+
+    // Buffer augmenté pour les transferts de fichiers (50 MB)
+    maxHttpBufferSize: 5e7,
+
+    // Compression des messages (réduit la bande passante ~30-40%)
+    perMessageDeflate: {
+        threshold: 1024,
+        zlibDeflateOptions: { level: 1 }, // niveau 1 = rapide, peu de CPU
+        zlibInflateOptions: { chunkSize: 10 * 1024 },
+    },
 });
 console.log("IO CREATED");
 
 const PORT = 3001;
+
+// Monitoring mémoire toutes les 30 secondes
+setInterval(() => {
+    const mem = process.memoryUsage();
+    const heapMB = Math.round(mem.heapUsed / 1024 / 1024);
+    const rssMB = Math.round(mem.rss / 1024 / 1024);
+    const rooms = roomManager.getAllRooms().length;
+    const totalUsers = roomManager.getAllRooms().reduce((acc, r) => acc + r.users.length, 0);
+
+    if (heapMB > 1500) {
+        console.warn(`⚠️  Mémoire haute : heap=${heapMB}MB RSS=${rssMB}MB rooms=${rooms} users=${totalUsers}`);
+    } else {
+        console.log(`📊 heap=${heapMB}MB RSS=${rssMB}MB rooms=${rooms} users=${totalUsers}`);
+    }
+}, 30000);
 
 // Écouter les crashs de workers pour nettoyer les rooms
 workerManager.on('workerDied', (pid) => {
@@ -136,36 +165,49 @@ app.get('/download-file/:filename', (req, res) => {
 
 // ==================== HELPER ====================
 
+// Debounce pour éviter les broadcasts en rafale sous charge
+let _broadcastTimer = null;
+
 function broadcastRoomsList() {
-    const roomsList = roomManager.getAllRooms().map((room) => {
-        const activeUsers = room.users.filter(user => !user.disconnected);
-        const disconnectedUsers = room.users.filter(user => user.disconnected).length;
+    if (_broadcastTimer) return; // déjà programmé, on attend
+    _broadcastTimer = setTimeout(() => {
+        _broadcastTimer = null;
+        const roomsList = roomManager.getAllRooms().map((room) => {
+            const activeUsers = room.users.filter(user => !user.disconnected);
+            const disconnectedUsers = room.users.filter(user => user.disconnected).length;
 
-        return {
-            id: room.id,
-            name: room.name,
-            persistent: room.persistent === true,
-            users: activeUsers.map(user => ({
-                name: user.name,
-                isCreator: user.isCreator,
-                isStreaming: user.isStreaming,
-                isScreenSharing: user.isScreenSharing,
-                isHandRaised: user.isHandRaised || false
-            })),
-            disconnectedUsers: disconnectedUsers,
-            totalUsers: room.users.length
-        };
-    });
+            return {
+                id: room.id,
+                name: room.name,
+                persistent: room.persistent === true,
+                users: activeUsers.map(user => ({
+                    name: user.name,
+                    isCreator: user.isCreator,
+                    isStreaming: user.isStreaming,
+                    isScreenSharing: user.isScreenSharing,
+                    isHandRaised: user.isHandRaised || false
+                })),
+                disconnectedUsers: disconnectedUsers,
+                totalUsers: room.users.length
+            };
+        });
 
-    io.emit('roomsList', roomsList);
+        io.emit('roomsList', roomsList);
+    }, 200); // regroupe toutes les émissions dans une fenêtre de 200ms
 }
 
+const _userListTimers = new Map();
+
 function broadcastUserList(roomId) {
-    const room = roomManager.getRoom(roomId);
-    if (room) {
-        const activeUsers = room.users.filter(u => !u.disconnected);
-        io.to(roomId).emit('getUsers', activeUsers);
-    }
+    if (_userListTimers.has(roomId)) return;
+    _userListTimers.set(roomId, setTimeout(() => {
+        _userListTimers.delete(roomId);
+        const room = roomManager.getRoom(roomId);
+        if (room) {
+            const activeUsers = room.users.filter(u => !u.disconnected);
+            io.to(roomId).emit('getUsers', activeUsers);
+        }
+    }, 100));
 }
 
 // ==================== SOCKET.IO EVENTS ====================
@@ -412,6 +454,13 @@ io.on('connection', (socket) => {
         const room = roomManager.getRoom(roomId);
 
         if (room) {
+            // AJOUT : vérification de la capacité maximale
+            const activeCount = room.users.filter(u => !u.disconnected).length;
+            if (activeCount >= 50) { // RoomManager.MAX_USERS_PER_ROOM
+                callback(false, { error: 'ROOM_FULL', message: 'Cette salle est complète (50 participants max).' });
+                return;
+            }
+
             const existingUserIndex = room.users.findIndex(user => user.name === userName && user.disconnected);
             const nameIsTaken = room.users.some(user => user.name === userName && !user.disconnected &&
                 (existingUserIndex === -1 || user.id !== room.users[existingUserIndex].id));
@@ -536,7 +585,9 @@ io.on('connection', (socket) => {
 
                 room.chatHistory = room.chatHistory || [];
                 room.chatHistory.push(msgData);
-                if (room.chatHistory.length > 200) room.chatHistory.shift();
+
+                // MODIFICATION : réduire la limite de 200 à 100
+                if (room.chatHistory.length > 100) room.chatHistory.shift();
 
                 io.to(roomId).emit('message', msgData);
                 if (callback) callback({ success: true });

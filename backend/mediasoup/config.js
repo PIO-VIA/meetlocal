@@ -19,15 +19,15 @@ const SERVER_IP = process.env.MEDIASOUP_LISTEN_IP || getLocalIP();
 module.exports = {
     // Number of mediasoup workers to launch
     // Default to number of CPU cores if not specified
-    numWorkers: process.env.MEDIASOUP_WORKERS ? parseInt(process.env.MEDIASOUP_WORKERS) : Object.keys(os.cpus()).length,
+    numWorkers: process.env.MEDIASOUP_WORKERS ? parseInt(process.env.MEDIASOUP_WORKERS) : Math.max(1, os.cpus().length - 1),
 
     // Server IP configuration
     serverIp: SERVER_IP,
 
     // Mediasoup Worker settings
     worker: {
-        rtcMinPort: Number(process.env.MEDIASOUP_MIN_PORT || 10000),
-        rtcMaxPort: Number(process.env.MEDIASOUP_MAX_PORT || 60000),
+        rtcMinPort: Number(process.env.MEDIASOUP_MIN_PORT || 20000),
+        rtcMaxPort: Number(process.env.MEDIASOUP_MAX_PORT || 59999),
         logLevel: 'warn',
         logTags: []
     },
@@ -73,9 +73,9 @@ module.exports = {
         enableUdp: true,
         enableTcp: true,
         preferUdp: true,
-        initialAvailableOutgoingBitrate: 1000000,
-        minimumAvailableOutgoingBitrate: 600000,
+        initialAvailableOutgoingBitrate: 600000,
+        minimumAvailableOutgoingBitrate: 200000,
         maxSctpMessageSize: 262144,
-        maxIncomingBitrate: 1500000
+        maxIncomingBitrate: 1000000
     }
 };

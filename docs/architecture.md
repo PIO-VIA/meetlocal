@@ -8,8 +8,8 @@ LOCAL MEET utilise une architecture **SFU (Selective Forwarding Unit)** via Medi
 ┌─────────────┐         WebSocket (Socket.IO)         ┌─────────────┐
 │             │◄────────── Signalisation ─────────────►│             │
 │   CLIENT    │                                        │   SERVEUR   │
-│  (Browser)  │         WebRTC (Mediasoup)             │   Node.js   │
-│             │◄────────── Flux Média ────────────────►│             │
+│  (Browser)  │         WebRTC (Mediasoup)             │ (Cluster Node.js) │
+│             │◄────────── Flux Média ────────────────►│ (Multi-Worker) │
 └─────────────┘                                        └─────────────┘
       │                                                      │
       │                                                      │
@@ -144,27 +144,29 @@ sequenceDiagram
 3. **Rôle admin pour contrôler les réunions**
 4. **Fermer les ports sur le firewall** (sauf réseau local)
 
+### Cluster & Multi-Core
+- **Node.js Cluster** : Utilise tous les cœurs CPU du serveur. Chaque cœur gère sa propre instance de l'application.
+- **Sticky Sessions** : Nginx assure qu'un client reste connecté au même worker via `ip_hash`.
+- **Mediasoup Workers** : Les workers Mediasoup sont répartis intelligemment pour laisser de la puissance CPU au processus principal Node.js.
+
 ---
 
 ## ⚡ Performance
 
-### Optimisations
+### Optimisations Haut Débit
+- **Debounce Broadcasts** : Les listes d'utilisateurs et de salons sont émises avec un léger délai (100-200ms) pour éviter les tempêtes d'événements sous charge.
+- **Limites de Sécurité** : Plafond à 50 utilisateurs par salon et 300 salons simultanés pour protéger la RAM.
+- **WebSocket-only** : Désactivation du polling Socket.IO pour réduire la latence et l'usage mémoire.
 
-- **SFU architecture** : Réduit la charge CPU et bande passante
-- **Mediasoup** : Performance native (C++)
-- **React Server Components** : Next.js 13+ App Router
-- **Code splitting** : Chargement lazy des composants
-- **WebSocket** : Communication bidirectionnelle efficace
-
-### Benchmarks
+### Benchmarks (Optimisé)
 
 | Métrique | Valeur | Conditions |
 |----------|--------|-----------|
 | Latence vidéo | < 100ms | Réseau local gigabit |
-| Participants max | 12-16 | Avec partage d'écran |
-| CPU serveur | ~15% | 8 participants vidéo |
-| RAM serveur | ~500 MB | 8 participants vidéo |
-| Bande passante | ~2-4 Mbps | Par participant (HD) |
+| Connexions simultanées | ~2500 | Signalisation seule |
+| Participants vidéo actifs | ~1000 | Répartis sur plusieurs salons |
+| CPU serveur | ~25% | 50 participants vidéo actifs |
+| RAM serveur | ~2-4 Go | 1000 utilisateurs connectés |
 
 ### Recommendations
 

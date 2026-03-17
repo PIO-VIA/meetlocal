@@ -11,9 +11,19 @@ class RoomManager {
         this.consumerToRoom = new Map();  // consumerId -> roomId
     }
 
+    // Limites de sécurité
+    static MAX_ROOMS = 300;
+    static MAX_USERS_PER_ROOM = 50;
+    static CHAT_HISTORY_LIMIT = 100; // réduit pour économiser la RAM
+
     async createRoom(roomId, roomName, creatorName, socketId) {
         if (this.rooms.has(roomId)) {
             throw new Error('ID_ALREADY_EXISTS');
+        }
+
+        // AJOUT : vérification du nombre maximum de rooms
+        if (this.rooms.size >= RoomManager.MAX_ROOMS) {
+            throw new Error('MAX_ROOMS_REACHED');
         }
 
         // 1. Get a worker
@@ -47,7 +57,14 @@ class RoomManager {
             producers: new Map(),
             consumers: new Map(),
             // Chat history
-            chatHistory: []
+            chatHistory: [],
+            // AJOUT : nettoyage automatique de l'historique
+            get chatHistoryLimited() {
+                if (this.chatHistory.length > RoomManager.CHAT_HISTORY_LIMIT) {
+                    this.chatHistory = this.chatHistory.slice(-RoomManager.CHAT_HISTORY_LIMIT);
+                }
+                return this.chatHistory;
+            }
         };
 
         this.rooms.set(roomId, room);

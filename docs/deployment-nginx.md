@@ -52,8 +52,20 @@ Si vous préférez gérer le fichier manuellement, créez le fichier `/etc/nginx
 sudo nano /etc/nginx/sites-available/visio
 ```
 
-Collez-y ce modèle (en adaptant les chemins et ports) :
+Collez-y ce modèle optimisé pour la haute charge :
+
 ```nginx
+upstream backend_nodes {
+    ip_hash;
+    server 127.0.0.1:3001;
+    keepalive 512;
+}
+
+upstream frontend_nodes {
+    server 127.0.0.1:3000;
+    keepalive 256;
+}
+
 server {
     listen 443 ssl;
     server_name localhost;
@@ -61,21 +73,41 @@ server {
     ssl_certificate     /chemin/vers/votre/cert.pem;
     ssl_certificate_key /chemin/vers/votre/key.pem;
 
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_timeout 1d;
+
     location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_pass http://frontend_nodes;
         proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Pour le hot-reload Next.js en dev (WebSocket HMR)
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
     }
 
     location /api/ {
-        proxy_pass http://127.0.0.1:3001/;
+        proxy_pass http://backend_nodes/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        # Timeouts longs pour les WebSocket
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_connect_timeout 10s;
+
+        # Désactiver le buffering pour les WebSocket
+        proxy_buffering off;
     }
 }
 ```

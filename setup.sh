@@ -121,6 +121,17 @@ echo -e "\n${BLUE}⚙️  8. Configuration de Nginx...${NC}"
 NGINX_CONF="/etc/nginx/sites-available/meetlocal"
 
 cat > meetlocal_nginx.tmp << EOF
+upstream backend_nodes {
+    ip_hash;
+    server 127.0.0.1:$BACKEND_PORT;
+    keepalive 512;
+}
+
+upstream frontend_nodes {
+    server 127.0.0.1:$FRONTEND_PORT;
+    keepalive 256;
+}
+
 server {
     listen 443 ssl;
     server_name $LOCAL_IP;
@@ -128,23 +139,51 @@ server {
     ssl_certificate     $(pwd)/backend/ssl/cert.pem;
     ssl_certificate_key $(pwd)/backend/ssl/key.pem;
 
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_timeout 1d;
+
     location / {
-        proxy_pass http://127.0.0.1:$FRONTEND_PORT;
+        proxy_pass http://frontend_nodes;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_http_version 1.1;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+
+        # Pour le hot-reload Next.js en dev (WebSocket HMR)
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
     }
 
     location /api/ {
-        proxy_pass http://127.0.0.1:$BACKEND_PORT/;
+        proxy_pass http://backend_nodes/;
         proxy_http_version 1.1;
+
+        # Headers WebSocket obligatoires
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+
+        # Timeouts longs pour les WebSocket
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_connect_timeout 10s;
+
+        # Désactiver le buffering pour les WebSocket
+        proxy_buffering off;
     }
+}
+
+# Redirection HTTP → HTTPS
+server {
+    listen 80;
+    server_name $LOCAL_IP;
+    return 301 https://\$host\$request_uri;
 }
 EOF
 
@@ -168,4 +207,7 @@ echo -e "${GREEN}🎉 INSTALLATION TERMINÉE !${NC}"
 echo -e "Vous pouvez maintenant lancer l'application avec :"
 echo -e "${CYAN}./start-local-meet.sh${NC}"
 echo -e "L'application sera accessible sur : ${YELLOW}https://$LOCAL_IP${NC}"
+echo -e "\n${IMPORTANT}🚀 OPTIMISATION HAUTE PERFORMANCE :${NC}"
+echo -e "Pour supporter jusqu'à 2500 connexions, il est fortement recommandé de lancer :"
+echo -e "${CYAN}sudo ./scripts/optimize_os.sh${NC} (puis de redémarrer)"
 echo -e "═══════════════════════════════════════\n"

@@ -49,10 +49,13 @@ open_browser() {
 }
 
 echo -e "${BLUE}🚀 Démarrage du backend (sur le port $BACKEND_PORT)...${NC}"
-cd backend
-PORT=$BACKEND_PORT NODE_ENV=development npm start > ../backend.log 2>&1 &
+PORT=$BACKEND_PORT \
+NODE_ENV=production \
+UV_THREADPOOL_SIZE=16 \
+node --max-old-space-size=4096 \
+     --max-semi-space-size=64 \
+     backend/cluster.js > backend.log 2>&1 &
 BACKEND_PID=$!
-cd ..
 
 echo -e "${YELLOW}⏳ Attente du backend...${NC}"
 sleep 3

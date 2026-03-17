@@ -2,13 +2,17 @@
 
 ## Prérequis logiciele
 
-- **Node.js** 20+ ([Télécharger](https://nodejs.org/))
+- **Node.js** 20+ ([Télécharger](https://nodejs.js.org/))
 - **npm** 9+ (inclus avec Node.js)
 - **OpenSSL** (pour certificats SSL)
 - **Git** ([Télécharger](https://git-scm.com/))
+- **Privilèges Root** (pour les optimisations système)
 
-##  Prerequis materiel
- - Essentiel : Augmente l' ulimit -n 65535 sur la machine qui fait tourner le serveur.
+## 💻 Prérequis matériel & Système
+- **CPU** : i5-6200U (ou équivalent) 4 cœurs pour ~1000 connexions.
+- **RAM** : 8 Go recommandé.
+- **OS** : Linux (Ubuntu/Debian préféré pour les scripts d'optimisation).
+- **Réseau** : Ethernet Gigabit fortement recommandé.
 ## Installation Rapide (Script Automatique)
 
 ### Installation en 3 étapes
@@ -18,10 +22,17 @@
 git clone https://github.com/PIO-VIA/meetlocal.git
 cd meetlocal
 
-# 2. Rendre le script exécutable
-chmod +x start-local-meet.sh
+# 2. Rendre les scripts exécutables
+chmod +x setup.sh start-local-meet.sh scripts/optimize_os.sh
 
-# 3. Lancer l'application
+# 3. Lancer l'installation (à faire une seule fois)
+./setup.sh
+
+# 4. Appliquer les optimisations système (Hautement recommandé)
+sudo ./scripts/optimize_os.sh
+# Un redémarrage est recommandé après cette étape
+
+# 5. Lancer l'application
 ./start-local-meet.sh
 ```
 

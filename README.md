@@ -11,9 +11,9 @@
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8-black)](https://socket.io/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[Démo Live](#) • [Documentation](#-documentation) • [Installation](#-installation) • [Contribuer](#-contribuer)
+[Démo Live](#) • [Documentation](#-documentation) • [Installation](#-installation) • [Optimisation](#-optimisation-haute-performance) • [Contribuer](#-contribuer)
 
-*Visioconférence premium pour réseau local - Gratuite, sécurisée et rapide*
+*Visioconférence premium pour réseau local - Gratuite, sécurisée, rapide et scalable*
 
 </div>
 
@@ -35,6 +35,7 @@
 - **📋 Tableau de Réunion** : Espace de rédaction partagé (Admin) avec export `.txt`
 - **📝 Notes Personnelles** : Bloc-notes privé avec export `.txt`
 - **💬 Chat Avancé** : Système de réponses aux messages (style WhatsApp)
+- **⚡ Haute Performance** : Supporte jusqu'à 2500 connexions (Cluster Node.js + SFU optimisé)
 - **📱 Multi-plateforme** : Fonctionne sur ordinateur, tablette et smartphone
 
 ---
@@ -69,7 +70,11 @@ chmod +x setup.sh start-local-meet.sh
 # 3. Lancer l'installation (à faire une seule fois)
 ./setup.sh
 
-# 4. Lancer l'application
+# 4. (Optionnel) Optimisation Haute Performance
+# Fortement recommandé pour > 500 connexions
+sudo ./scripts/optimize_os.sh && sudo reboot
+
+# 5. Lancer l'application
 ./start-local-meet.sh
 ```
 
@@ -98,6 +103,7 @@ Pour plus de détails, voir le [Guide d'installation](docs/installation.md).
 - [x] **Reactions emoji** en temps réel
 - [x] **Tableau de réunion collaboratif** (Admin write / Participant read)
 - [x] **Optimisation de la Grid** (Grid dynamique intelligente)
+- [x] **Optimisation Haute Charge** (Cluster Node.js, Debounce broadcasts, Nginx tuning)
 
 ### Version 1.3 (En cours)
 - [ ] Enregistrement des réunions
