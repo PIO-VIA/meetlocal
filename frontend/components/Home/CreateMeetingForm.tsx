@@ -84,8 +84,10 @@ export default function CreateMeetingForm({ socket }: CreateMeetingFormProps) {
       localStorage.setItem('active_room_name', createdRoomName);
       localStorage.setItem('room_created_time', new Date().toISOString());
 
-      // Rediriger vers la salle
-      router.push(`/room?room=${roomId}`);
+      // Rediriger vers la salle avec un léger délai pour laisser l'IPC se propager au Master
+      setTimeout(() => {
+        router.push(`/room?room=${roomId}`);
+      }, 100);
     });
 
     socket.once('roomError', (data) => {

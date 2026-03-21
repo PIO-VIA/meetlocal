@@ -191,7 +191,9 @@
         },
         "toast_error_join": "Impossible de rejoindre la réunion",
         "chat": "Chat",
-        "notes": "Notes"
+        "notes": "Notes",
+        "promoted_to_admin": "Vous êtes maintenant administrateur de la réunion.",
+        "demoted_from_admin": "Vous n'êtes plus administrateur de la réunion."
     },
     "controls": {
         "mic_on": "Activer le micro",
@@ -241,6 +243,8 @@
         "disable_success": "Action demandée avec succès.",
         "name_changed": "Nom mis à jour.",
         "edit_name": "Modifier mon nom",
+        "grant_admin": "Nommer administrateur",
+        "admin_granted": "Droit d'administrateur transféré.",
         "kick_confirm_title": "Éjecter le participant",
         "kick_confirm_desc": "Êtes-vous sûr de vouloir retirer {{name}} de la réunion ?",
         "kick_confirm_btn": "Éjecter"

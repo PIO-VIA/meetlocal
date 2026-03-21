@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 import CreateMeetingForm from '@/components/Home/CreateMeetingForm';
 import JoinMeetingForm from '@/components/Home/JoinMeetingForm';
-import ActiveRoomsList from '@/components/Home/ActiveRoomsList';
 import ServerConnectionPopup from '@/components/Meeting/ServerConnectionPopup';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import LanguageSwitcher from '@/components/shared/LanguageSwitcher';
@@ -185,7 +184,6 @@ export default function Home() {
               ) : (
                 <>
                   <JoinMeetingForm socket={socket} />
-                  <ActiveRoomsList socket={socket} />
                 </>
               )}
             </div>

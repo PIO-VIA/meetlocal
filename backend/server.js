@@ -75,7 +75,7 @@ const io = new Server(server, {
 });
 console.log("IO CREATED");
 
-const PORT = 3001;
+const PORT = process.env.WORKER_PORT || 3001;
 
 // Monitoring mémoire toutes les 30 secondes
 setInterval(() => {
@@ -193,10 +193,16 @@ function broadcastRoomsList() {
         });
 
         io.emit('roomsList', roomsList);
-    }, 200); // regroupe toutes les émissions dans une fenêtre de 200ms
+
+        // Notifier le Master pour agrégation globale
+        if (process.send) {
+            process.send({ type: 'roomsListUpdate', rooms: roomsList });
+        }
+    }, 200);
 }
 
 const _userListTimers = new Map();
+let globalRooms = []; // Liste agrégée envoyée par le Master
 
 function broadcastUserList(roomId) {
     if (_userListTimers.has(roomId)) return;
@@ -209,6 +215,14 @@ function broadcastUserList(roomId) {
         }
     }, 100));
 }
+
+// Écouter les messages du Master
+process.on('message', (msg) => {
+    if (msg.type === 'globalRoomsList' && Array.isArray(msg.rooms)) {
+        globalRooms = msg.rooms;
+        io.emit('roomsList', msg.rooms);
+    }
+});
 
 // ==================== SOCKET.IO EVENTS ====================
 
@@ -426,7 +440,9 @@ io.on('connection', (socket) => {
     // --- Room Logic Events ---
 
     socket.on('checkRoom', ({ roomId }, callback) => {
-        callback(roomManager.hasRoom(roomId));
+        const foundGlobally = globalRooms.some(r => r.id === roomId);
+        const foundLocally = roomManager.hasRoom(roomId);
+        callback(foundGlobally || foundLocally);
     });
 
     socket.on('createRoom', async (data) => {
@@ -440,6 +456,9 @@ io.on('connection', (socket) => {
 
         try {
             const room = await roomManager.createRoom(roomId, roomName, userName, socket.id);
+            if (process.send) {
+                process.send({ type: 'roomCreated', roomId });
+            }
             socket.join(roomId);
             socket.emit('roomCreated', { roomId, roomName });
             broadcastRoomsList();
@@ -454,9 +473,25 @@ io.on('connection', (socket) => {
         const room = roomManager.getRoom(roomId);
 
         if (room) {
+            // Cancel any pending deletion
+            if (room.deletionTimeout) {
+                clearTimeout(room.deletionTimeout);
+                room.deletionTimeout = null;
+            }
+
+            // Si le socket est déjà dans la salle (ex: le créateur qui navigue sans se déconnecter)
+            const userAlreadyInRoom = room.users.find(u => u.id === socket.id);
+            if (userAlreadyInRoom) {
+                if (userAlreadyInRoom.name !== userName) {
+                    userAlreadyInRoom.name = userName;
+                }
+                socket.join(roomId);
+                callback(true, { isCreator: userAlreadyInRoom.isCreator });
+                return;
+            }
+
             const existingUserIndex = room.users.findIndex(user => user.name === userName && user.disconnected);
-            const nameIsTaken = room.users.some(user => user.name === userName && !user.disconnected &&
-                (existingUserIndex === -1 || user.id !== room.users[existingUserIndex].id));
+            const nameIsTaken = room.users.some(user => user.name === userName && !user.disconnected);
 
             if (nameIsTaken) {
                 callback(false, { error: 'NAME_ALREADY_TAKEN' });
@@ -485,6 +520,7 @@ io.on('connection', (socket) => {
             }
 
             callback(true, { isCreator: room.users.find(u => u.id === socket.id)?.isCreator });
+            broadcastUserList(roomId);
             broadcastRoomsList();
         } else {
             callback(false, { message: 'Salon non trouvé' });
@@ -504,15 +540,43 @@ io.on('connection', (socket) => {
                     io.to(roomId).emit('screenStopped', { userName, userId: socket.id });
                 }
 
+                const wasCreator = user.isCreator;
                 room.users.splice(userIndex, 1);
                 socket.leave(roomId);
                 io.to(roomId).emit('userLeft', { userName, userId: socket.id });
 
-                if (room.users.length === 0) {
+                const activeUsers = room.users.filter(u => !u.disconnected);
+                if (activeUsers.length === 0) {
                     roomManager.removeRoom(roomId);
+                    if (process.send) {
+                        process.send({ type: 'roomClosed', roomId });
+                    }
+                } else if (wasCreator) {
+                    // Auto-assign new admin if creator left
+                    const newAdmin = activeUsers[0];
+                    newAdmin.isCreator = true;
+                    io.to(roomId).emit('newAdminAssigned', { userId: newAdmin.id, userName: newAdmin.name });
                 }
 
+                broadcastUserList(roomId);
                 broadcastRoomsList();
+            }
+        }
+    });
+
+    socket.on('grantAdmin', ({ roomId, targetUserId }) => {
+        const room = roomManager.getRoom(roomId);
+        if (room) {
+            const admin = room.users.find(u => u.id === socket.id);
+            if (admin && admin.isCreator) {
+                const targetUser = room.users.find(u => u.id === targetUserId);
+                if (targetUser && !targetUser.disconnected) {
+                    admin.isCreator = false;
+                    targetUser.isCreator = true;
+                    io.to(roomId).emit('newAdminAssigned', { userId: targetUser.id, userName: targetUser.name });
+                    broadcastUserList(roomId);
+                    broadcastRoomsList();
+                }
             }
         }
     });
@@ -581,7 +645,7 @@ io.on('connection', (socket) => {
             const user = room.users.find(u => u.id === socket.id);
             if (user && newName && newName.trim().length > 0) {
                 user.name = newName.trim();
-                // Assurer que le nouveau nom est diffusé à tout le monde
+                io.to(roomId).emit('nameChanged', { userId: socket.id, newName: user.name });
                 broadcastUserList(roomId);
                 broadcastRoomsList();
             }
@@ -772,17 +836,40 @@ io.on('connection', (socket) => {
                     io.to(room.id).emit('screenStopped', { userName: user.name, userId: socket.id });
                 }
 
+                user.disconnected = true;
+
                 if (user.isCreator) {
-                    user.disconnected = true;
                     io.to(room.id).emit('adminDisconnected', { message: `L'administrateur ${user.name} s'est déconnecté.` });
                 } else {
-                    room.users.splice(userIndex, 1);
                     io.to(room.id).emit('userLeft', { userName: user.name, userId: socket.id });
-
-                    if (room.users.length === 0) {
-                        roomManager.removeRoom(room.id);
-                    }
                 }
+
+                const activeUsers = room.users.filter(u => !u.disconnected);
+                if (activeUsers.length === 0) {
+                    // Delay deletion by 30 seconds to allow for momentary disconnects (e.g. page navigation)
+                    room.deletionTimeout = setTimeout(() => {
+                        const checkRoom = roomManager.getRoom(room.id);
+                        if (checkRoom) {
+                            const currentActive = checkRoom.users.filter(u => !u.disconnected);
+                            if (currentActive.length === 0) {
+                                roomManager.removeRoom(checkRoom.id);
+                                broadcastRoomsList();
+                                if (process.send) {
+                                    process.send({ type: 'roomClosed', roomId: checkRoom.id });
+                                }
+                            }
+                        }
+                    }, 30000);
+                } else if (user.isCreator) {
+                    // Auto assign new admin
+                    const newAdmin = activeUsers[0];
+                    newAdmin.isCreator = true;
+                    user.isCreator = false;
+                    io.to(room.id).emit('newAdminAssigned', { userId: newAdmin.id, userName: newAdmin.name });
+                }
+
+                broadcastUserList(room.id);
+                // Do not splice disconnected user immediately to allow reconnect, but room cleanup handles empty rooms
                 broadcastRoomsList();
             }
         });

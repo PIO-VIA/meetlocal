@@ -42,28 +42,16 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
     // Sauvegarder le nom d'utilisateur
     localStorage.setItem('display_name', userName.trim());
 
-    // Rejoindre une salle spécifique
-    socket.emit('joinRoom',
-      { roomId: roomId.trim(), userName: userName.trim() },
-      (success: boolean, response: any) => {
-        setLoading(false);
-
-        if (!success) {
-          if (response?.error === 'NAME_ALREADY_TAKEN') {
-            setError(response.message || t('join_meeting.errors.name_taken_in_room'));
-          } else {
-            setError(t('join_meeting.errors.room_not_found'));
-          }
-          return;
-        }
-
-        // Sauvegarder le statut
-        localStorage.setItem('room_creator', response?.isCreator ? 'true' : 'false');
-
-        // Rediriger
+    // Vérifier si la salle existe d'abord
+    socket.emit('checkRoom', { roomId: roomId.trim() }, (exists: boolean) => {
+      setLoading(false);
+      if (exists) {
+        // Rediriger vers la salle. Le hook useSocket se reconnectera au bon worker.
         router.push(`/room?room=${roomId.trim()}`);
+      } else {
+        setError(t('join_meeting.errors.room_not_found'));
       }
-    );
+    });
   };
 
   return (
@@ -127,8 +115,8 @@ export default function JoinMeetingForm({ socket }: JoinMeetingFormProps) {
           type="submit"
           disabled={loading || !socket}
           className={`w-full py-3 sm:py-4 px-4 sm:px-6 rounded-lg font-semibold text-white transition-all duration-200 transform text-sm sm:text-base ${loading || !socket
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 hover:shadow-2xl hover:scale-[1.02] active:scale-95'
+            ? 'bg-gray-400 cursor-not-allowed'
+            : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 hover:shadow-2xl hover:scale-[1.02] active:scale-95'
             }`}
         >
           {loading ? (

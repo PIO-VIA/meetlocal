@@ -14,29 +14,58 @@ interface SocketState {
   latency: number;
 }
 
+// --- VARIABLES GLOBALES (Singleton pour persistance inter-pages) ---
+let globalSocket: Socket | null = null;
+let globalIsConnected = false;
+let globalStatus: ConnectionStatus = 'disconnected';
+let globalError: string | null = null;
+let globalReconnectAttempts = 0;
+let globalLatency = 0;
+const subscribers = new Set<(updates: Partial<SocketState>) => void>();
+let globalLatencyInterval: NodeJS.Timeout | undefined = undefined;
+let globalRoomId: string | null = null; // Stocke le roomId de la connexion actuelle
+
+const updateGlobalState = (updates: Partial<SocketState>) => {
+  if (updates.socket !== undefined) globalSocket = updates.socket;
+  if (updates.isConnected !== undefined) globalIsConnected = updates.isConnected;
+  if (updates.status !== undefined) globalStatus = updates.status;
+  if (updates.error !== undefined) globalError = updates.error;
+  if (updates.reconnectAttempts !== undefined) globalReconnectAttempts = updates.reconnectAttempts;
+  if (updates.latency !== undefined) globalLatency = updates.latency;
+
+  subscribers.forEach(fn => fn(updates));
+};
+
 export const useSocket = () => {
   const [state, setState] = useState<SocketState>({
-    socket: null,
-    isConnected: false,
-    status: 'disconnected',
-    error: null,
-    reconnectAttempts: 0,
-    latency: 0
+    socket: globalSocket,
+    isConnected: globalIsConnected,
+    status: globalStatus,
+    error: globalError,
+    reconnectAttempts: globalReconnectAttempts,
+    latency: globalLatency
   });
 
-  const socketRef = useRef<Socket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const latencyIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const reconnectAttemptsRef = useRef(0);
+
+  // Synchronisation de l'état inter-composants
+  useEffect(() => {
+    const handleUpdate = (updates: Partial<SocketState>) => {
+      setState(prev => ({ ...prev, ...updates }));
+    };
+    subscribers.add(handleUpdate);
+    return () => {
+      subscribers.delete(handleUpdate);
+    };
+  }, []);
 
   // Mesurer la latence
   const measureLatency = useCallback(() => {
-    if (!socketRef.current?.connected) return;
+    if (!globalSocket?.connected) return;
 
     const start = Date.now();
-    socketRef.current.emit('ping', () => {
-      const latency = Date.now() - start;
-      setState(prev => ({ ...prev, latency }));
+    globalSocket.emit('ping', () => {
+      updateGlobalState({ latency: Date.now() - start });
     });
   }, []);
 
@@ -56,23 +85,38 @@ export const useSocket = () => {
       return true;
     } catch (error) {
       console.error('❌ Impossible de contacter le backend:', error);
-      setState(prev => ({
-        ...prev,
+      updateGlobalState({
         status: 'error',
         error: 'Impossible de contacter le serveur via ' + backendUrl
-      }));
+      });
       return false;
     }
   }, []);
 
   // Initialiser Socket.IO
   const initSocket = useCallback(async () => {
-    if (socketRef.current?.connected) {
-      console.log('✅ Socket déjà connecté');
-      return;
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const urlRoomId = searchParams ? (searchParams.get('room') || searchParams.get('id') || searchParams.get('roomId')) : null;
+
+    if (globalSocket?.connected) {
+      // Si on est déjà connecté mais que le roomId a changé (ex: navigation Accueil -> Salon),
+      // on doit forcer une reconnexion pour que le Gateway puisse router vers le bon worker.
+      if (urlRoomId !== globalRoomId) {
+        console.log(`🔄 RoomID changé (${globalRoomId} -> ${urlRoomId}). Reconnexion forcée...`);
+        globalSocket.disconnect();
+        globalSocket = null;
+        globalIsConnected = false;
+        globalStatus = 'disconnected';
+      } else {
+        console.log('✅ Socket Global déjà connecté au bon salon');
+        return;
+      }
     }
 
-    setState(prev => ({ ...prev, status: 'connecting' }));
+    // Prevent multiple parallel init
+    if (globalStatus === 'connecting') return;
+
+    updateGlobalState({ status: 'connecting' });
 
     // Vérifier la connexion d'abord
     const ok = await checkConnection();
@@ -86,10 +130,18 @@ export const useSocket = () => {
     console.log('📡 URL:', backendUrl);
 
     try {
-      // Si backendUrl est un chemin relatif (ex: /api), on ne le passe pas en premier argument
-      // car Socket.IO l'interpréterait comme un Namespace.
+      // Injection de l'ID de salon pour le load balancer
+      let query = {};
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const roomId = searchParams.get('room') || searchParams.get('id') || searchParams.get('roomId');
+        if (roomId) query = { roomId };
+      } catch (e) { }
+
       const url = backendUrl.startsWith('http') ? backendUrl : undefined;
+      const forceNew = urlRoomId !== globalRoomId && globalSocket !== null;
       const socket = io(url, {
+        query,
         path: backendUrl === '/api' ? '/api/socket.io' : '/socket.io',
         transports: ['websocket', 'polling'],
         reconnection: true,
@@ -99,9 +151,8 @@ export const useSocket = () => {
         timeout: 20000,
         secure: false,
         autoConnect: true,
-        forceNew: false,
+        forceNew,
         multiplex: true,
-        // Options supplémentaires pour réseau local
         upgrade: true,
         rememberUpgrade: true,
         perMessageDeflate: {
@@ -109,7 +160,7 @@ export const useSocket = () => {
         } as any
       });
 
-      socketRef.current = socket;
+      updateGlobalState({ socket });
 
       // ===== ÉVÉNEMENTS DE CONNEXION =====
       socket.on('connect', () => {
@@ -117,42 +168,41 @@ export const useSocket = () => {
         console.log('📡 Socket ID:', socket.id);
         console.log('🔗 Transport utilisé:', socket.io.engine.transport.name);
 
-        reconnectAttemptsRef.current = 0;
+        // Mémoriser le roomId actuel
+        const searchParams = new URLSearchParams(window.location.search);
+        globalRoomId = searchParams.get('room') || searchParams.get('id') || searchParams.get('roomId');
 
-        setState(prev => ({
-          ...prev,
+        updateGlobalState({
           socket,
           isConnected: true,
           status: 'connected',
           error: null,
           reconnectAttempts: 0
-        }));
+        });
 
-        // Démarrer la mesure de latence
-        if (latencyIntervalRef.current) {
-          clearInterval(latencyIntervalRef.current);
+        // Démarrer la mesure de latence globale
+        if (globalLatencyInterval) {
+          clearInterval(globalLatencyInterval);
         }
-        latencyIntervalRef.current = setInterval(measureLatency, 5000);
+        globalLatencyInterval = setInterval(measureLatency, 5000);
       });
 
       socket.on('disconnect', (reason) => {
         console.log('❌ Socket déconnecté:', reason);
 
-        setState(prev => ({
-          ...prev,
+        updateGlobalState({
           isConnected: false,
           status: reason === 'io client disconnect' ? 'disconnected' : 'reconnecting'
-        }));
+        });
 
-        if (latencyIntervalRef.current) {
-          clearInterval(latencyIntervalRef.current);
+        if (globalLatencyInterval) {
+          clearInterval(globalLatencyInterval);
+          globalLatencyInterval = undefined;
         }
       });
 
       socket.on('connect_error', (error) => {
         console.error('🔴 Erreur de connexion Socket.IO:', error.message);
-
-        reconnectAttemptsRef.current += 1;
 
         let errorMessage = 'Erreur de connexion au serveur';
 
@@ -164,46 +214,37 @@ export const useSocket = () => {
           errorMessage = 'Erreur SSL. Avez-vous accepté le certificat?';
         }
 
-        setState(prev => ({
-          ...prev,
+        updateGlobalState({
           status: 'error',
           error: errorMessage,
-          reconnectAttempts: reconnectAttemptsRef.current
-        }));
+          reconnectAttempts: globalReconnectAttempts + 1
+        });
       });
 
       socket.on('reconnect_attempt', (attempt) => {
         console.log(`🔄 Tentative de reconnexion #${attempt}...`);
-
-        setState(prev => ({
-          ...prev,
+        updateGlobalState({
           status: 'reconnecting',
           reconnectAttempts: attempt
-        }));
+        });
       });
 
       socket.on('reconnect', (attempt) => {
         console.log(`✅ Reconnecté après ${attempt} tentative(s)`);
-
-        reconnectAttemptsRef.current = 0;
-
-        setState(prev => ({
-          ...prev,
+        updateGlobalState({
           isConnected: true,
           status: 'connected',
           error: null,
           reconnectAttempts: 0
-        }));
+        });
       });
 
       socket.on('reconnect_failed', () => {
         console.error('❌ Échec de toutes les tentatives de reconnexion');
-
-        setState(prev => ({
-          ...prev,
+        updateGlobalState({
           status: 'error',
           error: 'Impossible de se reconnecter au serveur'
-        }));
+        });
       });
 
       // ===== ÉVÉNEMENTS DE TRANSPORT =====
@@ -211,35 +252,27 @@ export const useSocket = () => {
         console.log('⬆️ Transport amélioré vers:', transport.name);
       });
 
-      socket.io.engine.on('packet', ({ type, data }) => {
-        if (type === 'pong') {
-          // Latence mise à jour automatiquement par Socket.IO
-        }
-      });
-
-      // ===== ÉVÉNEMENTS D'ERREUR GLOBAUX =====
       socket.on('error', (error) => {
         console.error('❌ Erreur Socket.IO:', error);
       });
 
     } catch (error) {
-      console.error('❌ Erreur lors de l\'initialisation du socket:', error);
-      setState(prev => ({
-        ...prev,
+      console.error("❌ Erreur lors de l'initialisation du socket:", error);
+      updateGlobalState({
         status: 'error',
-        error: 'Erreur d\'initialisation du socket'
-      }));
+        error: "Erreur d'initialisation du socket"
+      });
     }
   }, [checkConnection, measureLatency]);
 
-  // Déconnecter proprement
+  // Déconnecter proprement (Uniquement lors de destructions explicites, pas aux changements de vue Next)
   const disconnect = useCallback(() => {
-    if (socketRef.current) {
+    if (globalSocket) {
       console.log('🔌 Déconnexion du socket...');
-      socketRef.current.disconnect();
-      socketRef.current = null;
+      globalSocket.disconnect();
+      globalSocket = null;
 
-      setState({
+      updateGlobalState({
         socket: null,
         isConnected: false,
         status: 'disconnected',
@@ -249,8 +282,9 @@ export const useSocket = () => {
       });
     }
 
-    if (latencyIntervalRef.current) {
-      clearInterval(latencyIntervalRef.current);
+    if (globalLatencyInterval) {
+      clearInterval(globalLatencyInterval);
+      globalLatencyInterval = undefined;
     }
 
     if (reconnectTimeoutRef.current) {
@@ -258,24 +292,21 @@ export const useSocket = () => {
     }
   }, []);
 
-  // Reconnecter manuellement
   const reconnect = useCallback(() => {
     disconnect();
-    reconnectAttemptsRef.current = 0;
     setTimeout(initSocket, 1000);
   }, [disconnect, initSocket]);
 
   // Initialisation au montage
   useEffect(() => {
     initSocket();
-
-    return () => {
-      disconnect();
-    };
-  }, []);
+    // 💡 IMPORTANT FIX : On NE DECONNECTE PAS le socket au démontage du composant.
+    // Cela permet au singleton Socket.IO de persister lors des navigations "router.push()"
+    // et de rester lié au MÊME worker du cluster Node.js.
+  }, [initSocket]);
 
   return {
-    socket: socketRef.current,
+    socket: state.socket,
     isConnected: state.isConnected,
     status: state.status,
     error: state.error,

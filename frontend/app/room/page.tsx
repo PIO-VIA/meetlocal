@@ -136,6 +136,19 @@ function RoomContent() {
         router.push('/');
       });
 
+      socket.on('newAdminAssigned', (data: { userId: string, userName: string }) => {
+        setIsAdmin((prevIsAdmin) => {
+          if (data.userId === socket.id) {
+            toast.success(t('room.promoted_to_admin', 'Vous êtes maintenant administrateur de la réunion.'));
+            return true;
+          } else if (prevIsAdmin) {
+            toast.info(t('room.demoted_from_admin', 'Vous n\'êtes plus administrateur de la réunion.'));
+            return false;
+          }
+          return prevIsAdmin;
+        });
+      });
+
       socket.on('reaction', (data: { emoji: string }) => {
         // Spawn multiple emojis
         const idBase = Date.now();
@@ -164,6 +177,7 @@ function RoomContent() {
         socket.off('userLeft');
         socket.off('meetingEnded');
         socket.off('kickedByAdmin');
+        socket.off('newAdminAssigned');
         socket.off('reaction');
         socket.emit('leaveRoom', { roomId, userName });
       }
@@ -399,7 +413,6 @@ function RoomContent() {
       </div>
 
       {/* Controls avec design plus doux - MODIFIÉ pour responsive */}
-      {/* ANCIEN: <footer className="bg-white p-4 border-t border-gray-200 shadow-sm"> */}
       <footer className="bg-white dark:bg-gray-800 p-3 pb-4 sm:p-4 sm:pb-4 border-t border-gray-200 dark:border-gray-700 shadow-sm" data-tour="tour-controls">
         <ControlButtons
           localStream={localStream}

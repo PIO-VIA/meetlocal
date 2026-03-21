@@ -193,7 +193,9 @@
         },
         "toast_error_join": "Unable to join the meeting",
         "chat": "Chat",
-        "notes": "Notes"
+        "notes": "Notes",
+        "promoted_to_admin": "You are now the administrator of the meeting.",
+        "demoted_from_admin": "You are no longer the administrator of the meeting."
     },
     "controls": {
         "mic_on": "Enable microphone",
@@ -243,6 +245,8 @@
         "disable_success": "Action requested successfully.",
         "name_changed": "Name updated.",
         "edit_name": "Edit my name",
+        "grant_admin": "Make administrator",
+        "admin_granted": "Administrator rights transferred.",
         "kick_confirm_title": "Eject Participant",
         "kick_confirm_desc": "Are you sure you want to remove {{name}} from the meeting?",
         "kick_confirm_btn": "Eject"

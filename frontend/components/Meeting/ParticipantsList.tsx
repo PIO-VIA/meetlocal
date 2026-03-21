@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Socket } from 'socket.io-client';
-import { Users, Crown, VideoOff, MicOff, ScreenShareOff, Download, Edit2, Check, X } from 'lucide-react';
+import { Users, Crown, VideoOff, MicOff, ScreenShareOff, Download, Edit2, Check, X, UserPlus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastContext';
 import { getParticipantColor } from '@/lib/utils';
@@ -37,8 +37,14 @@ export default function ParticipantsList({ socket, roomId, isAdmin, currentUserI
   const handleAdminDisableMedia = (targetUserId: string, mediaType: 'video' | 'audio' | 'screen') => {
     if (socket) {
       socket.emit('adminDisableMedia', { roomId, targetUserId, mediaType });
-      // Only generic toast, relying on specific ones might be overkill.
-      toast.success(t(`participants_list.disable_success`, 'Action requested.'));
+      toast.success(t('participants_list.disable_success', 'Demande envoyée.'));
+    }
+  };
+
+  const handleGrantAdmin = (targetUserId: string) => {
+    if (socket) {
+      socket.emit('grantAdmin', { roomId, targetUserId });
+      toast.success(t('participants_list.admin_granted', "Droit d'administrateur transféré."));
     }
   };
 
@@ -234,6 +240,13 @@ export default function ParticipantsList({ socket, roomId, isAdmin, currentUserI
                 {/* Actions de l'admin */}
                 {isAdmin && participant.id !== currentUserId && (
                   <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                    <button
+                      onClick={() => handleGrantAdmin(participant.id!)}
+                      className="p-1.5 text-gray-500 hover:text-yellow-500 dark:text-gray-400 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg transition-colors"
+                      title={t('participants_list.grant_admin', 'Nommer administrateur')}
+                    >
+                      <UserPlus size={16} />
+                    </button>
                     <button
                       onClick={() => handleAdminDisableMedia(participant.id!, 'audio')}
                       className="p-1.5 text-gray-500 hover:text-orange-500 dark:text-gray-400 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"

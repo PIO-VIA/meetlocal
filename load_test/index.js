@@ -11,7 +11,7 @@ const ROOM_ID = process.env.ROOM_ID || "load-test-room";
 const ROOM_NAME = process.env.ROOM_NAME || "LocalMeet Load Test";
 
 // CONFIG TEST
-const TOTAL_USERS = parseInt(process.env.TOTAL_USERS) || 20000;    // nombre total simulé
+const TOTAL_USERS = parseInt(process.env.TOTAL_USERS) || 10000;    // nombre total simulé
 const STEP_USERS = parseInt(process.env.STEP_USERS) || 100;       // utilisateurs ajoutés par vague
 const STEP_DELAY = parseInt(process.env.STEP_DELAY) || 2000;     // pause entre vagues (ms)
 
