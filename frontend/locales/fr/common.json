@@ -218,6 +218,11 @@
             "share": "Impossible de partager l'écran. Veuillez réessayer.",
             "admin_only": "Seul l'administrateur peut terminer la réunion"
         },
+        "disabled_by_admin": {
+            "video": "L'administrateur a désactivé votre caméra.",
+            "audio": "L'administrateur a désactivé votre microphone.",
+            "screen": "L'administrateur a arrêté votre partage d'écran."
+        },
         "kicked_toast": "Vous avez été retiré de la réunion par l'administrateur."
     },
     "participants_list": {
@@ -229,6 +234,13 @@
         "no_video": "Pas de vidéo",
         "you": "Vous",
         "kick": "Éjecter le participant",
+        "download": "Télécharger CSV",
+        "disable_audio": "Désactiver le micro",
+        "disable_video": "Désactiver la caméra",
+        "disable_screen": "Désactiver le partage d'écran",
+        "disable_success": "Action demandée avec succès.",
+        "name_changed": "Nom mis à jour.",
+        "edit_name": "Modifier mon nom",
         "kick_confirm_title": "Éjecter le participant",
         "kick_confirm_desc": "Êtes-vous sûr de vouloir retirer {{name}} de la réunion ?",
         "kick_confirm_btn": "Éjecter"

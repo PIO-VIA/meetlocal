@@ -220,6 +220,11 @@
             "share": "Unable to share screen. Please try again.",
             "admin_only": "Only the administrator can end the meeting"
         },
+        "disabled_by_admin": {
+            "video": "The administrator disabled your camera.",
+            "audio": "The administrator muted your microphone.",
+            "screen": "The administrator stopped your screen share."
+        },
         "kicked_toast": "You have been removed from the meeting by the administrator."
     },
     "participants_list": {
@@ -231,6 +236,13 @@
         "no_video": "No video",
         "you": "You",
         "kick": "Eject participant",
+        "download": "Download CSV",
+        "disable_audio": "Mute microphone",
+        "disable_video": "Disable camera",
+        "disable_screen": "Stop screen share",
+        "disable_success": "Action requested successfully.",
+        "name_changed": "Name updated.",
+        "edit_name": "Edit my name",
         "kick_confirm_title": "Eject Participant",
         "kick_confirm_desc": "Are you sure you want to remove {{name}} from the meeting?",
         "kick_confirm_btn": "Eject"

@@ -56,6 +56,45 @@ export default function ControlButtons({
   // État pour les modaux de confirmation
   const [modalType, setModalType] = useState<'leave' | 'end' | null>(null);
 
+  // Écoute des évènements d'administration ("forceDisableMedia")
+  useEffect(() => {
+    if (!socket) return;
+    const handleForceDisable = ({ mediaType }: { mediaType: 'video' | 'audio' | 'screen' }) => {
+      if (mediaType === 'video') {
+        onStopCamera();
+        setIsCameraOn(false);
+        socket.emit('stopStream', { roomId });
+        toast.info(t('controls.disabled_by_admin.video', "L'administrateur a désactivé votre caméra."));
+      } else if (mediaType === 'audio') {
+        if (isAudioOnly && onStopAudioOnly) {
+          onStopAudioOnly();
+          setIsAudioOnly(false);
+          socket.emit('stopStream', { roomId });
+        }
+        const currentStream = localStream || audioStream;
+        if (currentStream) {
+          const audioTracks = currentStream.getAudioTracks();
+          audioTracks.forEach(track => {
+            track.enabled = false;
+          });
+          setIsMicMuted(true);
+        }
+        toast.info(t('controls.disabled_by_admin.audio', "L'administrateur a désactivé votre microphone."));
+      } else if (mediaType === 'screen') {
+        if (onStopScreenShare) {
+          onStopScreenShare();
+        }
+        socket.emit('stopScreen', { roomId });
+        toast.info(t('controls.disabled_by_admin.screen', "L'administrateur a arrêté votre partage d'écran."));
+      }
+    };
+
+    socket.on('forceDisableMedia', handleForceDisable);
+    return () => {
+      socket.off('forceDisableMedia', handleForceDisable);
+    };
+  }, [socket, roomId, isAudioOnly, localStream, audioStream, onStopCamera, onStopAudioOnly, onStopScreenShare, t, toast]);
+
   // Toggle Audio uniquement
   const handleToggleAudioOnly = async () => {
     if (isAudioOnly) {

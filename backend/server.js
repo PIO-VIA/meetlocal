@@ -562,6 +562,32 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('adminDisableMedia', ({ roomId, targetUserId, mediaType }) => {
+        const room = roomManager.getRoom(roomId);
+        if (room) {
+            const admin = room.users.find(u => u.id === socket.id);
+            if (admin && admin.isCreator) {
+                const targetUser = room.users.find(u => u.id === targetUserId);
+                if (targetUser) {
+                    io.to(targetUserId).emit('forceDisableMedia', { mediaType });
+                }
+            }
+        }
+    });
+
+    socket.on('changeName', ({ roomId, newName }) => {
+        const room = roomManager.getRoom(roomId);
+        if (room) {
+            const user = room.users.find(u => u.id === socket.id);
+            if (user && newName && newName.trim().length > 0) {
+                user.name = newName.trim();
+                // Assurer que le nouveau nom est diffusé à tout le monde
+                broadcastUserList(roomId);
+                broadcastRoomsList();
+            }
+        }
+    });
+
     socket.on('message', ({ roomId, message, timestamp, file, replyTo }, callback) => {
         const room = roomManager.getRoom(roomId);
         if (room) {
