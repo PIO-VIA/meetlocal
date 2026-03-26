@@ -143,7 +143,7 @@ app.post('/upload-file', upload.single('file'), (req, res) => {
             originalName: req.file.originalname,
             size: req.file.size,
             mimetype: req.file.mimetype,
-            url: `/download-file/${req.file.filename}`
+            url: `/download-file/${encodeURIComponent(req.file.filename)}`
         };
         console.log('📎 Fichier uploadé:', fileInfo.originalName);
         res.json({ success: true, file: fileInfo });
@@ -500,11 +500,20 @@ io.on('connection', (socket) => {
 
             if (existingUserIndex !== -1) {
                 // Rejoin
-                room.users[existingUserIndex].id = socket.id;
-                room.users[existingUserIndex].disconnected = false;
+                const user = room.users[existingUserIndex];
+
+                // Si l'admin revient, on annule le transfert de droits en cours
+                if (user.isCreator && room.adminTransferTimeout) {
+                    clearTimeout(room.adminTransferTimeout);
+                    room.adminTransferTimeout = null;
+                    console.log(`👑 Admin ${user.name} est revenu dans la room ${roomId}. Annulation du transfert.`);
+                }
+
+                user.id = socket.id;
+                user.disconnected = false;
                 socket.join(roomId);
                 io.to(roomId).emit('userJoined', {
-                    userName, userId: socket.id, isCreator: room.users[existingUserIndex].isCreator, rejoining: true
+                    userName, userId: socket.id, isCreator: user.isCreator, rejoining: true
                 });
             } else {
                 // New Join
@@ -861,11 +870,31 @@ io.on('connection', (socket) => {
                         }
                     }, 30000);
                 } else if (user.isCreator) {
-                    // Auto assign new admin
-                    const newAdmin = activeUsers[0];
-                    newAdmin.isCreator = true;
-                    user.isCreator = false;
-                    io.to(room.id).emit('newAdminAssigned', { userId: newAdmin.id, userName: newAdmin.name });
+                    // Temporiser le transfert de droits admin (8s) pour permettre un rechargement de page
+                    if (activeUsers.length > 0) {
+                        io.to(room.id).emit('adminDisconnected', {
+                            message: `L'administrateur ${user.name} s'est déconnecté. Transfert de droits dans 8s...`
+                        });
+
+                        room.adminTransferTimeout = setTimeout(() => {
+                            const r = roomManager.getRoom(room.id);
+                            if (!r) return;
+
+                            const currentActive = r.users.filter(u => !u.disconnected);
+                            // On vérifie si l'ancien admin est toujours déconnecté
+                            const originalAdmin = r.users.find(u => u.id === socket.id);
+
+                            if (originalAdmin && originalAdmin.disconnected && originalAdmin.isCreator && currentActive.length > 0) {
+                                const newAdmin = currentActive[0];
+                                newAdmin.isCreator = true;
+                                originalAdmin.isCreator = false;
+                                io.to(r.id).emit('newAdminAssigned', { userId: newAdmin.id, userName: newAdmin.name });
+                                broadcastUserList(r.id);
+                                console.log(`👑 Droits admin transférés de ${user.name} à ${newAdmin.name} dans la room ${r.id}`);
+                            }
+                            room.adminTransferTimeout = null;
+                        }, 8000);
+                    }
                 }
 
                 broadcastUserList(room.id);

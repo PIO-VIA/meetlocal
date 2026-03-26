@@ -67,7 +67,7 @@ echo -e "${GREEN}✅ Backend démarré${NC}"
 
 echo -e "${BLUE}🚀 Démarrage du frontend (sur le port $FRONTEND_PORT)...${NC}"
 cd frontend
-NODE_ENV=production PORT=$FRONTEND_PORT HOST=0.0.0.0 npm start > ../frontend.log 2>&1 &
+NODE_ENV=production PORT=$FRONTEND_PORT HOST=127.0.0.1 npm start > ../frontend.log 2>&1 &
 FRONTEND_PID=$!
 cd ..
 

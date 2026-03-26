@@ -136,6 +136,10 @@ function RoomContent() {
         router.push('/');
       });
 
+      socket.on('adminDisconnected', (data: { message: string }) => {
+        toast.info(data.message);
+      });
+
       socket.on('newAdminAssigned', (data: { userId: string, userName: string }) => {
         setIsAdmin((prevIsAdmin) => {
           if (data.userId === socket.id) {
