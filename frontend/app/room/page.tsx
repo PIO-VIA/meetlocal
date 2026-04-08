@@ -76,7 +76,7 @@ function RoomContent() {
   const [activePanel, setActivePanel] = useState<'participants' | 'chat' | 'notes' | 'tableau' | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>('');
-  const [hasNewMessages, setHasNewMessages] = useState(false);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [showRoomTour, setShowRoomTour] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
 
@@ -95,7 +95,7 @@ function RoomContent() {
     setActivePanel(prev => {
       const next = prev === panel ? null : panel;
       if (next === 'chat') {
-        setHasNewMessages(false);
+        setUnreadMessagesCount(0);
       }
       return next;
     });
@@ -320,8 +320,10 @@ function RoomContent() {
             >
               <MessageCircle size={14} className="sm:w-4 sm:h-4" />
               <span className="hidden md:inline">{t('room.chat')}</span>
-              {hasNewMessages && activePanel !== 'chat' && (
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse"></span>
+              {unreadMessagesCount > 0 && activePanel !== 'chat' && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center animate-bounce shadow-sm">
+                  {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                </span>
               )}
             </button>
           </Tooltip>
@@ -399,7 +401,7 @@ function RoomContent() {
                     userName={userName || ''}
                     onNewMessage={(senderName: string) => {
                       if (activePanel !== 'chat' && senderName !== userName) {
-                        setHasNewMessages(true);
+                        setUnreadMessagesCount(prev => prev + 1);
                       }
                     }}
                   />
@@ -432,6 +434,9 @@ function RoomContent() {
           socket={socket}
           roomId={roomId}
           userName={userName || ''}
+          isChatOpen={activePanel === 'chat'}
+          onToggleChat={() => togglePanel('chat')}
+          unreadCount={unreadMessagesCount}
         />
       </footer>
       {/* ─── FLOATING EMOJIS OVERLAY ─── */}

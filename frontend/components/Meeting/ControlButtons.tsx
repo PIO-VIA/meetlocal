@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRouter } from 'next/navigation';
-import { MicOff, Mic, ScreenShare, ScreenShareOff, Video, VideoOff, PhoneOff, XSquare, MoreVertical, Hand } from 'lucide-react';
+import { MicOff, Mic, ScreenShare, ScreenShareOff, Video, VideoOff, PhoneOff, XSquare, MoreVertical, Hand, MessageCircle } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '@/components/shared/Tooltip';
@@ -24,6 +24,9 @@ interface ControlButtonsProps {
   socket: Socket | null;
   roomId: string;
   userName: string;
+  isChatOpen: boolean;
+  onToggleChat: () => void;
+  unreadCount: number;
 }
 
 export default function ControlButtons({
@@ -39,7 +42,10 @@ export default function ControlButtons({
   isAdmin,
   socket,
   roomId,
-  userName
+  userName,
+  isChatOpen,
+  onToggleChat,
+  unreadCount
 }: ControlButtonsProps) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -304,6 +310,24 @@ export default function ControlButtons({
             }`}
         >
           {isScreenSharing ? <ScreenShareOff size={18} className="sm:w-[22px] sm:h-[22px]" /> : <ScreenShare size={18} className="sm:w-[22px] sm:h-[22px]" />}
+        </button>
+      </Tooltip>
+
+      {/* Chat */}
+      <Tooltip content={isChatOpen ? t('room.tooltips.hide_chat') : t('room.tooltips.show_chat')} position="top">
+        <button
+          onClick={onToggleChat}
+          className={`p-2.5 sm:p-3.5 rounded-full transition-all text-white relative ${isChatOpen
+            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+            : 'bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600'
+            }`}
+        >
+          <MessageCircle size={18} className="sm:w-[22px] sm:h-[22px]" />
+          {unreadCount > 0 && !isChatOpen && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center animate-bounce shadow-sm">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </button>
       </Tooltip>
 
